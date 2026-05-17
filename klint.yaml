@@ -9,3 +9,28 @@ rules:
   no-nested-template-literals: error
   no-string-match: error
   no-consecutive-array-push: error
+
+arch:
+  layers:
+    core:    ["core/**"]
+    rules:   ["rules/**"]
+    plugins: ["plugins/**"]
+    cli:     ["cli.ts"]
+
+  imports:
+    - from: [core, rules, plugins]
+      deny: cli
+      message: "Library layers must not import from the CLI — the dependency flows one way."
+
+  forbidden:
+    - pattern: "console.log("
+      in: [core, rules, plugins]
+      message: "console.log in library code corrupts --json output — delegate all output to the CLI."
+    - pattern: "console.error("
+      in: [core, rules, plugins]
+      message: "console.error in library code corrupts --json output — delegate all output to the CLI."
+
+  singleton:
+    - pattern: "process.exit("
+      only: "cli.ts"
+      message: "process.exit() in a library layer terminates the host — only the CLI may exit."

@@ -92,7 +92,12 @@ function resolveLayerFiles(
 }
 
 function inPrefixes(absPath: string, prefixes: string[]): boolean {
-  return prefixes.some((p) => absPath === p || absPath.startsWith(`${p}/`));
+  return prefixes.some((p) => {
+    if (absPath === p || absPath.startsWith(`${p}/`)) return true;
+    // Extension-less imports ("../cli") won't match a prefix like "{root}/cli.ts"
+    const bare = p.replace(/\.(tsx?|jsx?|mts|cts)$/, "");
+    return bare !== p && (absPath === bare || absPath.startsWith(`${bare}/`));
+  });
 }
 
 function scanImports(
