@@ -3,6 +3,8 @@ import ts from "typescript";
 import { walkAst } from "./ast";
 import type { ArchConfig, Severity, Violation } from "./types";
 
+const toSlash = (p: string) => p.replaceAll("\\", "/");
+
 interface AliasEntry {
   /** The prefix to match (pattern with `/*` stripped, e.g. `"@"` from `"@/*"`). */
   prefix: string;
@@ -29,7 +31,7 @@ function loadPathAliases(root: string): AliasEntry[] {
     const prefix = isWildcard ? pattern.slice(0, -2) : pattern;
     const targetStr = targets[0];
     const targetBase = targetStr.endsWith("/*") ? targetStr.slice(0, -2) : targetStr;
-    entries.push({ prefix, base: resolve(base, targetBase), isWildcard });
+    entries.push({ prefix, base: toSlash(resolve(base, targetBase)), isWildcard });
   }
   return entries;
 }
@@ -39,7 +41,7 @@ function resolveAlias(importPath: string, aliases: AliasEntry[]): string | undef
     if (alias.isWildcard) {
       const matchPrefix = `${alias.prefix}/`;
       if (importPath.startsWith(matchPrefix)) {
-        return resolve(alias.base, importPath.slice(matchPrefix.length));
+        return toSlash(resolve(alias.base, importPath.slice(matchPrefix.length)));
       }
     } else if (importPath === alias.prefix) {
       return alias.base;
@@ -60,7 +62,7 @@ function isBareSpecifier(path: string): boolean {
 }
 
 function globToPrefix(glob: string, root: string): string {
-  return resolve(root, glob.split("/**")[0].split("/*")[0].split("*")[0]);
+  return toSlash(resolve(root, glob.split("/**")[0].split("/*")[0].split("*")[0]));
 }
 
 function resolveGlobs(
@@ -126,7 +128,7 @@ function scanImports(
     if (isBareSpecifier(path)) {
       resolved = resolveAlias(path, aliases) ?? path;
     } else {
-      resolved = resolve(fileDir, path);
+      resolved = toSlash(resolve(fileDir, path));
     }
     const { line } = src.getLineAndCharacterOfPosition(specifierNode.getStart());
     records.push({ path, resolved, isTypeOnly, line: line + 1 });
@@ -210,7 +212,7 @@ export function runArchRules(
 
   for (const rule of arch.singleton ?? []) {
     const severity: Severity = rule.severity ?? "error";
-    const onlyFile = resolve(root, rule.only);
+    const onlyFile = toSlash(resolve(root, rule.only));
     const inFiles = rule.in
       ? resolveLayerFiles(rule.in, layers, root, allFiles)
       : allFiles;
