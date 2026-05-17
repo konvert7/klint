@@ -1,6 +1,6 @@
 {
-  "name": "klint",
-  "version": "0.0.0",
+  "name": "@konvert7/klint",
+  "version": "0.1.0",
   "description": "Architecture-as-Code linter for TypeScript. Enforce layer boundaries, import rules, and singleton patterns in YAML.",
   "type": "module",
   "bin": {
@@ -43,7 +43,9 @@
     "prepare": "bun .husky/install.mjs"
   },
   "lint-staged": {
-    "*.ts": ["bun run check"]
+    "*.ts": [
+      "bun run check"
+    ]
   },
   "dependencies": {
     "@clack/prompts": "^1.3.0",
@@ -64,5 +66,13 @@
     "knip": "^6.9.0",
     "lint-staged": "^15.5.2",
     "semantic-release": "^25.0.3"
-  }
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "author": "Konvert7",
+  "bugs": {
+    "url": "https://github.com/konvert7/klint/issues"
+  },
+  "homepage": "https://github.com/konvert7/klint#readme"
 }
