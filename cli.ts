@@ -24,6 +24,11 @@ interface CliOptions {
 export async function main(opts: CliOptions = {}): Promise<void> {
   const args = process.argv.slice(2);
 
+  if (args[0] === "help" || args[0] === "h") {
+    printHelp();
+    process.exit(0);
+  }
+
   if (args[0] === "install-skill") {
     await installSkill(args.slice(1));
     return;
