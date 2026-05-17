@@ -1,4 +1,4 @@
-import { dirname, relative, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import ts from "typescript";
 import { walkAst } from "./ast";
 import type { ArchConfig, Severity, Violation } from "./types";
@@ -58,7 +58,7 @@ interface ImportRecord {
 }
 
 function isBareSpecifier(path: string): boolean {
-  return !path.startsWith(".") && !path.startsWith("/");
+  return !path.startsWith(".") && !isAbsolute(path);
 }
 
 function globToPrefix(glob: string, root: string): string {
