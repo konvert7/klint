@@ -1,3 +1,13 @@
+# [0.3.0](https://github.com/konvert7/klint/compare/v0.2.0...v0.3.0) (2026-05-17)
+
+
+### Features
+
+* add agent hooks ([dedafc4](https://github.com/konvert7/klint/commit/dedafc4338701d0e0f203fce3aa7a7305800ac33))
+* add help and h to open help page next to --help ([ffff2e2](https://github.com/konvert7/klint/commit/ffff2e206d356c53999d18185e73d11d31f02907))
+* add klint rules for the repo itself ([3bf5061](https://github.com/konvert7/klint/commit/3bf50615b4d0f19456f5743f90fe9b068434af58))
+* install klint skill ([1083ffc](https://github.com/konvert7/klint/commit/1083ffc5d911bf605de108019dfd17a06e3283a3))
+
 # [0.2.0](https://github.com/konvert7/klint/compare/v0.1.0...v0.2.0) (2026-05-17)
 
 
