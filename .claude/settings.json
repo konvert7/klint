@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "bun .agents/hooks/check.ts" },
+          { "type": "command", "command": "bun .agents/hooks/type-check.ts" },
+          { "type": "command", "command": "bun .agents/hooks/knip.ts" },
+          { "type": "command", "command": "bun .agents/hooks/klint.ts" }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(bun run check *)",
+      "Bash(bun run check-write *)",
+      "Bash(bun run type-check *)",
+      "Bash(bun run knip *)",
+      "Bash(bun test *)",
+      "Bash(bun cli.ts *)",
+      "Bash(bun run klint *)"
+    ]
+  }
+}

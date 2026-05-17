@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["tools/*.ts"],
+  "entry": ["tools/*.ts", ".agents/hooks/*.ts"],
   "project": ["**/*.ts"],
   "includeEntryExports": true,
   "tags": ["-lintignore"],
