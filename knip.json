@@ -1,0 +1,8 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["tools/*.ts"],
+  "project": ["**/*.ts"],
+  "includeEntryExports": true,
+  "tags": ["-lintignore"],
+  "ignoreDependencies": ["@semantic-release/github"]
+}

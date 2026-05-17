@@ -1,0 +1,11 @@
+include: ["**/*.ts", "!tests/**", "!node_modules/**"]
+rules:
+  no-unguarded-json-parse: error
+  no-floating-promise: error
+  no-misused-promises: error
+  no-date-equality: error
+  no-optional-chain-on-non-nullable: error
+  no-object-in-template: error
+  no-nested-template-literals: error
+  no-string-match: error
+  no-consecutive-array-push: error
