@@ -1,3 +1,10 @@
+# [0.4.0](https://github.com/konvert7/klint/compare/v0.3.0...v0.4.0) (2026-05-18)
+
+
+### Features
+
+* generate schema ([a5a72dd](https://github.com/konvert7/klint/commit/a5a72dd344ef5d9693bb4365fce95d8f131ce4d6))
+
 # [0.3.0](https://github.com/konvert7/klint/compare/v0.2.0...v0.3.0) (2026-05-17)
 
 
