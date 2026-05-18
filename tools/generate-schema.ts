@@ -32,10 +32,10 @@ const schema = {
   ...raw,
 };
 
-const jsonOutPath = resolve(import.meta.dir, "../../klint.schema.json");
+const jsonOutPath = resolve(import.meta.dir, "../klint.schema.json");
 writeFileSync(jsonOutPath, `${JSON.stringify(schema, null, 2)}\n`);
 process.stdout.write(`Generated ${jsonOutPath}\n`);
 
-const yamlOutPath = resolve(import.meta.dir, "../../klint.schema.yaml");
+const yamlOutPath = resolve(import.meta.dir, "../klint.schema.yaml");
 writeFileSync(yamlOutPath, toYaml(schema, { lineWidth: 120 }));
 process.stdout.write(`Generated ${yamlOutPath}\n`);

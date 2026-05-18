@@ -39,6 +39,7 @@
     "check-write": "biome check --write",
     "knip": "knip-bun",
     "klint": "bun cli.ts",
+    "schema": "bun tools/generate-schema.ts",
     "lint-staged": "lint-staged",
     "prepare": "bun .husky/install.mjs"
   },
