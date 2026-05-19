@@ -1,3 +1,10 @@
+# [0.5.0](https://github.com/konvert7/klint/compare/v0.4.0...v0.5.0) (2026-05-19)
+
+
+### Features
+
+* extend schema ([a042e74](https://github.com/konvert7/klint/commit/a042e744ffce15903ad9992e33e4b538d9e3d3af))
+
 # [0.4.0](https://github.com/konvert7/klint/compare/v0.3.0...v0.4.0) (2026-05-18)
 
 
