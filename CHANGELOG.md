@@ -1,3 +1,12 @@
+# [0.6.0](https://github.com/konvert7/klint/compare/v0.5.0...v0.6.0) (2026-05-19)
+
+
+### Features
+
+* add jscpd to pre-commit hook ([16b202f](https://github.com/konvert7/klint/commit/16b202fc9115c5242a226e6ed511ae57a1a1768a))
+* implement rule helpers for AST-based rule definitions ([5670607](https://github.com/konvert7/klint/commit/56706072469a834fdb3d785f73aaecd74bc5ba8d))
+* integrate jscpd ([692a3ab](https://github.com/konvert7/klint/commit/692a3ab7aed83ee99dfe10830299e5c0a9cd56c9))
+
 # [0.5.0](https://github.com/konvert7/klint/compare/v0.4.0...v0.5.0) (2026-05-19)
 
 
