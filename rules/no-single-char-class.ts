@@ -1,6 +1,7 @@
 import { relative } from "node:path";
 import ts from "typescript";
 import { walkAst } from "../core/ast";
+import { buildNodeReplacementFix } from "../core/rule-helpers";
 import type { KlintRule } from "../core/types";
 
 // Unescaped metacharacters that lose their special meaning inside a character class,
@@ -95,27 +96,13 @@ export const noSingleCharClass: KlintRule = {
         fixedPattern += pattern.slice(prev);
 
         const fixedRegex = `/${fixedPattern}/${flags}`;
-        const { line } = src.getLineAndCharacterOfPosition(node.getStart());
-        const { line: endLine } = src.getLineAndCharacterOfPosition(node.getEnd());
-        const lineStarts = src.getLineStarts();
-        const lineStart = lineStarts[line];
-        const lineEnd =
-          endLine + 1 < lineStarts.length ? lineStarts[endLine + 1] - 1 : src.text.length;
-        const linesText = src.text.slice(lineStart, lineEnd);
-        const nodeOffset = node.getStart() - lineStart;
-        const nodeEndOffset = node.getEnd() - lineStart;
-        const fixedLines =
-          linesText.slice(0, nodeOffset) + fixedRegex + linesText.slice(nodeEndOffset);
+        const fix = buildNodeReplacementFix(src, node, fixedRegex);
 
         violations.push({
           file: relative(root, file),
-          line: line + 1,
+          line: fix.startLine,
           message: `Character class [${toFix[0].inner}] contains a single element — remove the brackets.`,
-          fix: {
-            startLine: line + 1,
-            endLine: endLine + 1,
-            replacement: fixedLines,
-          },
+          fix,
         });
       });
     }

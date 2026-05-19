@@ -1,8 +1,5 @@
-import { relative } from "node:path";
 import ts from "typescript";
-import { createProgram } from "../core/ast";
-import type { RawViolation } from "../core/types";
-import { defineRule } from "../core/types";
+import { defineAstRule } from "../core/rule-helpers";
 
 // Builtins with a meaningful toString() that isn't [object Object]
 const SAFE_SYMBOL_NAMES = new Set([
@@ -21,51 +18,25 @@ const SAFE_SYMBOL_NAMES = new Set([
   "Symbol",
 ]);
 
-export const noObjectInTemplate = defineRule({
+export const noObjectInTemplate = defineAstRule({
   meta: {
     description:
       "Flags non-primitive objects interpolated into template literals — produces `[object Object]` unless `toString()` is overridden.",
     examples: ["no-object-in-template: error"],
   },
-  check({ files, root }, violations) {
-    const program = createProgram(files, root);
-    const checker = program.getTypeChecker();
-    const fileSet = new Set(files);
-
-    for (const sourceFile of program.getSourceFiles()) {
-      if (!fileSet.has(sourceFile.fileName) || sourceFile.isDeclarationFile) continue;
-      visitFile(sourceFile, checker, root, violations);
+  visit(node, ctx) {
+    if (!ts.isTemplateExpression(node)) return;
+    for (const span of node.templateSpans) {
+      const type = ctx.checker.getTypeAtLocation(span.expression);
+      if (wouldRenderAsObjectObject(type, ctx.checker)) {
+        ctx.report(
+          span.expression,
+          "Object interpolated in template literal has no custom toString() — it will render as [object Object]. Access a specific property or implement toString()."
+        );
+      }
     }
   },
 });
-
-function visitFile(
-  sourceFile: ts.SourceFile,
-  checker: ts.TypeChecker,
-  root: string,
-  violations: RawViolation[]
-): void {
-  function visit(node: ts.Node): void {
-    if (ts.isTemplateExpression(node)) {
-      for (const span of node.templateSpans) {
-        const type = checker.getTypeAtLocation(span.expression);
-        if (wouldRenderAsObjectObject(type, checker)) {
-          const { line } = sourceFile.getLineAndCharacterOfPosition(
-            span.expression.getStart()
-          );
-          violations.push({
-            file: relative(root, sourceFile.fileName),
-            line: line + 1,
-            message:
-              "Object interpolated in template literal has no custom toString() — it will render as [object Object]. Access a specific property or implement toString().",
-          });
-        }
-      }
-    }
-    ts.forEachChild(node, visit);
-  }
-  visit(sourceFile);
-}
 
 function wouldRenderAsObjectObject(type: ts.Type, checker: ts.TypeChecker): boolean {
   const primitiveFlags =

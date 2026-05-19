@@ -1,62 +1,34 @@
-import { relative } from "node:path";
 import ts from "typescript";
-import { createProgram } from "../core/ast";
-import type { RawViolation } from "../core/types";
-import { defineRule } from "../core/types";
+import { defineAstRule } from "../core/rule-helpers";
 
-export const noMisusedPromises = defineRule({
+export const noMisusedPromises = defineAstRule({
   meta: {
     description:
       "Flags Promises passed where the type expects a non-thenable (e.g. an `if` condition, a `void` callback). The Promise's truthiness — not its resolved value — drives the branch.",
     examples: ["no-misused-promises: error"],
   },
-  check({ files, root }, violations) {
-    const program = createProgram(files, root);
-    const checker = program.getTypeChecker();
-    const fileSet = new Set(files);
+  visit(node, ctx) {
+    if (!ts.isCallExpression(node)) return;
+    const sig = ctx.checker.getResolvedSignature(node);
+    if (!sig) return;
+    const params = sig.getParameters();
+    for (let i = 0; i < node.arguments.length; i++) {
+      const arg = node.arguments[i];
+      if (!isAsyncFunction(arg)) continue;
 
-    for (const sourceFile of program.getSourceFiles()) {
-      if (!fileSet.has(sourceFile.fileName) || sourceFile.isDeclarationFile) continue;
-      visitFile(sourceFile, checker, root, violations);
+      const param = params[Math.min(i, params.length - 1)];
+      if (!param) continue;
+
+      const paramType = ctx.checker.getTypeOfSymbolAtLocation(param, node);
+      if (expectsSyncCallback(paramType, ctx.checker)) {
+        ctx.report(
+          arg,
+          "Async function passed where a sync callback is expected — the caller cannot await it and errors will be silently lost."
+        );
+      }
     }
   },
 });
-
-function visitFile(
-  sourceFile: ts.SourceFile,
-  checker: ts.TypeChecker,
-  root: string,
-  violations: RawViolation[]
-): void {
-  function visit(node: ts.Node): void {
-    if (ts.isCallExpression(node)) {
-      const sig = checker.getResolvedSignature(node);
-      if (sig) {
-        const params = sig.getParameters();
-        for (let i = 0; i < node.arguments.length; i++) {
-          const arg = node.arguments[i];
-          if (!isAsyncFunction(arg)) continue;
-
-          const param = params[Math.min(i, params.length - 1)];
-          if (!param) continue;
-
-          const paramType = checker.getTypeOfSymbolAtLocation(param, node);
-          if (expectsSyncCallback(paramType, checker)) {
-            const { line } = sourceFile.getLineAndCharacterOfPosition(arg.getStart());
-            violations.push({
-              file: relative(root, sourceFile.fileName),
-              line: line + 1,
-              message:
-                "Async function passed where a sync callback is expected — the caller cannot await it and errors will be silently lost.",
-            });
-          }
-        }
-      }
-    }
-    ts.forEachChild(node, visit);
-  }
-  visit(sourceFile);
-}
 
 function isAsyncFunction(
   node: ts.Node

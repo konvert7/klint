@@ -1,6 +1,7 @@
 import { relative } from "node:path";
 import ts from "typescript";
 import { walkAst } from "../core/ast";
+import { buildNodeReplacementFix } from "../core/rule-helpers";
 import type { KlintRule } from "../core/types";
 
 export const preferAt: KlintRule = {
@@ -31,27 +32,13 @@ export const preferAt: KlintRule = {
         if (baseText !== arg.left.expression.getText(src)) return;
 
         const fixedCall = `${baseText}.at(-${n})`;
-        const { line } = src.getLineAndCharacterOfPosition(node.getStart());
-        const { line: endLine } = src.getLineAndCharacterOfPosition(node.getEnd());
-        const lineStarts = src.getLineStarts();
-        const lineStart = lineStarts[line];
-        const lineEnd =
-          endLine + 1 < lineStarts.length ? lineStarts[endLine + 1] - 1 : src.text.length;
-        const linesText = src.text.slice(lineStart, lineEnd);
-        const nodeOffset = node.getStart() - lineStart;
-        const nodeEndOffset = node.getEnd() - lineStart;
-        const fixedLines =
-          linesText.slice(0, nodeOffset) + fixedCall + linesText.slice(nodeEndOffset);
+        const fix = buildNodeReplacementFix(src, node, fixedCall);
 
         violations.push({
           file: relative(root, file),
-          line: line + 1,
+          line: fix.startLine,
           message: `Prefer ${baseText}.at(-${n}) over ${baseText}[${baseText}.length - ${n}] for cleaner negative indexing.`,
-          fix: {
-            startLine: line + 1,
-            endLine: endLine + 1,
-            replacement: fixedLines,
-          },
+          fix,
         });
       });
     }

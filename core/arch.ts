@@ -196,23 +196,16 @@ export function runArchRules(
   for (const rule of arch.forbidden ?? []) {
     const severity: Severity = rule.severity ?? "error";
     const inFiles = resolveLayerFiles(rule.in, layers, root, allFiles);
-
-    for (const file of inFiles) {
-      const content = fileContents.get(file);
-      if (!content) continue;
-      const lines = content.split("\n");
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].includes(rule.pattern)) {
-          violations.push({
-            file: relative(root, file).replaceAll("\\", "/"),
-            line: i + 1,
-            message: rule.message,
-            rule: "arch/forbidden",
-            severity,
-          });
-        }
-      }
-    }
+    scanLinesForPattern(
+      inFiles,
+      rule.pattern,
+      fileContents,
+      root,
+      "arch/forbidden",
+      rule.message,
+      severity,
+      violations
+    );
   }
 
   for (const rule of arch.singleton ?? []) {
@@ -222,24 +215,45 @@ export function runArchRules(
       ? resolveLayerFiles(rule.in, layers, root, allFiles)
       : allFiles;
     const scope = inFiles.filter((f) => f !== onlyFile);
-
-    for (const file of scope) {
-      const content = fileContents.get(file);
-      if (!content) continue;
-      const lines = content.split("\n");
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].includes(rule.pattern)) {
-          violations.push({
-            file: relative(root, file).replaceAll("\\", "/"),
-            line: i + 1,
-            message: rule.message,
-            rule: "arch/singleton",
-            severity,
-          });
-        }
-      }
-    }
+    scanLinesForPattern(
+      scope,
+      rule.pattern,
+      fileContents,
+      root,
+      "arch/singleton",
+      rule.message,
+      severity,
+      violations
+    );
   }
 
   return violations;
+}
+
+function scanLinesForPattern(
+  files: string[],
+  pattern: string,
+  fileContents: Map<string, string>,
+  root: string,
+  ruleName: string,
+  message: string,
+  severity: Severity,
+  violations: Violation[]
+): void {
+  for (const file of files) {
+    const content = fileContents.get(file);
+    if (!content) continue;
+    const lines = content.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes(pattern)) {
+        violations.push({
+          file: relative(root, file).replaceAll("\\", "/"),
+          line: i + 1,
+          message,
+          rule: ruleName,
+          severity,
+        });
+      }
+    }
+  }
 }

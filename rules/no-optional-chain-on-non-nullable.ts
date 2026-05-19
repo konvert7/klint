@@ -1,53 +1,27 @@
-import { relative } from "node:path";
 import ts from "typescript";
-import { createProgram } from "../core/ast";
-import type { RawViolation } from "../core/types";
-import { defineRule } from "../core/types";
+import { defineAstRule } from "../core/rule-helpers";
 
-export const noOptionalChainOnNonNullable = defineRule({
+export const noOptionalChainOnNonNullable = defineAstRule({
   meta: {
     description:
       "Flags `?.` on receivers whose static type cannot be `null` or `undefined`. The optional chain is dead code and obscures the real shape.",
     examples: ["no-optional-chain-on-non-nullable: warn"],
   },
-  check({ files, root }, violations) {
-    const program = createProgram(files, root);
-    const checker = program.getTypeChecker();
-
-    if (!program.getCompilerOptions().strictNullChecks) return;
-
-    const fileSet = new Set(files);
-    for (const sourceFile of program.getSourceFiles()) {
-      if (!fileSet.has(sourceFile.fileName) || sourceFile.isDeclarationFile) continue;
-      visitFile(sourceFile, checker, root, violations);
+  shouldRun(program) {
+    return program.getCompilerOptions().strictNullChecks === true;
+  },
+  visit(node, ctx) {
+    const receiver = getOptionalChainReceiver(node);
+    if (!receiver) return;
+    const type = ctx.checker.getTypeAtLocation(receiver);
+    if (!isNullable(type)) {
+      ctx.report(
+        node,
+        "Optional chain (?.) on a non-nullable type — the receiver can never be null or undefined here. Use . to remove misleading dead code."
+      );
     }
   },
 });
-
-function visitFile(
-  sourceFile: ts.SourceFile,
-  checker: ts.TypeChecker,
-  root: string,
-  violations: RawViolation[]
-): void {
-  function visit(node: ts.Node): void {
-    const receiver = getOptionalChainReceiver(node);
-    if (receiver) {
-      const type = checker.getTypeAtLocation(receiver);
-      if (!isNullable(type)) {
-        const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
-        violations.push({
-          file: relative(root, sourceFile.fileName),
-          line: line + 1,
-          message:
-            "Optional chain (?.) on a non-nullable type — the receiver can never be null or undefined here. Use . to remove misleading dead code.",
-        });
-      }
-    }
-    ts.forEachChild(node, visit);
-  }
-  visit(sourceFile);
-}
 
 function getOptionalChainReceiver(node: ts.Node): ts.Expression | undefined {
   if (

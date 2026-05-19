@@ -1,6 +1,7 @@
 import { relative } from "node:path";
 import ts from "typescript";
 import { walkAst } from "../core/ast";
+import { buildNodeReplacementFix } from "../core/rule-helpers";
 import type { KlintRule } from "../core/types";
 
 export const preferStringReplaceall: KlintRule = {
@@ -37,28 +38,13 @@ export const preferStringReplaceall: KlintRule = {
           ? `'${pattern.replaceAll("'", "\\'")}'`
           : `"${pattern}"`;
         const fixedCall = `${strText}.replaceAll(${patternLit}, ${replacementText})`;
-
-        const { line: s } = src.getLineAndCharacterOfPosition(node.getStart());
-        const { line: e } = src.getLineAndCharacterOfPosition(node.getEnd());
-        const lineStarts = src.getLineStarts();
-        const lineStart = lineStarts[s];
-        const lineEnd =
-          e + 1 < lineStarts.length ? lineStarts[e + 1] - 1 : src.text.length;
-        const linesText = src.text.slice(lineStart, lineEnd);
-        const nodeOffset = node.getStart() - lineStart;
-        const nodeEndOffset = node.getEnd() - lineStart;
-        const fixedLines =
-          linesText.slice(0, nodeOffset) + fixedCall + linesText.slice(nodeEndOffset);
+        const fix = buildNodeReplacementFix(src, node, fixedCall);
 
         violations.push({
           file: relative(root, file),
-          line: s + 1,
+          line: fix.startLine,
           message: `Prefer \`${strText}.replaceAll(${patternLit}, ...)\` over \`.replace(/${pattern}/g, ...)\` — replaceAll() with a string is clearer and avoids regex escaping pitfalls.`,
-          fix: {
-            startLine: s + 1,
-            endLine: e + 1,
-            replacement: fixedLines,
-          },
+          fix,
         });
       });
     }
