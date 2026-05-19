@@ -4,6 +4,11 @@ import { walkAst } from "../core/ast";
 import type { KlintRule } from "../core/types";
 
 export const preferStringRawRegexp: KlintRule = {
+  meta: {
+    description:
+      "Flags regex literals built from escape-heavy string concatenation — `String.raw` drops the double backslashes.",
+    examples: ["sonar/prefer-string-raw-regexp: warn"],
+  },
   check({ files, root, fileContents }, violations) {
     for (const file of files) {
       const content = fileContents.get(file) ?? "";

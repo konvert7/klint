@@ -4,6 +4,11 @@ import { walkAst } from "../core/ast";
 import type { KlintRule } from "../core/types";
 
 export const preferStringReplaceall: KlintRule = {
+  meta: {
+    description:
+      "Flags `.replace(/x/g, y)` on strings — `.replaceAll('x', y)` is clearer and faster for all-occurrence replacements.",
+    examples: ["sonar/prefer-string-replaceall: error"],
+  },
   check({ files, root, fileContents }, violations) {
     for (const file of files) {
       const content = fileContents.get(file) ?? "";

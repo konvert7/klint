@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { BUILT_IN_PLUGINS } from "../plugins/index";
 import { BUILT_IN_RULES } from "../rules/index";
+import type { KlintRule, RuleMeta } from "./types";
 
 const builtInRuleNames = Object.keys(BUILT_IN_RULES) as [string, ...string[]];
 const builtInPluginNames = Object.keys(BUILT_IN_PLUGINS) as [string, ...string[]];
@@ -12,16 +13,23 @@ const allKnownRuleNames = [...new Set([...builtInRuleNames, ...pluginRuleNames])
   ...string[],
 ];
 
+/** Look up a rule's implementation across BUILT_IN_RULES and plugin implementations. */
+function findRule(name: string): KlintRule | undefined {
+  if (BUILT_IN_RULES[name]) return BUILT_IN_RULES[name];
+  for (const plugin of Object.values(BUILT_IN_PLUGINS)) {
+    if (plugin.implementations[name]) return plugin.implementations[name];
+  }
+  return undefined;
+}
+
+function metaFor(name: string): RuleMeta | undefined {
+  return findRule(name)?.meta;
+}
+
 const SeveritySchema = z
   .enum(["error", "warn", "off"])
   .describe(
     'Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.'
-  );
-
-const RuleNameSchema = z
-  .union([z.enum(allKnownRuleNames), z.string()])
-  .describe(
-    "Built-in or plugin rule name (with autocomplete) or a custom rule name defined in klint.rules.ts."
   );
 
 const RuleOptionsSchema = z
@@ -38,6 +46,165 @@ const RuleOptionsSchema = z
   .describe(
     'Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.'
   );
+
+const RuleValueSchema = z.union([SeveritySchema, RuleOptionsSchema]);
+
+// ─── arch ─────────────────────────────────────────────────────────────
+
+const ArchSeveritySchema = z
+  .enum(["error", "warn"])
+  .describe(
+    'Severity for the arch rule. "error" exits with code 2; "warn" reports but exits 0. (arch rules cannot be "off" — remove the entry instead.)'
+  );
+
+const StringOrStringArray = z
+  .union([z.string(), z.array(z.string())])
+  .describe(
+    "Either a single layer name / glob pattern or an array of them. Layer names defined in `arch.layers` are resolved to their glob lists."
+  );
+
+const ArchLayersSchema = z
+  .record(z.string(), z.array(z.string()))
+  .describe(
+    "Named architectural zones. Keys are arbitrary layer names; values are glob patterns matching the files in that layer. Other arch rules reference these names instead of repeating globs."
+  )
+  .meta({
+    examples: [
+      'layers:\n  core:   ["src/hooks/lib/**", "src/tools/**"]\n  skills: ["assets/skills/**"]\n  dao:    ["src/dao/**"]',
+    ],
+  });
+
+const ArchImportRuleSchema = z
+  .object({
+    from: StringOrStringArray.describe(
+      "Source — a layer name or glob(s) for the files this rule applies to. Imports originating in `from` are checked against `deny`/`allow`."
+    ),
+    deny: StringOrStringArray.optional().describe(
+      "Layer name(s) or glob(s) the source is not allowed to import from. Mutually exclusive in spirit with `allow` (use one or the other)."
+    ),
+    allow: StringOrStringArray.optional().describe(
+      "Allowlist of layer name(s) / glob(s) the source may import from. Anything not matching `allow` is denied."
+    ),
+    "type-only": z
+      .literal("allow")
+      .optional()
+      .describe(
+        'When set to "allow", `import type` statements that would otherwise be denied are permitted. Useful for type-only references across layers.'
+      ),
+    message: z
+      .string()
+      .optional()
+      .describe(
+        "Custom error message reported when the rule is violated. Shown in the agent's event stream alongside file:line."
+      ),
+    severity: ArchSeveritySchema.optional(),
+  })
+  .strict()
+  .describe(
+    "An import-boundary rule. Restricts which layers a source can or cannot import from."
+  )
+  .meta({
+    examples: [
+      'arch:\n  imports:\n    - from: skills\n      deny: core\n      message: "Skills must be self-contained and portable"\n      severity: warn',
+      'arch:\n  imports:\n    - from: ["src/dao/**"]\n      allow: ["src/dao/**", "src/prisma/**", "src/types/**"]',
+    ],
+  });
+
+const ArchForbiddenRuleSchema = z
+  .object({
+    pattern: z
+      .string()
+      .describe(
+        "Literal substring to search for in source. No regex — exact substring match (e.g. `console.log(`)."
+      ),
+    in: StringOrStringArray.describe(
+      "Layer name(s) or glob(s) the pattern is forbidden in. Files outside the scope are not checked."
+    ),
+    message: z
+      .string()
+      .describe(
+        "Required error message explaining why the pattern is forbidden. Shown to the agent so it can fix the call site."
+      ),
+    severity: ArchSeveritySchema.optional(),
+  })
+  .strict()
+  .describe(
+    "A forbidden-pattern rule. Blocks literal substrings (console.log, process.exit, raw SDK fetches, etc.) inside specific layers."
+  )
+  .meta({
+    examples: [
+      'arch:\n  forbidden:\n    - pattern: "console.log("\n      in: core\n      message: "Leaks into the agent event stream"',
+    ],
+  });
+
+const ArchSingletonRuleSchema = z
+  .object({
+    pattern: z
+      .string()
+      .describe(
+        "Literal substring whose appearance is allowed only at one location. Exact substring match (e.g. `process.env.API_KEY`)."
+      ),
+    only: z
+      .string()
+      .describe(
+        "The single file path where this pattern is allowed. Every other occurrence becomes a violation."
+      ),
+    in: StringOrStringArray.optional().describe(
+      "Optional scope. Limit the scan to these layers/globs; defaults to all files in `include`."
+    ),
+    message: z
+      .string()
+      .describe(
+        "Required error message explaining why the pattern must stay singleton (security boundary, module-of-record, etc.)."
+      ),
+    severity: ArchSeveritySchema.optional(),
+  })
+  .strict()
+  .describe(
+    "A singleton-location rule. Pins a pattern to exactly one file — the only honest way to enforce a module of record."
+  )
+  .meta({
+    examples: [
+      'arch:\n  singleton:\n    - pattern: "process.env.API_KEY"\n      only: "src/lib/auth.ts"\n      message: "API key access must funnel through the auth module."',
+    ],
+  });
+
+const ArchSchema = z
+  .object({
+    layers: ArchLayersSchema.optional(),
+    imports: z
+      .array(ArchImportRuleSchema)
+      .optional()
+      .describe(
+        "Import-boundary rules. The dependency graph your README claims you have."
+      ),
+    forbidden: z
+      .array(ArchForbiddenRuleSchema)
+      .optional()
+      .describe("Forbidden-pattern rules. Block literal strings scoped to a layer."),
+    singleton: z
+      .array(ArchSingletonRuleSchema)
+      .optional()
+      .describe(
+        "Singleton-location rules. Pin a pattern to one file; every other touch is a violation."
+      ),
+  })
+  .strict()
+  .describe(
+    "Architecture-as-Code constraints — layers, import boundaries, forbidden patterns, singleton locations. Enforced by the arch engine alongside the rule set."
+  );
+
+function buildRulesSchema() {
+  const shape: Record<string, z.ZodType> = {};
+  for (const name of allKnownRuleNames) {
+    const meta = metaFor(name);
+    let entry: z.ZodType = RuleValueSchema.optional();
+    if (meta?.description) entry = entry.describe(meta.description);
+    if (meta?.examples?.length) entry = entry.meta({ examples: meta.examples });
+    shape[name] = entry;
+  }
+  return z.object(shape).catchall(RuleValueSchema);
+}
 
 export const KlintConfigSchema = z
   .object({
@@ -65,18 +232,12 @@ export const KlintConfigSchema = z
       .describe(
         'Named rule bundles to enable. Each plugin applies a default set of rules at "error" severity. Individual rules from the bundle can be overridden or silenced via the rules map. Available: "sonar".'
       ),
-    rules: z
-      .record(RuleNameSchema, z.union([SeveritySchema, RuleOptionsSchema]))
+    rules: buildRulesSchema()
       .optional()
       .describe(
-        'Map of rule name → severity or options. Example: { "no-floating-promise": "error", "no-sync-in-async": { "severity": "warn", "include": ["src/hooks/**"] } }. Run `klint --help` for the full rule list.'
+        'Map of rule name → severity or options. Example: { "no-floating-promise": "error", "no-sync-in-async": { "severity": "warn", "include": ["src/hooks/**"] } }.'
       ),
-    arch: z
-      .unknown()
-      .optional()
-      .describe(
-        "Architecture as Code constraints — layers, import boundaries, forbidden patterns, singleton locations. Parsed by the arch engine (Phase 2)."
-      ),
+    arch: ArchSchema.optional(),
   })
   .strict()
   .describe(

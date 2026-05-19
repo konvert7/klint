@@ -4,6 +4,11 @@ import { walkAst } from "../core/ast";
 import type { KlintRule } from "../core/types";
 
 export const preferNullishCoalescingAssign: KlintRule = {
+  meta: {
+    description:
+      "Flags `x = x ?? y` patterns — `x ??= y` is the dedicated nullish assignment operator.",
+    examples: ["sonar/prefer-nullish-coalescing-assign: warn"],
+  },
   check({ files, root, fileContents }, violations) {
     for (const file of files) {
       const content = fileContents.get(file) ?? "";

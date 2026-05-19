@@ -4,6 +4,11 @@ import { walkAst } from "../core/ast";
 import type { KlintRule } from "../core/types";
 
 export const noConsecutiveArrayPush: KlintRule = {
+  meta: {
+    description:
+      "Flags consecutive `arr.push(x); arr.push(y);` calls — combine into `arr.push(x, y)` or `arr.push(...items)`.",
+    examples: ["no-consecutive-array-push: warn"],
+  },
   check({ files, root, fileContents }, violations) {
     for (const file of files) {
       const content = fileContents.get(file) ?? "";

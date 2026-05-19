@@ -4,6 +4,11 @@ import { walkAst } from "../core/ast";
 import type { KlintRule } from "../core/types";
 
 export const preferAt: KlintRule = {
+  meta: {
+    description:
+      "Flags negative-index access via `arr[arr.length - 1]` — `.at(-1)` reads cleaner for last-element access.",
+    examples: ["sonar/prefer-at: warn"],
+  },
   check({ files, root, fileContents }, violations) {
     for (const file of files) {
       const content = fileContents.get(file) ?? "";

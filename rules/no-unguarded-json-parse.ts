@@ -4,6 +4,11 @@ import { isInsideTry, walkAst } from "../core/ast";
 import type { KlintRule } from "../core/types";
 
 export const noUnguardedJsonParse: KlintRule = {
+  meta: {
+    description:
+      "Flags `JSON.parse()` calls that aren't wrapped in try/catch — malformed input crashes the process.",
+    examples: ["no-unguarded-json-parse: error"],
+  },
   check({ files, root, fileContents }, violations) {
     for (const file of files) {
       const content = fileContents.get(file) ?? "";

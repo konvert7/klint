@@ -33,8 +33,16 @@ export interface RuleContext {
 /** Violation as emitted by a rule — rule name and severity are stamped by the runner. */
 export type RawViolation = Omit<Violation, "rule" | "severity">;
 
+export interface RuleMeta {
+  /** One- or two-line description of what the rule catches. */
+  description: string;
+  /** Concrete YAML config snippets showing usage. Rendered as code blocks in docs. */
+  examples?: string[];
+}
+
 export interface KlintRule {
   check: (ctx: RuleContext, violations: RawViolation[]) => void;
+  meta?: RuleMeta;
 }
 
 /** A named bundle of rules with their default severities and implementations. */

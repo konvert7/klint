@@ -5,6 +5,11 @@ import type { RawViolation } from "../core/types";
 import { defineRule } from "../core/types";
 
 export const noOptionalChainOnNonNullable = defineRule({
+  meta: {
+    description:
+      "Flags `?.` on receivers whose static type cannot be `null` or `undefined`. The optional chain is dead code and obscures the real shape.",
+    examples: ["no-optional-chain-on-non-nullable: warn"],
+  },
   check({ files, root }, violations) {
     const program = createProgram(files, root);
     const checker = program.getTypeChecker();

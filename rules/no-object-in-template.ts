@@ -22,6 +22,11 @@ const SAFE_SYMBOL_NAMES = new Set([
 ]);
 
 export const noObjectInTemplate = defineRule({
+  meta: {
+    description:
+      "Flags non-primitive objects interpolated into template literals — produces `[object Object]` unless `toString()` is overridden.",
+    examples: ["no-object-in-template: error"],
+  },
   check({ files, root }, violations) {
     const program = createProgram(files, root);
     const checker = program.getTypeChecker();

@@ -7,6 +7,11 @@ import { defineRule } from "../core/types";
 const PREDICATE_METHODS = new Set(["filter", "some", "every", "find", "findIndex"]);
 
 export const noAsyncPredicate = defineRule({
+  meta: {
+    description:
+      "Flags `async` functions passed to `.filter`/`.some`/`.every`/`.find`/`.findIndex`. Array methods coerce the returned promise to truthy, so every element appears to match.",
+    examples: ["no-async-predicate: error"],
+  },
   check({ files, root }, violations) {
     const program = createProgram(files, root);
     const checker = program.getTypeChecker();

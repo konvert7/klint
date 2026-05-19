@@ -4,6 +4,11 @@ import { walkAst } from "../core/ast";
 import type { KlintRule } from "../core/types";
 
 export const noNestedTemplateLiterals: KlintRule = {
+  meta: {
+    description:
+      "Flags template literals nested inside template literals — almost always unreadable; extract to a variable.",
+    examples: ["no-nested-template-literals: warn"],
+  },
   check({ files, root, fileContents }, violations) {
     for (const file of files) {
       const content = fileContents.get(file) ?? "";

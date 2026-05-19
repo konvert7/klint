@@ -26,9 +26,480 @@ properties:
         - sonar
   rules:
     description: 'Map of rule name → severity or options. Example: { "no-floating-promise": "error", "no-sync-in-async": {
-      "severity": "warn", "include": ["src/hooks/**"] } }. Run `klint --help` for the full rule list.'
+      "severity": "warn", "include": ["src/hooks/**"] } }.'
     type: object
-    additionalProperties: &a1
+    properties:
+      no-unguarded-json-parse:
+        description: Flags `JSON.parse()` calls that aren't wrapped in try/catch — malformed input crashes the process.
+        examples:
+          - "no-unguarded-json-parse: error"
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+      no-sync-in-async:
+        description: Flags synchronous I/O (`readFileSync`, `execSync`, etc.) inside async functions — blocks the event loop
+          when an async equivalent is available.
+        examples:
+          - "no-sync-in-async: error"
+          - |-
+            no-sync-in-async:
+              severity: warn
+              include: ["src/server/**"]
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+      no-floating-promise:
+        description: Flags Promise-returning expressions that aren't awaited or `.catch()`-handled — silent failures and
+          unpredictable execution order.
+        examples:
+          - "no-floating-promise: error"
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+      no-misused-promises:
+        description: Flags Promises passed where the type expects a non-thenable (e.g. an `if` condition, a `void` callback).
+          The Promise's truthiness — not its resolved value — drives the branch.
+        examples:
+          - "no-misused-promises: error"
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+      no-async-predicate:
+        description: Flags `async` functions passed to `.filter`/`.some`/`.every`/`.find`/`.findIndex`. Array methods coerce the
+          returned promise to truthy, so every element appears to match.
+        examples:
+          - "no-async-predicate: error"
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+      no-date-equality:
+        description: Flags `Date` comparisons with `==`/`===`/`!=`/`!==` — these compare object identity, not the time value.
+          Use `.getTime()` instead.
+        examples:
+          - "no-date-equality: error"
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+      no-optional-chain-on-non-nullable:
+        description: Flags `?.` on receivers whose static type cannot be `null` or `undefined`. The optional chain is dead code
+          and obscures the real shape.
+        examples:
+          - "no-optional-chain-on-non-nullable: warn"
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+      no-object-in-template:
+        description: Flags non-primitive objects interpolated into template literals — produces `[object Object]` unless
+          `toString()` is overridden.
+        examples:
+          - "no-object-in-template: error"
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+      no-nested-template-literals:
+        description: Flags template literals nested inside template literals — almost always unreadable; extract to a variable.
+        examples:
+          - "no-nested-template-literals: warn"
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+      no-consecutive-array-push:
+        description: Flags consecutive `arr.push(x); arr.push(y);` calls — combine into `arr.push(x, y)` or `arr.push(...items)`.
+        examples:
+          - "no-consecutive-array-push: warn"
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+      no-string-match:
+        description: Flags `String#match` — prefer `.matchAll()` for iteration or `.test()` for boolean checks. `.match()`
+          returns different shapes depending on the `/g` flag.
+        examples:
+          - "no-string-match: error"
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+      sonar/prefer-string-replaceall:
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+      sonar/prefer-string-raw-regexp:
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+      sonar/prefer-string-raw:
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+      sonar/prefer-nullish-coalescing-assign:
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+      sonar/no-single-char-class:
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+      sonar/prefer-at:
+        anyOf:
+          - type: string
+            enum:
+              - error
+              - warn
+              - off
+            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          - type: object
+            properties:
+              severity:
+                type: string
+                enum:
+                  - error
+                  - warn
+                  - off
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**",
+                  "!src/hooks/scripts/**"]'
+                type: array
+                items:
+                  type: string
+            additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+    additionalProperties:
       anyOf:
         - type: string
           enum:
@@ -53,26 +524,175 @@ properties:
                 type: string
           additionalProperties: false
           description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-    properties:
-      no-unguarded-json-parse: *a1
-      no-sync-in-async: *a1
-      no-floating-promise: *a1
-      no-misused-promises: *a1
-      no-async-predicate: *a1
-      no-date-equality: *a1
-      no-optional-chain-on-non-nullable: *a1
-      no-object-in-template: *a1
-      no-nested-template-literals: *a1
-      no-consecutive-array-push: *a1
-      no-string-match: *a1
-      sonar/prefer-string-replaceall: *a1
-      sonar/prefer-string-raw-regexp: *a1
-      sonar/prefer-string-raw: *a1
-      sonar/prefer-nullish-coalescing-assign: *a1
-      sonar/no-single-char-class: *a1
-      sonar/prefer-at: *a1
   arch:
-    description: Architecture as Code constraints — layers, import boundaries, forbidden patterns, singleton locations.
-      Parsed by the arch engine (Phase 2).
+    type: object
+    properties:
+      layers:
+        type: object
+        propertyNames:
+          type: string
+        additionalProperties:
+          type: array
+          items:
+            type: string
+        description: Named architectural zones. Keys are arbitrary layer names; values are glob patterns matching the files in
+          that layer. Other arch rules reference these names instead of repeating globs.
+        examples:
+          - |-
+            layers:
+              core:   ["src/hooks/lib/**", "src/tools/**"]
+              skills: ["assets/skills/**"]
+              dao:    ["src/dao/**"]
+      imports:
+        description: Import-boundary rules. The dependency graph your README claims you have.
+        type: array
+        items:
+          type: object
+          properties:
+            from:
+              anyOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+              description: Source — a layer name or glob(s) for the files this rule applies to. Imports originating in `from` are
+                checked against `deny`/`allow`.
+            deny:
+              description: Layer name(s) or glob(s) the source is not allowed to import from. Mutually exclusive in spirit with
+                `allow` (use one or the other).
+              anyOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            allow:
+              description: Allowlist of layer name(s) / glob(s) the source may import from. Anything not matching `allow` is denied.
+              anyOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            type-only:
+              description: When set to "allow", `import type` statements that would otherwise be denied are permitted. Useful for
+                type-only references across layers.
+              type: string
+              const: allow
+            message:
+              description: Custom error message reported when the rule is violated. Shown in the agent's event stream alongside
+                file:line.
+              type: string
+            severity:
+              type: string
+              enum:
+                - error
+                - warn
+              description: Severity for the arch rule. "error" exits with code 2; "warn" reports but exits 0. (arch rules cannot be
+                "off" — remove the entry instead.)
+          required:
+            - from
+          additionalProperties: false
+          description: An import-boundary rule. Restricts which layers a source can or cannot import from.
+          examples:
+            - |-
+              arch:
+                imports:
+                  - from: skills
+                    deny: core
+                    message: "Skills must be self-contained and portable"
+                    severity: warn
+            - |-
+              arch:
+                imports:
+                  - from: ["src/dao/**"]
+                    allow: ["src/dao/**", "src/prisma/**", "src/types/**"]
+      forbidden:
+        description: Forbidden-pattern rules. Block literal strings scoped to a layer.
+        type: array
+        items:
+          type: object
+          properties:
+            pattern:
+              type: string
+              description: Literal substring to search for in source. No regex — exact substring match (e.g. `console.log(`).
+            in:
+              anyOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+              description: Layer name(s) or glob(s) the pattern is forbidden in. Files outside the scope are not checked.
+            message:
+              type: string
+              description: Required error message explaining why the pattern is forbidden. Shown to the agent so it can fix the call
+                site.
+            severity:
+              type: string
+              enum:
+                - error
+                - warn
+              description: Severity for the arch rule. "error" exits with code 2; "warn" reports but exits 0. (arch rules cannot be
+                "off" — remove the entry instead.)
+          required:
+            - pattern
+            - in
+            - message
+          additionalProperties: false
+          description: A forbidden-pattern rule. Blocks literal substrings (console.log, process.exit, raw SDK fetches, etc.)
+            inside specific layers.
+          examples:
+            - |-
+              arch:
+                forbidden:
+                  - pattern: "console.log("
+                    in: core
+                    message: "Leaks into the agent event stream"
+      singleton:
+        description: Singleton-location rules. Pin a pattern to one file; every other touch is a violation.
+        type: array
+        items:
+          type: object
+          properties:
+            pattern:
+              type: string
+              description: Literal substring whose appearance is allowed only at one location. Exact substring match (e.g.
+                `process.env.API_KEY`).
+            only:
+              type: string
+              description: The single file path where this pattern is allowed. Every other occurrence becomes a violation.
+            in:
+              description: Optional scope. Limit the scan to these layers/globs; defaults to all files in `include`.
+              anyOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            message:
+              type: string
+              description: Required error message explaining why the pattern must stay singleton (security boundary, module-of-record,
+                etc.).
+            severity:
+              type: string
+              enum:
+                - error
+                - warn
+              description: Severity for the arch rule. "error" exits with code 2; "warn" reports but exits 0. (arch rules cannot be
+                "off" — remove the entry instead.)
+          required:
+            - pattern
+            - only
+            - message
+          additionalProperties: false
+          description: A singleton-location rule. Pins a pattern to exactly one file — the only honest way to enforce a module of
+            record.
+          examples:
+            - |-
+              arch:
+                singleton:
+                  - pattern: "process.env.API_KEY"
+                    only: "src/lib/auth.ts"
+                    message: "API key access must funnel through the auth module."
+    additionalProperties: false
+    description: Architecture-as-Code constraints — layers, import boundaries, forbidden patterns, singleton locations.
+      Enforced by the arch engine alongside the rule set.
 additionalProperties: false
 description: klint configuration. Lives at klint.yaml (or klint.config.json) next to biome.json and knip.json.

@@ -4,6 +4,14 @@ import { nearestFunctionIsAsync, walkAst } from "../core/ast";
 import type { KlintRule } from "../core/types";
 
 export const noSyncInAsync: KlintRule = {
+  meta: {
+    description:
+      "Flags synchronous I/O (`readFileSync`, `execSync`, etc.) inside async functions — blocks the event loop when an async equivalent is available.",
+    examples: [
+      "no-sync-in-async: error",
+      'no-sync-in-async:\n  severity: warn\n  include: ["src/server/**"]',
+    ],
+  },
   check({ files, root, fileContents }, violations) {
     for (const file of files) {
       const content = fileContents.get(file) ?? "";

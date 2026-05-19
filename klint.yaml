@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=./klint.schema.json
+
 include: ["**/*.ts", "!tests/**", "!node_modules/**"]
 rules:
   no-unguarded-json-parse: error

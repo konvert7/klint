@@ -5,6 +5,11 @@ import type { RawViolation } from "../core/types";
 import { defineRule } from "../core/types";
 
 export const noDateEquality = defineRule({
+  meta: {
+    description:
+      "Flags `Date` comparisons with `==`/`===`/`!=`/`!==` — these compare object identity, not the time value. Use `.getTime()` instead.",
+    examples: ["no-date-equality: error"],
+  },
   check({ files, root }, violations) {
     const program = createProgram(files, root);
     const checker = program.getTypeChecker();

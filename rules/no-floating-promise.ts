@@ -5,6 +5,11 @@ import type { RawViolation } from "../core/types";
 import { defineRule } from "../core/types";
 
 export const noFloatingPromise = defineRule({
+  meta: {
+    description:
+      "Flags Promise-returning expressions that aren't awaited or `.catch()`-handled — silent failures and unpredictable execution order.",
+    examples: ["no-floating-promise: error"],
+  },
   check({ files, root }, violations) {
     const program = createProgram(files, root);
     const checker = program.getTypeChecker();

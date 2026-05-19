@@ -5,6 +5,11 @@ import type { RawViolation } from "../core/types";
 import { defineRule } from "../core/types";
 
 export const noMisusedPromises = defineRule({
+  meta: {
+    description:
+      "Flags Promises passed where the type expects a non-thenable (e.g. an `if` condition, a `void` callback). The Promise's truthiness — not its resolved value — drives the branch.",
+    examples: ["no-misused-promises: error"],
+  },
   check({ files, root }, violations) {
     const program = createProgram(files, root);
     const checker = program.getTypeChecker();

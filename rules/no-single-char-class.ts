@@ -63,6 +63,11 @@ function parseCharClasses(pattern: string): CharClass[] {
 }
 
 export const noSingleCharClass: KlintRule = {
+  meta: {
+    description:
+      "Flags single-character character classes in regex (e.g. `/[a]/`) — drop the brackets; the regex matches the same.",
+    examples: ["sonar/no-single-char-class: warn"],
+  },
   check({ files, root, fileContents }, violations) {
     for (const file of files) {
       const content = fileContents.get(file) ?? "";
