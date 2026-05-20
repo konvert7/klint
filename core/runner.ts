@@ -15,7 +15,6 @@ import type {
 function walk(dir: string): string[] {
   const out: string[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === "node_modules") continue;
     const full = join(dir, entry.name);
     if (entry.isDirectory()) out.push(...walk(full));
     else if (entry.name.endsWith(".ts")) out.push(full.replaceAll("\\", "/"));
@@ -39,6 +38,7 @@ function resolveFiles(include: string[], root: string): string[] {
 function matchPattern(relPath: string, pattern: string): boolean {
   const norm = relPath.replaceAll("\\", "/");
   const p = pattern.replaceAll("\\", "/");
+  if (p === "." || p === "**") return true;
   if (p.endsWith("/**")) return norm.startsWith(`${p.slice(0, -3)}/`);
   if (p.startsWith("**/")) return norm.endsWith(p.slice(2));
   return norm === p || norm.startsWith(`${p}/`);
@@ -92,7 +92,11 @@ export function runKlint(
     ...config.rules,
   };
 
-  const allFiles = resolveFiles(config.include, config.root);
+  const allFiles = applyPatterns(
+    resolveFiles(config.include, config.root),
+    config.include,
+    config.root
+  );
   const fileContents = new Map(allFiles.map((f) => [f, readFileSync(f, "utf-8")]));
   const violations: Violation[] = [];
 
