@@ -48,7 +48,7 @@ jobs:
         run: bun run knip
 
       - name: jscpd
-        run: bun run jscpd:report
+        run: bun run jscpd
 
       - name: Klint
         run: bun run klint
