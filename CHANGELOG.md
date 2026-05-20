@@ -1,3 +1,10 @@
+# [0.7.0](https://github.com/konvert7/klint/compare/v0.6.0...v0.7.0) (2026-05-20)
+
+
+### Features
+
+* **sonar:** add meta to schema ([dbdb45f](https://github.com/konvert7/klint/commit/dbdb45f781579bf8af0e0328a0c9458eeaecb014))
+
 # [0.6.0](https://github.com/konvert7/klint/compare/v0.5.0...v0.6.0) (2026-05-19)
 
 
