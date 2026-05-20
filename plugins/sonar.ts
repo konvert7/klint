@@ -17,13 +17,11 @@ export const sonarPlugin: KlintPlugin = {
     "sonar/prefer-at": "error",
   },
   implementations: {
-    "sonar/prefer-string-replaceall": { check: preferStringReplaceall.check },
-    "sonar/prefer-string-raw-regexp": { check: preferStringRawRegexp.check },
-    "sonar/prefer-string-raw": { check: preferStringRaw.check },
-    "sonar/prefer-nullish-coalescing-assign": {
-      check: preferNullishCoalescingAssign.check,
-    },
-    "sonar/no-single-char-class": { check: noSingleCharClass.check },
-    "sonar/prefer-at": { check: preferAt.check },
+    "sonar/prefer-string-replaceall": preferStringReplaceall,
+    "sonar/prefer-string-raw-regexp": preferStringRawRegexp,
+    "sonar/prefer-string-raw": preferStringRaw,
+    "sonar/prefer-nullish-coalescing-assign": preferNullishCoalescingAssign,
+    "sonar/no-single-char-class": noSingleCharClass,
+    "sonar/prefer-at": preferAt,
   },
 };

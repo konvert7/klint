@@ -350,6 +350,10 @@ properties:
             additionalProperties: false
             description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
       sonar/prefer-string-replaceall:
+        description: Flags `.replace(/x/g, y)` on strings — `.replaceAll('x', y)` is clearer and faster for all-occurrence
+          replacements.
+        examples:
+          - "sonar/prefer-string-replaceall: error"
         anyOf:
           - type: string
             enum:
@@ -375,6 +379,9 @@ properties:
             additionalProperties: false
             description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
       sonar/prefer-string-raw-regexp:
+        description: Flags regex literals built from escape-heavy string concatenation — `String.raw` drops the double backslashes.
+        examples:
+          - "sonar/prefer-string-raw-regexp: warn"
         anyOf:
           - type: string
             enum:
@@ -400,6 +407,10 @@ properties:
             additionalProperties: false
             description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
       sonar/prefer-string-raw:
+        description: Flags string literals with multiple backslash escapes — `String.raw` is more readable (Windows paths, regex
+          source, etc.).
+        examples:
+          - "sonar/prefer-string-raw: warn"
         anyOf:
           - type: string
             enum:
@@ -425,6 +436,9 @@ properties:
             additionalProperties: false
             description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
       sonar/prefer-nullish-coalescing-assign:
+        description: Flags `x = x ?? y` patterns — `x ??= y` is the dedicated nullish assignment operator.
+        examples:
+          - "sonar/prefer-nullish-coalescing-assign: warn"
         anyOf:
           - type: string
             enum:
@@ -450,6 +464,10 @@ properties:
             additionalProperties: false
             description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
       sonar/no-single-char-class:
+        description: Flags single-character character classes in regex (e.g. `/[a]/`) — drop the brackets; the regex matches the
+          same.
+        examples:
+          - "sonar/no-single-char-class: warn"
         anyOf:
           - type: string
             enum:
@@ -475,6 +493,9 @@ properties:
             additionalProperties: false
             description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
       sonar/prefer-at:
+        description: Flags negative-index access via `arr[arr.length - 1]` — `.at(-1)` reads cleaner for last-element access.
+        examples:
+          - "sonar/prefer-at: warn"
         anyOf:
           - type: string
             enum:
