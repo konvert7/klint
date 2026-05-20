@@ -1,3 +1,10 @@
+## [0.7.1](https://github.com/konvert7/klint/compare/v0.7.0...v0.7.1) (2026-05-20)
+
+
+### Bug Fixes
+
+* respect glob ignore patterns ([594e243](https://github.com/konvert7/klint/commit/594e2433a53afa8e39f98433a661688517b75ce8))
+
 # [0.7.0](https://github.com/konvert7/klint/compare/v0.6.0...v0.7.0) (2026-05-20)
 
 
