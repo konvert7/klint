@@ -1,3 +1,10 @@
+# [0.8.0](https://github.com/konvert7/klint/compare/v0.7.1...v0.8.0) (2026-05-21)
+
+
+### Features
+
+* add jsx element matching ([fc63562](https://github.com/konvert7/klint/commit/fc63562460939eec01b063e98e5072cc0f9c3ce0))
+
 ## [0.7.1](https://github.com/konvert7/klint/compare/v0.7.0...v0.7.1) (2026-05-20)
 
 
