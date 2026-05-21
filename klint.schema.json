@@ -851,48 +851,104 @@
           "description": "Forbidden-pattern rules. Block literal strings scoped to a layer.",
           "type": "array",
           "items": {
-            "type": "object",
-            "properties": {
-              "pattern": {
-                "type": "string",
-                "description": "Literal substring to search for in source. No regex — exact substring match (e.g. `console.log(`)."
-              },
-              "in": {
-                "anyOf": [
-                  {
-                    "type": "string"
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "pattern": {
+                    "type": "string",
+                    "description": "Literal substring to search for in source. No regex — exact substring match (e.g. `console.log(`)."
                   },
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
+                  "in": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Layer name(s) or glob(s) the pattern is forbidden in. Files outside the scope are not checked."
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "Required error message explaining why the pattern is forbidden. Shown to the agent so it can fix the call site."
+                  },
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "error",
+                      "warn"
+                    ],
+                    "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)"
                   }
+                },
+                "required": [
+                  "pattern",
+                  "in",
+                  "message"
                 ],
-                "description": "Layer name(s) or glob(s) the pattern is forbidden in. Files outside the scope are not checked."
+                "additionalProperties": false
               },
-              "message": {
-                "type": "string",
-                "description": "Required error message explaining why the pattern is forbidden. Shown to the agent so it can fix the call site."
-              },
-              "severity": {
-                "type": "string",
-                "enum": [
-                  "error",
-                  "warn"
+              {
+                "type": "object",
+                "properties": {
+                  "jsx-element": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "JSX intrinsic element name(s) to forbid (e.g. `button`, `input`, `label`). AST-matched on opening and self-closing tag names — robust to whitespace, attributes, and naming collisions like `<buttonGroup>`."
+                  },
+                  "in": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Layer name(s) or glob(s) the element is forbidden in. Files outside the scope are not checked."
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "Required error message explaining why the raw element is forbidden. Typically points at the design-system replacement (e.g. `Use <Button /> from @/components/ui/button`)."
+                  },
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "error",
+                      "warn"
+                    ],
+                    "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)"
+                  }
+                },
+                "required": [
+                  "jsx-element",
+                  "in",
+                  "message"
                 ],
-                "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)"
+                "additionalProperties": false
               }
-            },
-            "required": [
-              "pattern",
-              "in",
-              "message"
             ],
-            "additionalProperties": false,
-            "description": "A forbidden-pattern rule. Blocks literal substrings (console.log, process.exit, raw SDK fetches, etc.) inside specific layers.",
+            "description": "A forbidden-pattern rule. Blocks either a literal substring (`pattern:`) or a JSX element (`jsx-element:`) inside specific layers.",
             "examples": [
-              "arch:\n  forbidden:\n    - pattern: \"console.log(\"\n      in: core\n      message: \"Leaks into the agent event stream\""
+              "arch:\n  forbidden:\n    - pattern: \"console.log(\"\n      in: core\n      message: \"Leaks into the agent event stream\"",
+              "arch:\n  forbidden:\n    - jsx-element: [\"button\", \"input\", \"label\"]\n      in: [\"src/app/**/*.tsx\", \"src/components/**/*.tsx\", \"!src/components/ui/**\"]\n      message: \"Use the design-system primitives in @/components/ui/* instead of raw HTML elements.\""
             ]
           }
         },
@@ -900,52 +956,110 @@
           "description": "Singleton-location rules. Pin a pattern to one file; every other touch is a violation.",
           "type": "array",
           "items": {
-            "type": "object",
-            "properties": {
-              "pattern": {
-                "type": "string",
-                "description": "Literal substring whose appearance is allowed only at one location. Exact substring match (e.g. `process.env.API_KEY`)."
-              },
-              "only": {
-                "type": "string",
-                "description": "The single file path where this pattern is allowed. Every other occurrence becomes a violation."
-              },
-              "in": {
-                "description": "Optional scope. Limit the scan to these layers/globs; defaults to all files in `include`.",
-                "anyOf": [
-                  {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "pattern": {
+                    "type": "string",
+                    "description": "Literal substring whose appearance is allowed only at one location. Exact substring match (e.g. `process.env.API_KEY`)."
+                  },
+                  "only": {
+                    "type": "string",
+                    "description": "The single file path where this pattern is allowed. Every other occurrence becomes a violation."
+                  },
+                  "in": {
+                    "description": "Optional scope. Limit the scan to these layers/globs; defaults to all files in `include`.",
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "message": {
                     "type": "string"
                   },
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "error",
+                      "warn"
+                    ],
+                    "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)"
                   }
-                ]
-              },
-              "message": {
-                "type": "string",
-                "description": "Required error message explaining why the pattern must stay singleton (security boundary, module-of-record, etc.)."
-              },
-              "severity": {
-                "type": "string",
-                "enum": [
-                  "error",
-                  "warn"
+                },
+                "required": [
+                  "pattern",
+                  "only",
+                  "message"
                 ],
-                "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)"
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "jsx-element": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "JSX intrinsic element name(s) allowed only inside the `only` file. AST-matched on tag names."
+                  },
+                  "only": {
+                    "type": "string",
+                    "description": "The single file path where the element is allowed (typically the design-system primitive that wraps it)."
+                  },
+                  "in": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Either a single layer name / glob pattern or an array of them. Layer names defined in `arch.layers` are resolved to their glob lists."
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "error",
+                      "warn"
+                    ],
+                    "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)"
+                  }
+                },
+                "required": [
+                  "jsx-element",
+                  "only",
+                  "message"
+                ],
+                "additionalProperties": false
               }
-            },
-            "required": [
-              "pattern",
-              "only",
-              "message"
             ],
-            "additionalProperties": false,
-            "description": "A singleton-location rule. Pins a pattern to exactly one file — the only honest way to enforce a module of record.",
+            "description": "A singleton-location rule. Pins a pattern or JSX element to exactly one file — the only honest way to enforce a module of record or a design-system primitive.",
             "examples": [
-              "arch:\n  singleton:\n    - pattern: \"process.env.API_KEY\"\n      only: \"src/lib/auth.ts\"\n      message: \"API key access must funnel through the auth module.\""
+              "arch:\n  singleton:\n    - pattern: \"process.env.API_KEY\"\n      only: \"src/lib/auth.ts\"\n      message: \"API key access must funnel through the auth module.\"",
+              "arch:\n  singleton:\n    - jsx-element: \"button\"\n      only: \"src/components/ui/button.tsx\"\n      in: [\"src/**/*.tsx\"]\n      message: \"Raw <button> belongs only to the Button primitive.\""
             ]
           }
         }

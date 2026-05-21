@@ -136,3 +136,151 @@ describe("arch/forbidden", () => {
     expect(v).toHaveLength(1);
   });
 });
+
+describe("arch/forbidden — jsx-element", () => {
+  test("flags raw <button> in the scoped layer", () => {
+    const v = lint(
+      {
+        forbidden: [
+          {
+            "jsx-element": "button",
+            in: "src/**/*.tsx",
+            message: "Use <Button /> from @/components/ui/button",
+          },
+        ],
+      },
+      [
+        {
+          path: ["src", "app", "page.tsx"],
+          content: `export default function Page() { return <button>Click</button>; }`,
+        },
+      ]
+    );
+    expect(v).toHaveLength(1);
+    expect(v[0].message).toBe("Use <Button /> from @/components/ui/button");
+    expect(v[0].line).toBe(1);
+  });
+
+  test("does NOT flag <Button> (PascalCase component)", () => {
+    const v = lint(
+      {
+        forbidden: [
+          {
+            "jsx-element": "button",
+            in: "src/**/*.tsx",
+            message: "Use <Button />",
+          },
+        ],
+      },
+      [
+        {
+          path: ["src", "app", "page.tsx"],
+          content: `export default function Page() { return <Button>Click</Button>; }`,
+        },
+      ]
+    );
+    expect(v).toHaveLength(0);
+  });
+
+  test("does NOT flag <buttonGroup> (different tag name — AST advantage over substring)", () => {
+    const v = lint(
+      {
+        forbidden: [
+          {
+            "jsx-element": "button",
+            in: "src/**/*.tsx",
+            message: "Use <Button />",
+          },
+        ],
+      },
+      [
+        {
+          path: ["src", "app", "page.tsx"],
+          content: `export default function Page() { return <buttonGroup>x</buttonGroup>; }`,
+        },
+      ]
+    );
+    expect(v).toHaveLength(0);
+  });
+
+  test("skips non-JSX files (.ts)", () => {
+    const v = lint(
+      {
+        forbidden: [{ "jsx-element": "button", in: "src/**", message: "no raw button" }],
+      },
+      [
+        {
+          path: ["src", "lib", "html.ts"],
+          content: `export const html = "<button>x</button>";`,
+        },
+      ]
+    );
+    expect(v).toHaveLength(0);
+  });
+
+  test("flags self-closing elements (e.g. <input />)", () => {
+    const v = lint(
+      {
+        forbidden: [
+          {
+            "jsx-element": ["input", "label"],
+            in: "src/**/*.tsx",
+            message: "Use @/components/ui/* primitives",
+          },
+        ],
+      },
+      [
+        {
+          path: ["src", "app", "form.tsx"],
+          content: `export default function F() { return <><label>Name</label><input /></>; }`,
+        },
+      ]
+    );
+    expect(v).toHaveLength(2);
+  });
+
+  test("layer exclude lets design-system files use raw elements", () => {
+    const v = lint(
+      {
+        layers: {
+          "app-ui": [
+            "src/app/**/*.tsx",
+            "src/components/**/*.tsx",
+            "!src/components/ui/**",
+          ],
+        },
+        forbidden: [{ "jsx-element": "button", in: "app-ui", message: "Use <Button />" }],
+      },
+      [
+        {
+          path: ["src", "components", "ui", "button.tsx"],
+          content: `export function Button(p) { return <button {...p} />; }`,
+        },
+        {
+          path: ["src", "app", "page.tsx"],
+          content: `export default function P() { return <button>x</button>; }`,
+        },
+      ]
+    );
+    expect(v).toHaveLength(1);
+    expect(v[0].file).toBe("src/app/page.tsx");
+  });
+
+  test("respects severity override", () => {
+    const v = lint(
+      {
+        forbidden: [
+          {
+            "jsx-element": "button",
+            in: "src/**/*.tsx",
+            message: "warn me",
+            severity: "warn",
+          },
+        ],
+      },
+      [{ path: ["src", "app", "page.tsx"], content: `const x = <button />;` }]
+    );
+    expect(v).toHaveLength(1);
+    expect(v[0].severity).toBe("warn");
+  });
+});

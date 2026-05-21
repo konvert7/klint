@@ -63,21 +63,39 @@ interface ArchImportRule {
   severity?: Exclude<Severity, "off">;
 }
 
-interface ArchForbiddenRule {
-  pattern: string;
+interface ArchForbiddenRuleBase {
   in: string | string[];
   message: string;
   severity?: Exclude<Severity, "off">;
 }
 
-interface ArchSingletonRule {
+interface ArchForbiddenPatternRule extends ArchForbiddenRuleBase {
   pattern: string;
+}
+
+interface ArchForbiddenJsxRule extends ArchForbiddenRuleBase {
+  "jsx-element": string | string[];
+}
+
+type ArchForbiddenRule = ArchForbiddenPatternRule | ArchForbiddenJsxRule;
+
+interface ArchSingletonRuleBase {
   only: string;
   message: string;
   /** Limit scan to these files/layers. Defaults to all files. */
   in?: string | string[];
   severity?: Exclude<Severity, "off">;
 }
+
+interface ArchSingletonPatternRule extends ArchSingletonRuleBase {
+  pattern: string;
+}
+
+interface ArchSingletonJsxRule extends ArchSingletonRuleBase {
+  "jsx-element": string | string[];
+}
+
+type ArchSingletonRule = ArchSingletonPatternRule | ArchSingletonJsxRule;
 
 export interface ArchConfig {
   layers?: Record<string, string[]>;

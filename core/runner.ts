@@ -17,7 +17,8 @@ function walk(dir: string): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) out.push(...walk(full));
-    else if (entry.name.endsWith(".ts")) out.push(full.replaceAll("\\", "/"));
+    else if (/\.(tsx?|jsx?|mts|cts)$/.test(entry.name))
+      out.push(full.replaceAll("\\", "/"));
   }
   return out;
 }

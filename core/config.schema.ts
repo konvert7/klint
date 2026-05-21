@@ -110,7 +110,7 @@ const ArchImportRuleSchema = z
     ],
   });
 
-const ArchForbiddenRuleSchema = z
+const ArchForbiddenPatternRuleSchema = z
   .object({
     pattern: z
       .string()
@@ -127,17 +127,38 @@ const ArchForbiddenRuleSchema = z
       ),
     severity: ArchSeveritySchema.optional(),
   })
-  .strict()
+  .strict();
+
+const ArchForbiddenJsxRuleSchema = z
+  .object({
+    "jsx-element": StringOrStringArray.describe(
+      "JSX intrinsic element name(s) to forbid (e.g. `button`, `input`, `label`). AST-matched on opening and self-closing tag names — robust to whitespace, attributes, and naming collisions like `<buttonGroup>`."
+    ),
+    in: StringOrStringArray.describe(
+      "Layer name(s) or glob(s) the element is forbidden in. Files outside the scope are not checked."
+    ),
+    message: z
+      .string()
+      .describe(
+        "Required error message explaining why the raw element is forbidden. Typically points at the design-system replacement (e.g. `Use <Button /> from @/components/ui/button`)."
+      ),
+    severity: ArchSeveritySchema.optional(),
+  })
+  .strict();
+
+const ArchForbiddenRuleSchema = z
+  .union([ArchForbiddenPatternRuleSchema, ArchForbiddenJsxRuleSchema])
   .describe(
-    "A forbidden-pattern rule. Blocks literal substrings (console.log, process.exit, raw SDK fetches, etc.) inside specific layers."
+    "A forbidden-pattern rule. Blocks either a literal substring (`pattern:`) or a JSX element (`jsx-element:`) inside specific layers."
   )
   .meta({
     examples: [
       'arch:\n  forbidden:\n    - pattern: "console.log("\n      in: core\n      message: "Leaks into the agent event stream"',
+      'arch:\n  forbidden:\n    - jsx-element: ["button", "input", "label"]\n      in: ["src/app/**/*.tsx", "src/components/**/*.tsx", "!src/components/ui/**"]\n      message: "Use the design-system primitives in @/components/ui/* instead of raw HTML elements."',
     ],
   });
 
-const ArchSingletonRuleSchema = z
+const ArchSingletonPatternRuleSchema = z
   .object({
     pattern: z
       .string()
@@ -152,20 +173,36 @@ const ArchSingletonRuleSchema = z
     in: StringOrStringArray.optional().describe(
       "Optional scope. Limit the scan to these layers/globs; defaults to all files in `include`."
     ),
-    message: z
-      .string()
-      .describe(
-        "Required error message explaining why the pattern must stay singleton (security boundary, module-of-record, etc.)."
-      ),
+    message: z.string(),
     severity: ArchSeveritySchema.optional(),
   })
-  .strict()
+  .strict();
+
+const ArchSingletonJsxRuleSchema = z
+  .object({
+    "jsx-element": StringOrStringArray.describe(
+      "JSX intrinsic element name(s) allowed only inside the `only` file. AST-matched on tag names."
+    ),
+    only: z
+      .string()
+      .describe(
+        "The single file path where the element is allowed (typically the design-system primitive that wraps it)."
+      ),
+    in: StringOrStringArray.optional(),
+    message: z.string(),
+    severity: ArchSeveritySchema.optional(),
+  })
+  .strict();
+
+const ArchSingletonRuleSchema = z
+  .union([ArchSingletonPatternRuleSchema, ArchSingletonJsxRuleSchema])
   .describe(
-    "A singleton-location rule. Pins a pattern to exactly one file — the only honest way to enforce a module of record."
+    "A singleton-location rule. Pins a pattern or JSX element to exactly one file — the only honest way to enforce a module of record or a design-system primitive."
   )
   .meta({
     examples: [
       'arch:\n  singleton:\n    - pattern: "process.env.API_KEY"\n      only: "src/lib/auth.ts"\n      message: "API key access must funnel through the auth module."',
+      'arch:\n  singleton:\n    - jsx-element: "button"\n      only: "src/components/ui/button.tsx"\n      in: ["src/**/*.tsx"]\n      message: "Raw <button> belongs only to the Button primitive."',
     ],
   });
 

@@ -166,3 +166,81 @@ describe("arch/singleton", () => {
     expect(v[0].file).toBe("src/other.ts");
   });
 });
+
+describe("arch/singleton — jsx-element", () => {
+  test("allows the element inside the only file", () => {
+    const v = lint(
+      {
+        singleton: [
+          {
+            "jsx-element": "button",
+            only: "src/components/ui/button.tsx",
+            in: "src/**/*.tsx",
+            message: "Raw <button> belongs only to the Button primitive",
+          },
+        ],
+      },
+      [
+        {
+          path: ["src", "components", "ui", "button.tsx"],
+          content: `export function Button(p) { return <button {...p} />; }`,
+        },
+      ]
+    );
+    expect(v).toHaveLength(0);
+  });
+
+  test("flags the element outside the only file", () => {
+    const v = lint(
+      {
+        singleton: [
+          {
+            "jsx-element": "button",
+            only: "src/components/ui/button.tsx",
+            in: "src/**/*.tsx",
+            message: "Raw <button> belongs only to the Button primitive",
+          },
+        ],
+      },
+      [
+        {
+          path: ["src", "components", "ui", "button.tsx"],
+          content: `export function Button(p) { return <button {...p} />; }`,
+        },
+        {
+          path: ["src", "app", "page.tsx"],
+          content: `export default function P() { return <button>x</button>; }`,
+        },
+      ]
+    );
+    expect(v).toHaveLength(1);
+    expect(v[0].file).toBe("src/app/page.tsx");
+  });
+
+  test("array of tag names pins multiple primitives at once", () => {
+    const v = lint(
+      {
+        singleton: [
+          {
+            "jsx-element": ["input", "label"],
+            only: "src/components/ui/form.tsx",
+            in: "src/**/*.tsx",
+            message: "Use Input/Label primitives",
+          },
+        ],
+      },
+      [
+        {
+          path: ["src", "components", "ui", "form.tsx"],
+          content: `export const I = () => <><label/><input/></>;`,
+        },
+        {
+          path: ["src", "app", "page.tsx"],
+          content: `export default function P() { return <input/>; }`,
+        },
+      ]
+    );
+    expect(v).toHaveLength(1);
+    expect(v[0].file).toBe("src/app/page.tsx");
+  });
+});

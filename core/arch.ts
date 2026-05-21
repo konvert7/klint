@@ -78,7 +78,9 @@ function resolveLayerPrefixes(
   layers: Record<string, string[]> | undefined,
   root: string
 ): string[] {
-  return resolveGlobs(ref, layers).map((g) => globToPrefix(g, root));
+  return resolveGlobs(ref, layers)
+    .filter((g) => !g.startsWith("!"))
+    .map((g) => globToPrefix(g, root));
 }
 
 function resolveLayerFiles(
@@ -87,8 +89,18 @@ function resolveLayerFiles(
   root: string,
   allFiles: string[]
 ): string[] {
-  const prefixes = resolveLayerPrefixes(ref, layers, root);
-  return allFiles.filter((f) => prefixes.some((p) => f === p || f.startsWith(`${p}/`)));
+  const globs = resolveGlobs(ref, layers);
+  const includePrefixes = globs
+    .filter((g) => !g.startsWith("!"))
+    .map((g) => globToPrefix(g, root));
+  const excludePrefixes = globs
+    .filter((g) => g.startsWith("!"))
+    .map((g) => globToPrefix(g.slice(1), root));
+  return allFiles.filter(
+    (f) =>
+      includePrefixes.some((p) => f === p || f.startsWith(`${p}/`)) &&
+      !excludePrefixes.some((p) => f === p || f.startsWith(`${p}/`))
+  );
 }
 
 function inPrefixes(absPath: string, prefixes: string[]): boolean {
@@ -196,16 +208,29 @@ export function runArchRules(
   for (const rule of arch.forbidden ?? []) {
     const severity: Severity = rule.severity ?? "error";
     const inFiles = resolveLayerFiles(rule.in, layers, root, allFiles);
-    scanLinesForPattern(
-      inFiles,
-      rule.pattern,
-      fileContents,
-      root,
-      "arch/forbidden",
-      rule.message,
-      severity,
-      violations
-    );
+    if ("jsx-element" in rule) {
+      scanJsxElements(
+        inFiles,
+        toArray(rule["jsx-element"]),
+        fileContents,
+        root,
+        "arch/forbidden",
+        rule.message,
+        severity,
+        violations
+      );
+    } else {
+      scanLinesForPattern(
+        inFiles,
+        rule.pattern,
+        fileContents,
+        root,
+        "arch/forbidden",
+        rule.message,
+        severity,
+        violations
+      );
+    }
   }
 
   for (const rule of arch.singleton ?? []) {
@@ -215,19 +240,68 @@ export function runArchRules(
       ? resolveLayerFiles(rule.in, layers, root, allFiles)
       : allFiles;
     const scope = inFiles.filter((f) => f !== onlyFile);
-    scanLinesForPattern(
-      scope,
-      rule.pattern,
-      fileContents,
-      root,
-      "arch/singleton",
-      rule.message,
-      severity,
-      violations
-    );
+    if ("jsx-element" in rule) {
+      scanJsxElements(
+        scope,
+        toArray(rule["jsx-element"]),
+        fileContents,
+        root,
+        "arch/singleton",
+        rule.message,
+        severity,
+        violations
+      );
+    } else {
+      scanLinesForPattern(
+        scope,
+        rule.pattern,
+        fileContents,
+        root,
+        "arch/singleton",
+        rule.message,
+        severity,
+        violations
+      );
+    }
   }
 
   return violations;
+}
+
+function toArray<T>(v: T | T[]): T[] {
+  return Array.isArray(v) ? v : [v];
+}
+
+function scanJsxElements(
+  files: string[],
+  tagNames: string[],
+  fileContents: Map<string, string>,
+  root: string,
+  ruleName: string,
+  message: string,
+  severity: Severity,
+  violations: Violation[]
+): void {
+  const targets = new Set(tagNames);
+  for (const file of files) {
+    if (!/\.(tsx|jsx)$/.test(file)) continue;
+    const content = fileContents.get(file);
+    if (!content) continue;
+    walkAst(file, content, (node, src) => {
+      if (!ts.isJsxOpeningElement(node) && !ts.isJsxSelfClosingElement(node)) return;
+      const tagName = node.tagName;
+      if (!ts.isIdentifier(tagName)) return;
+      if (!targets.has(tagName.text)) return;
+      const { line } = src.getLineAndCharacterOfPosition(tagName.getStart());
+      violations.push({
+        file: relative(root, file).replaceAll("\\", "/"),
+        line: line + 1,
+        message,
+        rule: ruleName,
+        severity,
+      });
+    });
+  }
 }
 
 function scanLinesForPattern(
