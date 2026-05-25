@@ -1,11 +1,12 @@
 import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   nativePackageForPlatform,
   resolveNativePackageBinary,
 } from "../core/native-binary";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = fileURLToPath(new URL("..", import.meta.url));
 const nativePackage = nativePackageForPlatform();
 
 if (!nativePackage) {

@@ -34,6 +34,12 @@ jobs:
       - name: Setup Rust
         run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
 
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
