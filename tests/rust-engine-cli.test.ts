@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -6,6 +6,8 @@ import { join, resolve } from "node:path";
 
 const CLI = resolve(import.meta.dir, "../cli.ts");
 const ROOT = resolve(import.meta.dir, "..");
+const RUST_BUILD_TIMEOUT_MS = 120000;
+let rustBin: string;
 
 interface CliResult {
   stdout: string;
@@ -54,7 +56,7 @@ function ensureRustBinary(): string {
   const result = spawnSync("cargo", ["build", "-p", "klint-rs"], {
     cwd: ROOT,
     encoding: "utf-8",
-    timeout: 30000,
+    timeout: RUST_BUILD_TIMEOUT_MS,
   });
   expect(result.status, result.stderr || result.stdout).toBe(0);
   expect(existsSync(bin)).toBe(true);
@@ -62,8 +64,11 @@ function ensureRustBinary(): string {
 }
 
 describe("KLINT_ENGINE=rust", () => {
+  beforeAll(() => {
+    rustBin = ensureRustBinary();
+  }, RUST_BUILD_TIMEOUT_MS);
+
   test("matches TypeScript JSON output and exit code for arch errors", () => {
-    const bin = ensureRustBinary();
     const dir = setupFixture(
       `
 include: ["src"]
@@ -81,7 +86,7 @@ arch:
       const ts = runCli(dir);
       const rust = runCli(dir, {
         KLINT_ENGINE: "rust",
-        KLINT_RUST_BIN: bin,
+        KLINT_RUST_BIN: rustBin,
       });
 
       expect(rust.code).toBe(2);
@@ -93,7 +98,6 @@ arch:
   });
 
   test("matches TypeScript JSON output and exit code for warning-only arch runs", () => {
-    const bin = ensureRustBinary();
     const dir = setupFixture(
       `
 include: ["src"]
@@ -112,7 +116,7 @@ arch:
       const ts = runCli(dir);
       const rust = runCli(dir, {
         KLINT_ENGINE: "rust",
-        KLINT_RUST_BIN: bin,
+        KLINT_RUST_BIN: rustBin,
       });
 
       expect(rust.code).toBe(0);
@@ -145,7 +149,6 @@ rules:
   });
 
   test("respects explicit KLINT_RUST_BIN override", () => {
-    const bin = ensureRustBinary();
     const dir = setupFixture(
       `
 include: ["src"]
@@ -163,7 +166,7 @@ arch:
       const ts = runCli(dir);
       const rust = runCli(dir, {
         KLINT_ENGINE: "rust",
-        KLINT_RUST_BIN: bin,
+        KLINT_RUST_BIN: rustBin,
       });
 
       expect(rust.code).toBe(2);
