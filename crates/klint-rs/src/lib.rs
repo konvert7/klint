@@ -16,6 +16,7 @@ struct RawConfig {
 struct ArchConfig {
     layers: Option<BTreeMap<String, Vec<String>>>,
     forbidden: Option<Vec<ArchForbiddenRule>>,
+    singleton: Option<Vec<ArchSingletonRule>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -30,10 +31,29 @@ struct ArchForbiddenRule {
 }
 
 #[derive(Debug, Deserialize)]
+struct ArchSingletonRule {
+    pattern: Option<String>,
+    #[serde(rename = "jsx-element")]
+    jsx_element: Option<serde_yaml::Value>,
+    only: String,
+    #[serde(rename = "in")]
+    in_scope: Option<StringOrVec>,
+    message: String,
+    severity: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(untagged)]
 enum StringOrVec {
     One(String),
     Many(Vec<String>),
+}
+
+struct PatternScan<'a> {
+    rule_name: &'a str,
+    pattern: &'a str,
+    message: &'a str,
+    severity: &'a str,
 }
 
 #[derive(Debug)]
@@ -77,6 +97,7 @@ pub fn run(options: RunOptions) -> Result<JsonOutput, String> {
     let mut violations = Vec::new();
     if let Some(arch) = raw.arch {
         run_arch_forbidden_rules(&arch, &files, &file_contents, &root, &mut violations);
+        run_arch_singleton_rules(&arch, &files, &file_contents, &root, &mut violations);
     }
 
     Ok(output_from_violations(violations))
@@ -189,9 +210,56 @@ fn run_arch_forbidden_rules(
             &scoped_files,
             file_contents,
             root,
-            pattern,
-            &rule.message,
-            rule.severity.as_deref().unwrap_or("error"),
+            PatternScan {
+                rule_name: "arch/forbidden",
+                pattern,
+                message: &rule.message,
+                severity: rule.severity.as_deref().unwrap_or("error"),
+            },
+            violations,
+        );
+    }
+}
+
+fn run_arch_singleton_rules(
+    arch: &ArchConfig,
+    files: &[PathBuf],
+    file_contents: &BTreeMap<PathBuf, String>,
+    root: &Path,
+    violations: &mut Vec<Violation>,
+) {
+    let Some(rules) = &arch.singleton else {
+        return;
+    };
+
+    for rule in rules {
+        let Some(pattern) = &rule.pattern else {
+            continue;
+        };
+        if rule.jsx_element.is_some() {
+            continue;
+        }
+
+        let only_file = normalize_path(&root.join(&rule.only));
+        let scoped_files = match &rule.in_scope {
+            Some(scope) => resolve_layer_files(scope, arch.layers.as_ref(), root, files),
+            None => files.to_vec(),
+        };
+        let checked_files = scoped_files
+            .into_iter()
+            .filter(|file| file != &only_file)
+            .collect::<Vec<_>>();
+
+        scan_lines_for_pattern(
+            &checked_files,
+            file_contents,
+            root,
+            PatternScan {
+                rule_name: "arch/singleton",
+                pattern,
+                message: &rule.message,
+                severity: rule.severity.as_deref().unwrap_or("error"),
+            },
             violations,
         );
     }
@@ -276,9 +344,7 @@ fn scan_lines_for_pattern(
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
     root: &Path,
-    pattern: &str,
-    message: &str,
-    severity: &str,
+    scan: PatternScan<'_>,
     violations: &mut Vec<Violation>,
 ) {
     for file in files {
@@ -287,13 +353,13 @@ fn scan_lines_for_pattern(
         };
 
         for (index, line) in content.lines().enumerate() {
-            if line.contains(pattern) {
+            if line.contains(scan.pattern) {
                 violations.push(Violation {
                     file: relative_path(root, file),
                     line: index + 1,
-                    rule: "arch/forbidden".to_string(),
-                    message: message.to_string(),
-                    severity: severity.to_string(),
+                    rule: scan.rule_name.to_string(),
+                    message: scan.message.to_string(),
+                    severity: scan.severity.to_string(),
                     fix: None,
                 });
             }
@@ -487,6 +553,92 @@ arch:
         assert_eq!(output.summary.warnings, 1);
         assert_eq!(output.violations.len(), 1);
         assert_eq!(output.violations[0].file, "src/lib/utils.ts");
+        assert_eq!(output.violations[0].severity, "warn");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn singleton_pattern_ignores_only_file_and_reports_other_matches() {
+        let root = temp_root("singleton-pattern");
+        create_dir_all(root.join("src/lib")).expect("create lib dirs");
+        create_dir_all(root.join("src/server")).expect("create server dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["src"]
+rules: {}
+arch:
+  singleton:
+    - pattern: "process.env.API_KEY"
+      only: "src/lib/auth.ts"
+      in: ["src/**"]
+      message: "Use auth module"
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("src/lib/auth.ts"),
+            "export const key = process.env.API_KEY;\n",
+        )
+        .expect("write allowed source");
+        write(
+            root.join("src/server/handler.ts"),
+            "const key = process.env.API_KEY;\n",
+        )
+        .expect("write violating source");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(
+            output.violations,
+            vec![Violation {
+                file: "src/server/handler.ts".to_string(),
+                line: 1,
+                rule: "arch/singleton".to_string(),
+                message: "Use auth module".to_string(),
+                severity: "error".to_string(),
+                fix: None,
+            }]
+        );
+        assert_eq!(output.summary.errors, 1);
+        assert_eq!(output.summary.warnings, 0);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn singleton_pattern_respects_default_scope_and_warn_severity() {
+        let root = temp_root("singleton-default-scope");
+        create_dir_all(root.join("src/lib")).expect("create lib dirs");
+        create_dir_all(root.join("src/app")).expect("create app dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["src"]
+rules: {}
+arch:
+  singleton:
+    - pattern: "createClient("
+      only: "src/lib/client.ts"
+      message: "Use shared client"
+      severity: warn
+"#,
+        )
+        .expect("write config");
+        write(root.join("src/lib/client.ts"), "createClient();\n").expect("write allowed source");
+        write(root.join("src/app/page.ts"), "createClient();\n").expect("write violating source");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(output.summary.errors, 0);
+        assert_eq!(output.summary.warnings, 1);
+        assert_eq!(output.violations.len(), 1);
+        assert_eq!(output.violations[0].file, "src/app/page.ts");
         assert_eq!(output.violations[0].severity, "warn");
         let _ = fs::remove_dir_all(root);
     }

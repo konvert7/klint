@@ -197,7 +197,8 @@
     }
   },
   {
-    "name": "arch singleton pattern and jsx element",
+    "name": "arch singleton pattern",
+    "runners": ["ts", "rust"],
     "config": {
       "include": ["."],
       "rules": {},
@@ -208,7 +209,35 @@
             "only": "src/lib/auth.ts",
             "in": ["src/**"],
             "message": "Use auth module"
-          },
+          }
+        ]
+      }
+    },
+    "files": {
+      "src/lib/auth.ts": "export const key = process.env.API_KEY;\n",
+      "src/server/handler.ts": "const key = process.env.API_KEY;\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/server/handler.ts",
+          "line": 1,
+          "rule": "arch/singleton",
+          "message": "Use auth module",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "arch singleton jsx element",
+    "config": {
+      "include": ["."],
+      "rules": {},
+      "arch": {
+        "singleton": [
           {
             "jsx-element": "button",
             "only": "src/components/ui/button.tsx",
@@ -220,8 +249,6 @@
       }
     },
     "files": {
-      "src/lib/auth.ts": "export const key = process.env.API_KEY;\n",
-      "src/server/handler.ts": "const key = process.env.API_KEY;\n",
       "src/components/ui/button.tsx": "export function Button() { return <button />; }\n",
       "src/app/page.tsx": "export default function Page() { return <button>Click</button>; }\n"
     },
@@ -234,17 +261,9 @@
           "message": "Raw button belongs in the Button primitive",
           "severity": "warn",
           "fix": null
-        },
-        {
-          "file": "src/server/handler.ts",
-          "line": 1,
-          "rule": "arch/singleton",
-          "message": "Use auth module",
-          "severity": "error",
-          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 1 }
+      "summary": { "errors": 0, "warnings": 1 }
     }
   }
 ]
