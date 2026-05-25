@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { nativePackages } from "../core/native-binary";
@@ -39,6 +39,10 @@ try {
       readFileSync(join(packageRoot, "package.json"), "utf-8")
     );
     const expectedFiles = ["package/package.json"];
+    if (existsSync(join(packageRoot, nativePackage.binaryPath))) {
+      expectedFiles.push(`package/${nativePackage.binaryPath}`);
+    }
+    expectedFiles.sort();
     const list = packAndList(packageRoot);
 
     assertEquals(

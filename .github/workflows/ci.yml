@@ -62,9 +62,6 @@ jobs:
       - name: Rust shadow engine test
         run: bun run test:rust-engine
 
-      - name: Pack check
-        run: bun run pack:check
-
       - name: Rust format
         run: cargo fmt --check
 
@@ -76,6 +73,18 @@ jobs:
 
       - name: Rust test
         run: cargo test -p klint-rs
+
+      - name: Rust release build
+        run: cargo build -p klint-rs --release
+
+      - name: Stage native package binary
+        run: bun run native:stage
+
+      - name: Smoke native package binary
+        run: bun run native:smoke
+
+      - name: Pack check
+        run: bun run pack:check
 
   release:
     needs: [test]

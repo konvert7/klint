@@ -1,4 +1,5 @@
 node_modules/
 dist/
 target/
+npm/native/*/bin/
 .DS_Store

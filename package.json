@@ -37,6 +37,8 @@
     "test": "bun test",
     "test:rust-engine": "bun test tests/rust-engine-cli.test.ts",
     "pack:check": "bun tests/pack-check.ts",
+    "native:stage": "bun tests/stage-native-binary.ts",
+    "native:smoke": "bun tests/smoke-native-binary.ts",
     "check": "biome check",
     "check-write": "biome check --write",
     "knip": "knip-bun",
