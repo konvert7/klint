@@ -1,3 +1,11 @@
+# [0.11.0](https://github.com/konvert7/klint/compare/v0.10.0...v0.11.0) (2026-05-25)
+
+
+### Features
+
+* **release:** add dry-run script for native release preparation ([b798a3e](https://github.com/konvert7/klint/commit/b798a3eaada3888573823e9d91940e0843104477))
+* **release:** implement custom npm release plugin and update CI configuration ([960960a](https://github.com/konvert7/klint/commit/960960a81ccccf09e9f44111ca86c902af896cf2))
+
 # [0.10.0](https://github.com/konvert7/klint/compare/v0.9.0...v0.10.0) (2026-05-25)
 
 
