@@ -48,6 +48,7 @@
   },
   {
     "name": "arch imports allow type-only while blocking value import",
+    "runners": ["ts", "rust"],
     "config": {
       "include": ["."],
       "rules": {},

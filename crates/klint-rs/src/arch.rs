@@ -85,12 +85,13 @@ fn run_arch_import_rules(
     };
 
     for rule in rules {
-        if rule.allow.is_some() || rule.type_only.is_some() {
+        if rule.allow.is_some() {
             continue;
         }
         let Some(deny) = &rule.deny else {
             continue;
         };
+        let allow_type_only = rule.type_only.as_deref() == Some("allow");
 
         let severity = rule.severity.as_deref().unwrap_or("error");
         let message = rule
@@ -109,6 +110,9 @@ fn run_arch_import_rules(
             };
 
             for import in imports {
+                if allow_type_only && import.is_type_only {
+                    continue;
+                }
                 if is_bare_specifier(&import.specifier) {
                     continue;
                 }

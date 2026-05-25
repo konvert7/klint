@@ -318,4 +318,92 @@ arch:
         );
         let _ = fs::remove_dir_all(root);
     }
+
+    #[test]
+    fn imports_deny_mode_can_allow_type_only_imports() {
+        let root = temp_root("imports-type-only-allow");
+        create_dir_all(root.join("assets/skills/demo")).expect("create skill dirs");
+        create_dir_all(root.join("src/lib")).expect("create core dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["."]
+rules: {}
+arch:
+  layers:
+    skills: ["assets/skills/**"]
+    core: ["src/lib/**"]
+  imports:
+    - from: skills
+      deny: core
+      type-only: allow
+      message: "Use runtime boundary"
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("assets/skills/demo/index.ts"),
+            "import type { Foo } from \"../../../src/lib/types\";\nimport { foo } from \"../../../src/lib/utils\";\nexport const value = foo;\n",
+        )
+        .expect("write importing source");
+        write(
+            root.join("src/lib/types.ts"),
+            "export interface Foo { value: string }\n",
+        )
+        .expect("write types");
+        write(root.join("src/lib/utils.ts"), "export const foo = 1;\n").expect("write util");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(output.summary.errors, 1);
+        assert_eq!(output.violations.len(), 1);
+        assert_eq!(output.violations[0].line, 2);
+        assert_eq!(output.violations[0].message, "Use runtime boundary");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn imports_deny_mode_flags_type_only_imports_without_override() {
+        let root = temp_root("imports-type-only-default-deny");
+        create_dir_all(root.join("assets/skills/demo")).expect("create skill dirs");
+        create_dir_all(root.join("src/lib")).expect("create core dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["."]
+rules: {}
+arch:
+  layers:
+    skills: ["assets/skills/**"]
+    core: ["src/lib/**"]
+  imports:
+    - from: skills
+      deny: core
+      message: "Use runtime boundary"
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("assets/skills/demo/index.ts"),
+            "import type { Foo } from \"../../../src/lib/types\";\n",
+        )
+        .expect("write importing source");
+        write(
+            root.join("src/lib/types.ts"),
+            "export interface Foo { value: string }\n",
+        )
+        .expect("write types");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(output.summary.errors, 1);
+        assert_eq!(output.violations[0].line, 1);
+        let _ = fs::remove_dir_all(root);
+    }
 }
