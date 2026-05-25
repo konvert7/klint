@@ -1,3 +1,10 @@
+# [0.13.0](https://github.com/konvert7/klint/compare/v0.12.1...v0.13.0) (2026-05-25)
+
+
+### Features
+
+* **cli:** add execution time reporting to CLI output ([e015192](https://github.com/konvert7/klint/commit/e015192393be8ffb0cb278ec76b800cddb12da72))
+
 ## [0.12.1](https://github.com/konvert7/klint/compare/v0.12.0...v0.12.1) (2026-05-25)
 
 
