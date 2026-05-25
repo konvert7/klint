@@ -22,6 +22,30 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bun .agents/hooks/rust-format.ts --codex"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun .agents/hooks/rust-check.ts --codex"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun .agents/hooks/rust-clippy.ts --codex"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "bun .agents/hooks/knip.ts --codex"
           }
         ]

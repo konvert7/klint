@@ -6,6 +6,9 @@
         "hooks": [
           { "type": "command", "command": "bun .agents/hooks/check.ts" },
           { "type": "command", "command": "bun .agents/hooks/type-check.ts" },
+          { "type": "command", "command": "bun .agents/hooks/rust-format.ts" },
+          { "type": "command", "command": "bun .agents/hooks/rust-check.ts" },
+          { "type": "command", "command": "bun .agents/hooks/rust-clippy.ts" },
           { "type": "command", "command": "bun .agents/hooks/jscpd.ts" },
           { "type": "command", "command": "bun .agents/hooks/knip.ts" },
           { "type": "command", "command": "bun .agents/hooks/klint.ts" }
@@ -21,7 +24,11 @@
       "Bash(bun run knip *)",
       "Bash(bun test *)",
       "Bash(bun cli.ts *)",
-      "Bash(bun run klint *)"
+      "Bash(bun run klint *)",
+      "Bash(cargo fmt *)",
+      "Bash(cargo check *)",
+      "Bash(cargo clippy *)",
+      "Bash(cargo test *)"
     ]
   }
 }
