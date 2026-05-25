@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { nativePackages } from "../core/native-binary";
 
@@ -88,7 +88,7 @@ function packAndList(cwd: string): string[] {
     ["pm", "pack", "--ignore-scripts", "--destination", outDir, "--quiet"],
     cwd
   );
-  const tarball = packed.startsWith("/") ? packed : join(outDir, packed);
+  const tarball = isAbsolute(packed) ? packed : join(outDir, packed);
   return run("tar", ["-tzf", tarball], cwd).split("\n").filter(Boolean).sort();
 }
 
