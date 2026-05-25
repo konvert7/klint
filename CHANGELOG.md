@@ -1,3 +1,10 @@
+# [0.9.0](https://github.com/konvert7/klint/compare/v0.8.0...v0.9.0) (2026-05-25)
+
+
+### Features
+
+* enhance jscpd hook with format handling and add hooks configuration ([e637ec6](https://github.com/konvert7/klint/commit/e637ec6efe2dd0ca908717e7dc6d0b3e7ecbc7b5))
+
 # [0.8.0](https://github.com/konvert7/klint/compare/v0.7.1...v0.8.0) (2026-05-21)
 
 
