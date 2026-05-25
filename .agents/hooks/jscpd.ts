@@ -1,11 +1,4 @@
-import { hookFormatFromArgs, runHook } from "./run-hook";
-
-const format = hookFormatFromArgs();
-
-if (format === "codex") {
-  const exitCode = runHook(["bun", "run", "jscpd"], format);
-  process.exit(exitCode);
-}
+import { runHook } from "./run-hook";
 
 // First pass: silent (terse on green). On failure, rerun verbose to surface
 // which clones caused the threshold breach — saves a manual `jscpd:report`.

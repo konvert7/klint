@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 
 type HookFormat = "claude" | "cursor" | "opencode" | "codex";
 
-export function hookFormatFromArgs(args: string[] = process.argv.slice(2)): HookFormat {
+function hookFormatFromArgs(args: string[] = process.argv.slice(2)): HookFormat {
   if (args.includes("--codex")) return "codex";
   if (args.includes("--cursor")) return "cursor";
   if (args.includes("--opencode")) return "opencode";
