@@ -24,6 +24,7 @@ interface CliOptions {
 }
 
 export async function main(opts: CliOptions = {}): Promise<void> {
+  const startedAt = performance.now();
   const args = process.argv.slice(2);
 
   if (args[0] === "help" || args[0] === "h") {
@@ -153,7 +154,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
       unfixed > 0
         ? `klint: applied ${totalApplied} fix(es). ${unfixed} violation(s) require manual attention.`
         : `klint: applied ${totalApplied} fix(es). No remaining violations.`;
-    process.stdout.write(JSON.stringify({ output: msg }));
+    process.stdout.write(`${msg} Finished in ${formatDuration(startedAt)}.\n`);
     process.exit(0);
   }
 
@@ -161,7 +162,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
   const warns = violations.filter((v) => v.severity === "warn");
 
   if (errors.length === 0 && warns.length === 0) {
-    process.stdout.write(JSON.stringify({ output: "klint: 0 violations" }));
+    process.stdout.write(`klint: 0 violations in ${formatDuration(startedAt)}\n`);
     process.exit(0);
   }
 
@@ -181,9 +182,17 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     process.stderr.write(
       `klint: ${errors.length} error(s)\n\n${errors.map(formatBlock).join("\n")}`
     );
+    process.stderr.write(`\nklint: finished in ${formatDuration(startedAt)}\n`);
     process.exit(2);
   }
+  process.stderr.write(`\nklint: finished in ${formatDuration(startedAt)}\n`);
   process.exit(0);
+}
+
+function formatDuration(startedAt: number): string {
+  const elapsedMs = performance.now() - startedAt;
+  if (elapsedMs < 1000) return `${Math.round(elapsedMs)}ms`;
+  return `${(elapsedMs / 1000).toFixed(elapsedMs < 10_000 ? 2 : 1)}s`;
 }
 
 function runRustEngine({
