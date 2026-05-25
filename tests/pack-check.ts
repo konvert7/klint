@@ -89,7 +89,15 @@ function packAndList(cwd: string): string[] {
     cwd
   );
   const tarball = isAbsolute(packed) ? packed : join(outDir, packed);
-  return run("tar", ["-tzf", tarball], cwd).split("\n").filter(Boolean).sort();
+  return run("tar", ["-tzf", tarball], cwd)
+    .split("\n")
+    .filter(Boolean)
+    .map(normalizeTarEntry)
+    .sort();
+}
+
+function normalizeTarEntry(entry: string): string {
+  return entry.trim().replaceAll("\\", "/").replace(/^\.\//, "");
 }
 
 function run(command: string, args: string[], cwd: string): string {
