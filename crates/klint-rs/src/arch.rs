@@ -3,6 +3,7 @@ use crate::output::Violation;
 use crate::syntax::scan_imports;
 use serde::Deserialize;
 use std::collections::BTreeMap;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Deserialize)]
@@ -61,6 +62,26 @@ struct PatternScan<'a> {
     severity: &'a str,
 }
 
+#[derive(Debug)]
+struct AliasEntry {
+    prefix: String,
+    base: PathBuf,
+    is_wildcard: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct TsConfig {
+    #[serde(rename = "compilerOptions")]
+    compiler_options: Option<TsCompilerOptions>,
+}
+
+#[derive(Debug, Deserialize)]
+struct TsCompilerOptions {
+    #[serde(rename = "baseUrl")]
+    base_url: Option<String>,
+    paths: Option<BTreeMap<String, Vec<String>>>,
+}
+
 pub(crate) fn run_arch_rules(
     arch: &ArchConfig,
     files: &[PathBuf],
@@ -83,6 +104,7 @@ fn run_arch_import_rules(
     let Some(rules) = &arch.imports else {
         return;
     };
+    let aliases = load_path_aliases(root);
 
     for rule in rules {
         if rule.allow.is_some() {
@@ -113,11 +135,10 @@ fn run_arch_import_rules(
                 if allow_type_only && import.is_type_only {
                     continue;
                 }
-                if is_bare_specifier(&import.specifier) {
+                let Some(resolved) = resolve_import(&file, root, &import.specifier, &aliases)
+                else {
                     continue;
-                }
-                let resolved =
-                    normalize_path(&file.parent().unwrap_or(root).join(&import.specifier));
+                };
                 if in_prefixes(&resolved, &deny_prefixes) {
                     violations.push(Violation {
                         file: relative_path(root, &file),
@@ -131,6 +152,73 @@ fn run_arch_import_rules(
             }
         }
     }
+}
+
+fn load_path_aliases(root: &Path) -> Vec<AliasEntry> {
+    let tsconfig_path = root.join("tsconfig.json");
+    let Ok(text) = fs::read_to_string(&tsconfig_path) else {
+        return Vec::new();
+    };
+    let Ok(tsconfig) = serde_json::from_str::<TsConfig>(&text) else {
+        return Vec::new();
+    };
+    let Some(options) = tsconfig.compiler_options else {
+        return Vec::new();
+    };
+    let Some(paths) = options.paths else {
+        return Vec::new();
+    };
+
+    let base_url = options.base_url.unwrap_or_else(|| ".".to_string());
+    let base_root = normalize_path(&root.join(base_url));
+    paths
+        .into_iter()
+        .filter_map(|(pattern, targets)| {
+            let target = targets.first()?;
+            let is_wildcard = pattern.ends_with("/*");
+            let prefix = if is_wildcard {
+                pattern.trim_end_matches("/*").to_string()
+            } else {
+                pattern
+            };
+            let target_base = target.trim_end_matches("/*");
+            Some(AliasEntry {
+                prefix,
+                base: normalize_path(&base_root.join(target_base)),
+                is_wildcard,
+            })
+        })
+        .collect()
+}
+
+fn resolve_import(
+    file: &Path,
+    root: &Path,
+    specifier: &str,
+    aliases: &[AliasEntry],
+) -> Option<PathBuf> {
+    if !is_bare_specifier(specifier) {
+        return Some(normalize_path(
+            &file.parent().unwrap_or(root).join(specifier),
+        ));
+    }
+
+    resolve_alias(specifier, aliases)
+}
+
+fn resolve_alias(specifier: &str, aliases: &[AliasEntry]) -> Option<PathBuf> {
+    aliases.iter().find_map(|alias| {
+        if alias.is_wildcard {
+            let match_prefix = format!("{}/", alias.prefix);
+            specifier
+                .strip_prefix(&match_prefix)
+                .map(|rest| normalize_path(&alias.base.join(rest)))
+        } else if specifier == alias.prefix {
+            Some(alias.base.clone())
+        } else {
+            None
+        }
+    })
 }
 
 fn run_arch_forbidden_rules(

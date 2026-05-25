@@ -406,4 +406,111 @@ arch:
         assert_eq!(output.violations[0].line, 1);
         let _ = fs::remove_dir_all(root);
     }
+
+    #[test]
+    fn imports_deny_mode_resolves_tsconfig_path_aliases() {
+        let root = temp_root("imports-path-alias");
+        create_dir_all(root.join("assets/skills/demo")).expect("create skill dirs");
+        create_dir_all(root.join("src/lib")).expect("create core dirs");
+        write(
+            root.join("tsconfig.json"),
+            r#"
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  }
+}
+"#,
+        )
+        .expect("write tsconfig");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["."]
+rules: {}
+arch:
+  layers:
+    skills: ["assets/skills/**"]
+    core: ["src/**"]
+  imports:
+    - from: skills
+      deny: core
+      message: "No repo source imports from skills"
+      severity: warn
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("assets/skills/demo/index.ts"),
+            "import { foo } from \"@/lib/utils\";\nexport const value = foo;\n",
+        )
+        .expect("write importing source");
+        write(root.join("src/lib/utils.ts"), "export const foo = 1;\n").expect("write util");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(output.summary.errors, 0);
+        assert_eq!(output.summary.warnings, 1);
+        assert_eq!(output.violations[0].line, 1);
+        assert_eq!(output.violations[0].severity, "warn");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn imports_deny_mode_resolves_exact_tsconfig_path_aliases() {
+        let root = temp_root("imports-exact-path-alias");
+        create_dir_all(root.join("assets/skills/demo")).expect("create skill dirs");
+        create_dir_all(root.join("src/lib")).expect("create core dirs");
+        write(
+            root.join("tsconfig.json"),
+            r#"
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@core": ["src/lib/index.ts"]
+    }
+  }
+}
+"#,
+        )
+        .expect("write tsconfig");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["."]
+rules: {}
+arch:
+  layers:
+    skills: ["assets/skills/**"]
+    core: ["src/lib/index.ts"]
+  imports:
+    - from: skills
+      deny: core
+      message: "No repo source imports from skills"
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("assets/skills/demo/index.ts"),
+            "import { foo } from \"@core\";\n",
+        )
+        .expect("write importing source");
+        write(root.join("src/lib/index.ts"), "export const foo = 1;\n").expect("write core");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(output.summary.errors, 1);
+        assert_eq!(output.violations[0].line, 1);
+        let _ = fs::remove_dir_all(root);
+    }
 }
