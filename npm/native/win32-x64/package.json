@@ -1,0 +1,13 @@
+{
+  "name": "@konvert7/klint-win32-x64",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Native Windows x64 binary for @konvert7/klint.",
+  "license": "MIT",
+  "os": ["win32"],
+  "cpu": ["x64"],
+  "files": ["bin/klint-rs.exe"],
+  "bin": {
+    "klint-rs": "bin/klint-rs.exe"
+  }
+}

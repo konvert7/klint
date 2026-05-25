@@ -12,6 +12,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import * as clack from "@clack/prompts";
 import { parse as parseYaml } from "yaml";
 import { applyFixes } from "./core/fixer";
+import { resolveNativePackageBinary } from "./core/native-binary";
 import { runKlint } from "./core/runner";
 import type { ArchConfig, KlintConfig, KlintRule, RuleConfigValue } from "./core/types";
 import { BUILT_IN_PLUGINS } from "./plugins/index";
@@ -231,6 +232,11 @@ function resolveRustEngineCommand(configDir: string): RustEngineCommand {
   const explicitBin = process.env.KLINT_RUST_BIN;
   if (explicitBin) {
     return { bin: explicitBin, args };
+  }
+
+  const nativePackageBin = resolveNativePackageBinary({ packageRoot: import.meta.dir });
+  if (nativePackageBin) {
+    return { bin: nativePackageBin, args };
   }
 
   const localBin = join(

@@ -1,0 +1,13 @@
+{
+  "name": "@konvert7/klint-linux-x64",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Native Linux x64 binary for @konvert7/klint.",
+  "license": "MIT",
+  "os": ["linux"],
+  "cpu": ["x64"],
+  "files": ["bin/klint-rs"],
+  "bin": {
+    "klint-rs": "bin/klint-rs"
+  }
+}
