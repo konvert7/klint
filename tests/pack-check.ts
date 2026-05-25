@@ -1,25 +1,16 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { nativePackages } from "../core/native-binary";
 
 const root = new URL("..", import.meta.url).pathname;
 const outDir = mkdtempSync(join(tmpdir(), "klint-pack-check-"));
 
 try {
-  const packed = run("bun", [
-    "pm",
-    "pack",
-    "--ignore-scripts",
-    "--destination",
-    outDir,
-    "--quiet",
-  ]);
-  const tarball = packed.startsWith("/") ? packed : join(outDir, packed);
+  const mainList = packAndList(root);
 
-  const list = run("tar", ["-tzf", tarball]).split("\n").filter(Boolean).sort();
-
-  assertIncludes(list, [
+  assertIncludes(mainList, [
     "package/README.md",
     "package/cli.ts",
     "package/package.json",
@@ -27,7 +18,7 @@ try {
     "package/skill/klint-rules/SKILL.md",
   ]);
 
-  assertExcludes(list, [
+  assertExcludes(mainList, [
     "package/npm/native/darwin-arm64/package.json",
     "package/npm/native/darwin-x64/package.json",
     "package/npm/native/linux-x64/package.json",
@@ -37,14 +28,68 @@ try {
     "package/crates/klint-rs/Cargo.toml",
   ]);
 
-  process.stdout.write(`pack:check ok (${list.length} files)\n`);
+  for (const nativePackage of nativePackages()) {
+    const packageRoot = join(
+      root,
+      "npm",
+      "native",
+      `${nativePackage.platform}-${nativePackage.arch}`
+    );
+    const packageJson = JSON.parse(
+      readFileSync(join(packageRoot, "package.json"), "utf-8")
+    );
+    const expectedFiles = ["package/package.json"];
+    const list = packAndList(packageRoot);
+
+    assertEquals(
+      packageJson.name,
+      nativePackage.packageName,
+      `${nativePackage.packageName} name`
+    );
+    assertEquals(packageJson.private, true, `${nativePackage.packageName} private`);
+    assertEquals(
+      packageJson.os,
+      [nativePackage.platform],
+      `${nativePackage.packageName} os`
+    );
+    assertEquals(
+      packageJson.cpu,
+      [nativePackage.arch],
+      `${nativePackage.packageName} cpu`
+    );
+    assertEquals(
+      packageJson.files,
+      [nativePackage.binaryPath],
+      `${nativePackage.packageName} files`
+    );
+    assertEquals(
+      packageJson.bin,
+      { "klint-rs": nativePackage.binaryPath },
+      `${nativePackage.packageName} bin`
+    );
+    assertEquals(list, expectedFiles, `${nativePackage.packageName} packed files`);
+  }
+
+  process.stdout.write(
+    `pack:check ok (${mainList.length} main files, ${nativePackages().length} native packages)\n`
+  );
 } finally {
   rmSync(outDir, { recursive: true, force: true });
 }
 
-function run(command: string, args: string[]): string {
+function packAndList(cwd: string): string[] {
+  const packed = run(
+    "bun",
+    ["pm", "pack", "--ignore-scripts", "--destination", outDir, "--quiet"],
+    cwd
+  );
+  const tarball = packed.startsWith("/") ? packed : join(outDir, packed);
+  return run("tar", ["-tzf", tarball], cwd).split("\n").filter(Boolean).sort();
+}
+
+function run(command: string, args: string[], cwd: string): string {
   const result = spawnSync(command, args, {
-    cwd: root,
+    cwd,
     encoding: "utf-8",
   });
   if ((result.status ?? -1) !== 0) {
@@ -68,6 +113,14 @@ function assertExcludes(list: string[], forbidden: string[]): void {
   const present = forbidden.filter((item) => actual.has(item));
   if (present.length > 0) {
     fail(`pack:check found forbidden files:\n${present.join("\n")}`);
+  }
+}
+
+function assertEquals(actual: unknown, expected: unknown, label: string): void {
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    fail(
+      `pack:check ${label} mismatch:\nexpected ${JSON.stringify(expected)}\nactual ${JSON.stringify(actual)}`
+    );
   }
 }
 
