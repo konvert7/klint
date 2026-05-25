@@ -35,6 +35,7 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "test": "bun test",
+    "test:rust-engine": "bun test tests/rust-engine-cli.test.ts",
     "check": "biome check",
     "check-write": "biome check --write",
     "knip": "knip-bun",

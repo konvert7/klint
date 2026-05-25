@@ -1,1 +1,1 @@
-bun run lint-staged && bun run type-check && bun run knip && bun run jscpd && bun run klint && cargo fmt --check && cargo check -p klint-rs && cargo clippy -p klint-rs --all-targets -- -D warnings
+bun run lint-staged && bun run type-check && bun run knip && bun run jscpd && bun run klint && bun run test:rust-engine && cargo fmt --check && cargo check -p klint-rs && cargo clippy -p klint-rs --all-targets -- -D warnings

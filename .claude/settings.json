@@ -9,6 +9,7 @@
           { "type": "command", "command": "bun .agents/hooks/rust-format.ts" },
           { "type": "command", "command": "bun .agents/hooks/rust-check.ts" },
           { "type": "command", "command": "bun .agents/hooks/rust-clippy.ts" },
+          { "type": "command", "command": "bun .agents/hooks/rust-engine.ts" },
           { "type": "command", "command": "bun .agents/hooks/jscpd.ts" },
           { "type": "command", "command": "bun .agents/hooks/knip.ts" },
           { "type": "command", "command": "bun .agents/hooks/klint.ts" }
@@ -21,6 +22,7 @@
       "Bash(bun run check *)",
       "Bash(bun run check-write *)",
       "Bash(bun run type-check *)",
+      "Bash(bun run test:rust-engine *)",
       "Bash(bun run knip *)",
       "Bash(bun test *)",
       "Bash(bun cli.ts *)",
