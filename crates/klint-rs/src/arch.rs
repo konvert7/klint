@@ -1,6 +1,6 @@
 use crate::files::{normalize_path, relative_path};
 use crate::output::Violation;
-use crate::syntax::scan_imports;
+use crate::syntax::{scan_imports, scan_jsx_elements};
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fs;
@@ -29,7 +29,7 @@ struct ArchImportRule {
 struct ArchForbiddenRule {
     pattern: Option<String>,
     #[serde(rename = "jsx-element")]
-    jsx_element: Option<serde_yaml::Value>,
+    jsx_element: Option<StringOrVec>,
     #[serde(rename = "in")]
     in_scope: StringOrVec,
     message: String,
@@ -40,7 +40,7 @@ struct ArchForbiddenRule {
 struct ArchSingletonRule {
     pattern: Option<String>,
     #[serde(rename = "jsx-element")]
-    jsx_element: Option<serde_yaml::Value>,
+    jsx_element: Option<StringOrVec>,
     only: String,
     #[serde(rename = "in")]
     in_scope: Option<StringOrVec>,
@@ -58,6 +58,12 @@ enum StringOrVec {
 struct PatternScan<'a> {
     rule_name: &'a str,
     pattern: &'a str,
+    message: &'a str,
+    severity: &'a str,
+}
+
+struct ElementScan<'a> {
+    rule_name: &'a str,
     message: &'a str,
     severity: &'a str,
 }
@@ -250,14 +256,26 @@ fn run_arch_forbidden_rules(
     };
 
     for rule in rules {
-        let Some(pattern) = &rule.pattern else {
-            continue;
-        };
-        if rule.jsx_element.is_some() {
+        let scoped_files = resolve_layer_files(&rule.in_scope, arch.layers.as_ref(), root, files);
+        if let Some(tags) = &rule.jsx_element {
+            scan_jsx_elements_for_targets(
+                &scoped_files,
+                tags,
+                file_contents,
+                root,
+                ElementScan {
+                    rule_name: "arch/forbidden",
+                    message: &rule.message,
+                    severity: rule.severity.as_deref().unwrap_or("error"),
+                },
+                violations,
+            );
             continue;
         }
 
-        let scoped_files = resolve_layer_files(&rule.in_scope, arch.layers.as_ref(), root, files);
+        let Some(pattern) = &rule.pattern else {
+            continue;
+        };
         scan_lines_for_pattern(
             &scoped_files,
             file_contents,
@@ -297,13 +315,6 @@ fn run_arch_singleton_rules(
     };
 
     for rule in rules {
-        let Some(pattern) = &rule.pattern else {
-            continue;
-        };
-        if rule.jsx_element.is_some() {
-            continue;
-        }
-
         let only_file = normalize_path(&root.join(&rule.only));
         let scoped_files = match &rule.in_scope {
             Some(scope) => resolve_layer_files(scope, arch.layers.as_ref(), root, files),
@@ -314,6 +325,25 @@ fn run_arch_singleton_rules(
             .filter(|file| file != &only_file)
             .collect::<Vec<_>>();
 
+        if let Some(tags) = &rule.jsx_element {
+            scan_jsx_elements_for_targets(
+                &checked_files,
+                tags,
+                file_contents,
+                root,
+                ElementScan {
+                    rule_name: "arch/singleton",
+                    message: &rule.message,
+                    severity: rule.severity.as_deref().unwrap_or("error"),
+                },
+                violations,
+            );
+            continue;
+        }
+
+        let Some(pattern) = &rule.pattern else {
+            continue;
+        };
         scan_lines_for_pattern(
             &checked_files,
             file_contents,
@@ -428,6 +458,39 @@ fn in_prefixes(path: &Path, prefixes: &[PathBuf]) -> bool {
 
 fn is_bare_specifier(specifier: &str) -> bool {
     !specifier.starts_with('.') && !Path::new(specifier).is_absolute()
+}
+
+fn scan_jsx_elements_for_targets(
+    files: &[PathBuf],
+    targets: &StringOrVec,
+    file_contents: &BTreeMap<PathBuf, String>,
+    root: &Path,
+    scan: ElementScan<'_>,
+    violations: &mut Vec<Violation>,
+) {
+    let target_names = targets.items();
+    for file in files {
+        let Some(content) = file_contents.get(file) else {
+            continue;
+        };
+        let Ok(elements) = scan_jsx_elements(file, content) else {
+            continue;
+        };
+
+        for element in elements {
+            if !target_names.contains(&element.tag_name) {
+                continue;
+            }
+            violations.push(Violation {
+                file: relative_path(root, file),
+                line: element.line,
+                rule: scan.rule_name.to_string(),
+                message: scan.message.to_string(),
+                severity: scan.severity.to_string(),
+                fix: None,
+            });
+        }
+    }
 }
 
 fn scan_lines_for_pattern(

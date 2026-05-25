@@ -203,6 +203,7 @@
   },
   {
     "name": "arch forbidden jsx element",
+    "runners": ["ts", "rust"],
     "config": {
       "include": ["."],
       "rules": {},
@@ -271,6 +272,7 @@
   },
   {
     "name": "arch singleton jsx element",
+    "runners": ["ts", "rust"],
     "config": {
       "include": ["."],
       "rules": {},

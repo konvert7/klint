@@ -589,4 +589,87 @@ arch:
         assert_eq!(output.violations.len(), 0);
         let _ = fs::remove_dir_all(root);
     }
+
+    #[test]
+    fn forbidden_jsx_element_flags_intrinsic_tag_only() {
+        let root = temp_root("forbidden-jsx-element");
+        create_dir_all(root.join("src/app")).expect("create app dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["."]
+rules: {}
+arch:
+  forbidden:
+    - jsx-element: button
+      in: ["src/app/**/*.tsx"]
+      message: "Use Button primitive"
+      severity: warn
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("src/app/page.tsx"),
+            "export default function Page() {\n  return <><Button /><button>Click</button></>;\n}\n",
+        )
+        .expect("write page");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(output.summary.errors, 0);
+        assert_eq!(output.summary.warnings, 1);
+        assert_eq!(output.violations.len(), 1);
+        assert_eq!(output.violations[0].line, 2);
+        assert_eq!(output.violations[0].rule, "arch/forbidden");
+        assert_eq!(output.violations[0].severity, "warn");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn singleton_jsx_element_ignores_only_file_and_reports_other_matches() {
+        let root = temp_root("singleton-jsx-element");
+        create_dir_all(root.join("src/components/ui")).expect("create component dirs");
+        create_dir_all(root.join("src/app")).expect("create app dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["."]
+rules: {}
+arch:
+  singleton:
+    - jsx-element: button
+      only: src/components/ui/button.tsx
+      in: ["src/**/*.tsx"]
+      message: "Raw button belongs in the Button primitive"
+      severity: warn
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("src/components/ui/button.tsx"),
+            "export function Button() { return <button />; }\n",
+        )
+        .expect("write button primitive");
+        write(
+            root.join("src/app/page.tsx"),
+            "export default function Page() { return <button>Click</button>; }\n",
+        )
+        .expect("write page");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(output.summary.errors, 0);
+        assert_eq!(output.summary.warnings, 1);
+        assert_eq!(output.violations.len(), 1);
+        assert_eq!(output.violations[0].file, "src/app/page.tsx");
+        assert_eq!(output.violations[0].line, 1);
+        assert_eq!(output.violations[0].rule, "arch/singleton");
+        let _ = fs::remove_dir_all(root);
+    }
 }

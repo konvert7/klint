@@ -9,6 +9,12 @@ pub struct ImportRecord {
     pub is_dynamic: bool,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct JsxElementRecord {
+    pub tag_name: String,
+    pub line: usize,
+}
+
 pub fn scan_imports(path: &Path, content: &str) -> Result<Vec<ImportRecord>, String> {
     let mut parser = Parser::new();
     parser
@@ -24,11 +30,37 @@ pub fn scan_imports(path: &Path, content: &str) -> Result<Vec<ImportRecord>, Str
     Ok(imports)
 }
 
+pub fn scan_jsx_elements(path: &Path, content: &str) -> Result<Vec<JsxElementRecord>, String> {
+    if !is_jsx_path(path) {
+        return Ok(Vec::new());
+    }
+
+    let mut parser = Parser::new();
+    parser
+        .set_language(&language_for_path(path))
+        .map_err(|err| format!("klint-rs: failed to load TSX parser: {err}"))?;
+    let tree = parser
+        .parse(content, None)
+        .ok_or_else(|| "klint-rs: failed to parse source".to_string())?;
+
+    let root = tree.root_node();
+    let mut elements = Vec::new();
+    walk_jsx_elements(root, content.as_bytes(), &mut elements);
+    Ok(elements)
+}
+
 fn language_for_path(path: &Path) -> Language {
     match path.extension().and_then(|ext| ext.to_str()) {
         Some("tsx" | "jsx") => tree_sitter_typescript::LANGUAGE_TSX.into(),
         _ => tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
     }
+}
+
+fn is_jsx_path(path: &Path) -> bool {
+    matches!(
+        path.extension().and_then(|ext| ext.to_str()),
+        Some("tsx" | "jsx")
+    )
 }
 
 fn walk_imports(node: Node<'_>, source: &[u8], imports: &mut Vec<ImportRecord>) {
@@ -85,6 +117,41 @@ fn first_string_child(node: Node<'_>) -> Option<Node<'_>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
         .find(|child| child.kind() == "string")
+}
+
+fn walk_jsx_elements(node: Node<'_>, source: &[u8], elements: &mut Vec<JsxElementRecord>) {
+    if matches!(
+        node.kind(),
+        "jsx_opening_element" | "jsx_self_closing_element"
+    ) && let Some(record) = jsx_element_record(node, source)
+    {
+        elements.push(record);
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        walk_jsx_elements(child, source, elements);
+    }
+}
+
+fn jsx_element_record(node: Node<'_>, source: &[u8]) -> Option<JsxElementRecord> {
+    let name = node
+        .child_by_field_name("name")
+        .or_else(|| first_identifier_child(node))?;
+    if name.kind() != "identifier" {
+        return None;
+    }
+
+    Some(JsxElementRecord {
+        tag_name: node_text(name, source)?,
+        line: name.start_position().row + 1,
+    })
+}
+
+fn first_identifier_child(node: Node<'_>) -> Option<Node<'_>> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .find(|child| child.kind() == "identifier")
 }
 
 fn node_text(node: Node<'_>, source: &[u8]) -> Option<String> {
@@ -173,5 +240,43 @@ mod tests {
                 is_dynamic: false,
             }]
         );
+    }
+
+    #[test]
+    fn extracts_jsx_opening_and_self_closing_elements() {
+        let records = scan_jsx_elements(
+            &PathBuf::from("page.tsx"),
+            "export const page = <main>\n  <button>Click</button>\n  <input />\n</main>;\n",
+        )
+        .expect("tsx source should parse");
+
+        assert_eq!(
+            records,
+            vec![
+                JsxElementRecord {
+                    tag_name: "main".to_string(),
+                    line: 1,
+                },
+                JsxElementRecord {
+                    tag_name: "button".to_string(),
+                    line: 2,
+                },
+                JsxElementRecord {
+                    tag_name: "input".to_string(),
+                    line: 3,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn skips_jsx_scan_for_plain_typescript_files() {
+        let records = scan_jsx_elements(
+            &PathBuf::from("page.ts"),
+            "export const page = '<button>Click</button>';\n",
+        )
+        .expect("non-jsx source should be skipped");
+
+        assert!(records.is_empty());
     }
 }
