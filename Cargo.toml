@@ -1,0 +1,4 @@
+[workspace]
+members = ["crates/klint-rs"]
+resolver = "3"
+
