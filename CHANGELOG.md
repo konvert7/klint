@@ -1,3 +1,28 @@
+# [0.10.0](https://github.com/konvert7/klint/compare/v0.9.0...v0.10.0) (2026-05-25)
+
+
+### Features
+
+* add Rust toolchain configuration and hooks for formatting, checking, and linting ([4f8ef90](https://github.com/konvert7/klint/commit/4f8ef901f2d6e1e6b75234148d2414317bfc84cf))
+* **cli:** refactor Rust engine command resolution and enhance CLI error handling ([6f55885](https://github.com/konvert7/klint/commit/6f558853dd79e8e6c8e33d28bfe069ab27d82050))
+* **hooks:** add pack check script to various configurations and CI workflow ([0547a55](https://github.com/konvert7/klint/commit/0547a55c1d2cbbd65d94814a0b5e5e1075611df2))
+* implement architecture forbidden rules and file scanning ([81946cc](https://github.com/konvert7/klint/commit/81946cc3cfa3313891e89d9fd2f2769354df3ef1))
+* initialize klint-rs crate with configuration handling and CLI ([0b4240d](https://github.com/konvert7/klint/commit/0b4240d96387335b6127dbe89705dc76c3f622d6))
+* **native-binary:** add support for native binaries across platforms and implement resolution logic ([5f190d7](https://github.com/konvert7/klint/commit/5f190d7501963227c74869b87969ec3c26574217))
+* **rust:** add JSX element scanning to architecture rules and enhance violation reporting ([109883e](https://github.com/konvert7/klint/commit/109883ec4d00a09b6551a6c34fa4b5a9e994cdf0))
+* **rust:** add singleton rules to architecture configuration and enhance violation reporting ([04c9905](https://github.com/konvert7/klint/commit/04c9905469a19d0f788dee2b2089ca735b007cb7))
+* **rust:** enhance import rules to allow type-only imports in deny mode and add corresponding tests ([54b4e3a](https://github.com/konvert7/klint/commit/54b4e3a03242060e6f143b21b72434f79ae362dc))
+* **rust:** implement import rules for architecture configuration to manage import boundaries ([8814a18](https://github.com/konvert7/klint/commit/8814a184d3c3e9b3475a43e02b59e9640664ee89))
+* **rust:** implement path alias resolution for TypeScript imports in architecture rules ([02a01a9](https://github.com/konvert7/klint/commit/02a01a921b6f2a1915a6b058bdd50c4b0c298152))
+* **rust:** implement support for KLINT_ENGINE=rust with error handling and CLI integration ([7491640](https://github.com/konvert7/klint/commit/74916404cb75fa05f96a95fc1ded39938ab0dc1e))
+* **rust:** integrate tree-sitter for TypeScript import scanning and add syntax module ([83934f0](https://github.com/konvert7/klint/commit/83934f0f22851f7ced74045627c337c99edf29d6))
+* **rust:** update import rules to support allow mode with custom messages ([3ee72ba](https://github.com/konvert7/klint/commit/3ee72ba78ad782be0d30fc7058dfc57ed5a4be64))
+* **tests:** add architecture rule test cases and golden fixtures for validation ([010aae8](https://github.com/konvert7/klint/commit/010aae8804ee2c2d3f440c77e91fc1303a73ed2c))
+* **tests:** add native binary staging and smoke tests, update CI workflow ([e866ea7](https://github.com/konvert7/klint/commit/e866ea71b88b7a46c6674b0b3a865be518849ddc))
+* **tests:** add pack check script and corresponding test for package integrity ([071d7b4](https://github.com/konvert7/klint/commit/071d7b44fe54aa1f84d062f91140f2d9bfafaaf4))
+* **tests:** add rust-engine test command and integrate into CI and hooks ([c765f50](https://github.com/konvert7/klint/commit/c765f50e03105dd09beec58c1bb6407f85d3e8e8))
+* **tests:** enhance architecture rule tests with Rust support and update violation cases ([bd42ab1](https://github.com/konvert7/klint/commit/bd42ab18194d8d6a121f3f60e5a0857f8c375eda))
+
 # [0.9.0](https://github.com/konvert7/klint/compare/v0.8.0...v0.9.0) (2026-05-25)
 
 
