@@ -1,3 +1,10 @@
+# [0.12.0](https://github.com/konvert7/klint/compare/v0.11.0...v0.12.0) (2026-05-25)
+
+
+### Features
+
+* **cli:** add debug mode for enhanced file resolution logging ([15d88a0](https://github.com/konvert7/klint/commit/15d88a084c1570a31b3e068678c0d005c02e9a2d))
+
 # [0.11.0](https://github.com/konvert7/klint/compare/v0.10.0...v0.11.0) (2026-05-25)
 
 
