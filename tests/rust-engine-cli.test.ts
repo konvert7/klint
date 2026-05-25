@@ -1,0 +1,114 @@
+import { describe, expect, test } from "bun:test";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+
+const CLI = resolve(import.meta.dir, "../cli.ts");
+
+interface CliResult {
+  stdout: string;
+  stderr: string;
+  code: number;
+}
+
+function runCli(dir: string, env: Record<string, string> = {}): CliResult {
+  const result = spawnSync("bun", [CLI, "--config", dir, "--json"], {
+    encoding: "utf-8",
+    env: { ...process.env, ...env },
+    timeout: 30000,
+  });
+  return {
+    stdout: result.stdout ?? "",
+    stderr: result.stderr ?? "",
+    code: result.status ?? -1,
+  };
+}
+
+function setupFixture(config: string, source: string): string {
+  const dir = mkdtempSync(join(tmpdir(), "klint-rust-engine-"));
+  mkdirSync(join(dir, "src"));
+  writeFileSync(join(dir, "klint.yaml"), config);
+  writeFileSync(join(dir, "src", "subject.ts"), source);
+  return dir;
+}
+
+function parseJson(result: CliResult): unknown {
+  return JSON.parse(result.stdout);
+}
+
+describe("KLINT_ENGINE=rust", () => {
+  test("matches TypeScript JSON output and exit code for arch errors", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules: {}
+arch:
+  forbidden:
+    - pattern: "console.log("
+      in: "src/**"
+      message: "Use logger"
+`,
+      `console.log("x");\n`
+    );
+
+    try {
+      const ts = runCli(dir);
+      const rust = runCli(dir, { KLINT_ENGINE: "rust" });
+
+      expect(rust.code).toBe(2);
+      expect(rust.code).toBe(ts.code);
+      expect(parseJson(rust)).toEqual(parseJson(ts));
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("matches TypeScript JSON output and exit code for warning-only arch runs", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules: {}
+arch:
+  forbidden:
+    - pattern: "console.log("
+      in: "src/**"
+      message: "Use logger"
+      severity: warn
+`,
+      `console.log("x");\n`
+    );
+
+    try {
+      const ts = runCli(dir);
+      const rust = runCli(dir, { KLINT_ENGINE: "rust" });
+
+      expect(rust.code).toBe(0);
+      expect(rust.code).toBe(ts.code);
+      expect(parseJson(rust)).toEqual(parseJson(ts));
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("refuses TypeScript-only configs instead of silently skipping rules", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules:
+  no-floating-promise: error
+`,
+      `async function run() {}\nrun();\n`
+    );
+
+    try {
+      const rust = runCli(dir, { KLINT_ENGINE: "rust" });
+
+      expect(rust.code).toBe(1);
+      expect(rust.stderr).toContain("KLINT_ENGINE=rust requires an arch config");
+      expect(rust.stdout).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+});

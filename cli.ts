@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { spawnSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
@@ -80,6 +81,12 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     process.exit(1);
   }
   const root = resolve(configDir, raw.root ?? ".");
+  const engine = process.env.KLINT_ENGINE;
+
+  if (engine === "rust") {
+    runRustEngine({ configDir, fix, json, raw, rulesFile });
+    return;
+  }
 
   let customRules: Record<string, KlintRule> = {};
   const defaultRulesPath = resolve(configDir, "klint.rules.ts");
@@ -172,6 +179,75 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     process.exit(2);
   }
   process.exit(0);
+}
+
+function runRustEngine({
+  configDir,
+  fix,
+  json,
+  raw,
+  rulesFile,
+}: {
+  configDir: string;
+  fix: boolean;
+  json: boolean;
+  raw: {
+    plugins?: string[];
+    rules?: Record<string, RuleConfigValue>;
+    arch?: unknown;
+  };
+  rulesFile?: string;
+}): void {
+  const unsupportedReason = rustEngineUnsupportedReason({
+    fix,
+    json,
+    raw,
+    rulesFile,
+  });
+
+  if (unsupportedReason) {
+    process.stderr.write(`klint: ${unsupportedReason}\n`);
+    process.exit(1);
+  }
+
+  const result = spawnSync(
+    "cargo",
+    ["run", "--quiet", "-p", "klint-rs", "--", "--config", configDir, "--json"],
+    {
+      cwd: import.meta.dir,
+      encoding: "utf-8",
+    }
+  );
+
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+  process.exit(result.status ?? 1);
+}
+
+function rustEngineUnsupportedReason({
+  fix,
+  json,
+  raw,
+  rulesFile,
+}: {
+  fix: boolean;
+  json: boolean;
+  raw: {
+    plugins?: string[];
+    rules?: Record<string, RuleConfigValue>;
+    arch?: unknown;
+  };
+  rulesFile?: string;
+}): string | undefined {
+  if (!json) return "KLINT_ENGINE=rust currently requires --json";
+  if (fix) return "KLINT_ENGINE=rust does not support --fix";
+  if (rulesFile) return "KLINT_ENGINE=rust does not support --rules";
+  if (!raw.arch) return "KLINT_ENGINE=rust requires an arch config";
+  if ((raw.plugins?.length ?? 0) > 0) return "KLINT_ENGINE=rust does not support plugins";
+  if (Object.values(raw.rules ?? {}).some((value) => value !== "off")) {
+    return "KLINT_ENGINE=rust does not support TypeScript rules";
+  }
+  return undefined;
 }
 
 const AGENT_TARGETS = [
