@@ -31,7 +31,12 @@ function walk(dir: string, root: string, excludes: string[] = []): string[] {
     const full = join(dir, entry.name);
     const rel = relative(root, full).replaceAll("\\", "/");
     if (entry.isDirectory()) {
-      if (excludes.some((pattern) => matchPattern(rel, pattern))) continue;
+      if (
+        excludes.some(
+          (pattern) => matchPattern(rel, pattern) || matchPattern(`${rel}/`, pattern)
+        )
+      )
+        continue;
       out.push(...walk(full, root, excludes));
     } else if (/\.(tsx?|jsx?|mts|cts)$/.test(entry.name))
       out.push(full.replaceAll("\\", "/"));
@@ -66,18 +71,36 @@ function matchPattern(relPath: string, pattern: string): boolean {
   const norm = relPath.replaceAll("\\", "/");
   const p = pattern.replaceAll("\\", "/");
   if (p === "." || p === "**") return true;
-  if (p.endsWith("/**")) return norm.startsWith(`${p.slice(0, -3)}/`);
   if (!p.includes("*")) return norm === p || norm.startsWith(`${p}/`);
   return globToRegExp(p).test(norm);
 }
 
 function globToRegExp(pattern: string): RegExp {
-  const escaped = pattern
-    .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
-    .replaceAll("**/", "(?:.*/)?")
-    .replaceAll("**", ".*")
-    .replaceAll("*", "[^/]*");
-  return new RegExp(`^${escaped}$`);
+  let source = "";
+  for (let i = 0; i < pattern.length; i++) {
+    const char = pattern[i];
+    const next = pattern[i + 1];
+
+    if (char === "*" && next === "*") {
+      const after = pattern[i + 2];
+      if (after === "/") {
+        source += "(?:.*/)?";
+        i += 2;
+      } else {
+        source += ".*";
+        i++;
+      }
+      continue;
+    }
+
+    if (char === "*") {
+      source += "[^/]*";
+      continue;
+    }
+
+    source += /[.+?^${}()|[\]\\]/.test(char) ? `\\${char}` : char;
+  }
+  return new RegExp(`^${source}$`);
 }
 
 function applyPatterns(files: string[], patterns: string[], root: string): string[] {
