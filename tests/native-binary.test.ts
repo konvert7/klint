@@ -1,10 +1,23 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   nativePackageForPlatform,
   nativePackages,
   resolveNativePackageBinary,
 } from "../core/native-binary";
+
+const root = new URL("..", import.meta.url);
+
+interface PackageJson {
+  name: string;
+  optionalDependencies?: Record<string, string>;
+  private?: boolean;
+}
+
+function readPackageJson(path: URL): PackageJson {
+  return JSON.parse(readFileSync(path, "utf-8")) as PackageJson;
+}
 
 describe("native binary package metadata", () => {
   test("maps supported platforms to package names", () => {
@@ -34,6 +47,33 @@ describe("native binary package metadata", () => {
   test("keeps package names unique", () => {
     const names = nativePackages().map((pkg) => pkg.packageName);
     expect(new Set(names).size).toBe(names.length);
+  });
+
+  test("root optional dependencies list every native package", () => {
+    const packageJson = readPackageJson(new URL("package.json", root));
+    const optionalDependencies = packageJson.optionalDependencies ?? {};
+    const expectedNames = nativePackages()
+      .map((pkg) => pkg.packageName)
+      .sort();
+
+    expect(Object.keys(optionalDependencies).sort()).toEqual(expectedNames);
+    for (const packageName of expectedNames) {
+      expect(optionalDependencies[packageName]).toBe("*");
+    }
+  });
+
+  test("native packages remain private until native publishing is wired", () => {
+    for (const nativePackage of nativePackages()) {
+      const packageJson = readPackageJson(
+        new URL(
+          `npm/native/${nativePackage.platform}-${nativePackage.arch}/package.json`,
+          root
+        )
+      );
+
+      expect(packageJson.name).toBe(nativePackage.packageName);
+      expect(packageJson.private).toBe(true);
+    }
   });
 
   test("resolves an installed optional package binary", () => {
