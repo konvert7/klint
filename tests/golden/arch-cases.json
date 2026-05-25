@@ -134,6 +134,41 @@
     }
   },
   {
+    "name": "arch imports allow mode blocks unlisted relative import",
+    "runners": ["ts", "rust"],
+    "config": {
+      "include": ["."],
+      "rules": {},
+      "arch": {
+        "imports": [
+          {
+            "from": ["src/dao/**"],
+            "allow": ["src/dao/**", "src/prisma/**"],
+            "message": "DAO may only import from dao or prisma"
+          }
+        ]
+      }
+    },
+    "files": {
+      "src/dao/user.ts": "import { db } from \"../prisma/client\";\nimport { service } from \"../service/user\";\n",
+      "src/prisma/client.ts": "export const db = {};\n",
+      "src/service/user.ts": "export const service = {};\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/dao/user.ts",
+          "line": 2,
+          "rule": "arch/imports",
+          "message": "DAO may only import from dao or prisma",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
     "name": "arch forbidden pattern",
     "runners": ["ts", "rust"],
     "config": {

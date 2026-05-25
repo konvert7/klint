@@ -513,4 +513,80 @@ arch:
         assert_eq!(output.violations[0].line, 1);
         let _ = fs::remove_dir_all(root);
     }
+
+    #[test]
+    fn imports_allow_mode_flags_imports_outside_allowlist() {
+        let root = temp_root("imports-allow-mode-blocks-unlisted");
+        create_dir_all(root.join("src/dao")).expect("create dao dirs");
+        create_dir_all(root.join("src/prisma")).expect("create prisma dirs");
+        create_dir_all(root.join("src/service")).expect("create service dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["."]
+rules: {}
+arch:
+  imports:
+    - from: ["src/dao/**"]
+      allow: ["src/dao/**", "src/prisma/**"]
+      message: "DAO may only import from dao or prisma"
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("src/dao/user.ts"),
+            "import { db } from \"../prisma/client\";\nimport { service } from \"../service/user\";\n",
+        )
+        .expect("write dao source");
+        write(root.join("src/prisma/client.ts"), "export const db = {};\n")
+            .expect("write prisma source");
+        write(
+            root.join("src/service/user.ts"),
+            "export const service = {};\n",
+        )
+        .expect("write service source");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(output.summary.errors, 1);
+        assert_eq!(output.violations.len(), 1);
+        assert_eq!(output.violations[0].line, 2);
+        assert_eq!(
+            output.violations[0].message,
+            "DAO may only import from dao or prisma"
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn imports_allow_mode_skips_bare_package_imports() {
+        let root = temp_root("imports-allow-mode-skips-packages");
+        create_dir_all(root.join("src/dao")).expect("create dao dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["."]
+rules: {}
+arch:
+  imports:
+    - from: ["src/dao/**"]
+      allow: ["src/dao/**"]
+"#,
+        )
+        .expect("write config");
+        write(root.join("src/dao/user.ts"), "import { z } from \"zod\";\n")
+            .expect("write dao source");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(output.summary.errors, 0);
+        assert_eq!(output.violations.len(), 0);
+        let _ = fs::remove_dir_all(root);
+    }
 }

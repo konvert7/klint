@@ -18,7 +18,7 @@ pub(crate) struct ArchConfig {
 struct ArchImportRule {
     from: StringOrVec,
     deny: Option<StringOrVec>,
-    allow: Option<serde_yaml::Value>,
+    allow: Option<StringOrVec>,
     #[serde(rename = "type-only")]
     type_only: Option<String>,
     message: Option<String>,
@@ -107,21 +107,21 @@ fn run_arch_import_rules(
     let aliases = load_path_aliases(root);
 
     for rule in rules {
-        if rule.allow.is_some() {
+        if rule.deny.is_none() && rule.allow.is_none() {
             continue;
         }
-        let Some(deny) = &rule.deny else {
-            continue;
-        };
         let allow_type_only = rule.type_only.as_deref() == Some("allow");
 
         let severity = rule.severity.as_deref().unwrap_or("error");
-        let message = rule
-            .message
-            .as_deref()
-            .unwrap_or("Import crosses a denied boundary");
         let from_files = resolve_layer_files(&rule.from, arch.layers.as_ref(), root, files);
-        let deny_prefixes = resolve_layer_prefixes(deny, arch.layers.as_ref(), root);
+        let deny_prefixes = rule
+            .deny
+            .as_ref()
+            .map(|deny| resolve_layer_prefixes(deny, arch.layers.as_ref(), root));
+        let allow_prefixes = rule
+            .allow
+            .as_ref()
+            .map(|allow| resolve_layer_prefixes(allow, arch.layers.as_ref(), root));
 
         for file in from_files {
             let Some(content) = file_contents.get(&file) else {
@@ -139,16 +139,33 @@ fn run_arch_import_rules(
                 else {
                     continue;
                 };
-                if in_prefixes(&resolved, &deny_prefixes) {
-                    violations.push(Violation {
-                        file: relative_path(root, &file),
-                        line: import.line,
-                        rule: "arch/imports".to_string(),
-                        message: message.to_string(),
-                        severity: severity.to_string(),
-                        fix: None,
-                    });
-                }
+
+                let message = if let Some(prefixes) = &deny_prefixes {
+                    if !in_prefixes(&resolved, prefixes) {
+                        continue;
+                    }
+                    rule.message
+                        .as_deref()
+                        .unwrap_or("Import crosses a denied boundary")
+                } else if let Some(prefixes) = &allow_prefixes {
+                    if in_prefixes(&resolved, prefixes) {
+                        continue;
+                    }
+                    rule.message
+                        .as_deref()
+                        .unwrap_or("Import is not in the allowed list")
+                } else {
+                    continue;
+                };
+
+                violations.push(Violation {
+                    file: relative_path(root, &file),
+                    line: import.line,
+                    rule: "arch/imports".to_string(),
+                    message: message.to_string(),
+                    severity: severity.to_string(),
+                    fix: None,
+                });
             }
         }
     }
