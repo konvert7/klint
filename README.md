@@ -1,56 +1,211 @@
 # klint
 
-The bridge between vibe coding and agentic engineering.
+Architecture and type-aware linting for TypeScript projects.
 
-## Why
+Biome and oxlint are excellent at syntax, style, and fast local correctness. klint handles the rules that need project context: layer boundaries, singleton ownership, forbidden patterns, custom repository policies, and type-aware checks that should block an AI agent or CI run before code lands.
 
-Biome and oxlint enforce syntax-level style. klint enforces architecture-level rules — the kind that require TypeScript's type graph, span multiple files, or encode constraints that an AI agent must not bypass. If a rule needs to know that `fetchUser()` returns `Promise<User>`, or that sync filesystem calls are banned inside async hooks, that's a klint rule.
+Use klint when "please follow AGENTS.md" is not strong enough. Put the rule in `klint.yaml`, run `klint`, and make the constraint executable.
 
-Rules give your agent freedom. Without constraints, every decision is a risk. With klint, your agent knows exactly where it can move fast — and where it can't.
+## Install
+
+klint currently runs on Bun.
+
+```sh
+bun add -d @konvert7/klint
+```
+
+Add a script:
+
+```json
+{
+  "scripts": {
+    "klint": "klint"
+  }
+}
+```
+
+Then create `klint.yaml` in your project root.
+
+## Quickstart
+
+```yaml
+# klint.yaml
+include: ["src", "!**/node_modules/**"]
+
+rules:
+  no-floating-promise: error
+  no-unguarded-json-parse: error
+  no-sync-in-async:
+    severity: error
+    include: ["src/hooks/**"]
+
+arch:
+  layers:
+    app: ["src/app/**"]
+    data: ["src/data/**"]
+    ui: ["src/components/**"]
+
+  imports:
+    - from: ui
+      deny: data
+      message: "UI components must go through app services, not data modules"
+```
+
+Run it:
+
+```sh
+bun run klint
+```
+
+For machines and hooks:
+
+```sh
+bun run klint -- --json
+```
+
+`--json` emits structured violations and exits `2` when errors are present.
+
+```json
+{
+  "violations": [
+    {
+      "rule": "arch/imports",
+      "file": "src/components/Profile.tsx",
+      "line": 3,
+      "severity": "error",
+      "message": "UI components must go through app services, not data modules",
+      "fix": null
+    }
+  ],
+  "summary": { "errors": 1, "warnings": 0 }
+}
+```
+
+## What Klint Catches
+
+klint is for rules that are too project-specific or context-heavy for a formatter.
+
+| Problem | Example |
+|---------|---------|
+| Layer boundaries | `src/components/**` must not import from `src/data/**` |
+| Singleton ownership | `process.env.API_KEY` may only appear in `src/lib/auth.ts` |
+| Forbidden patterns | `console.log(` is blocked inside hook libraries |
+| Type-aware mistakes | Promise-returning calls cannot be silently discarded |
+| Repository policy | Custom `klint.rules.ts` rules run with the same severity/config system |
+
+Rules give agents room to move quickly because the unsafe moves are blocked structurally.
+
+## CLI
+
+```sh
+klint [--config <dir>] [--rules <file>] [--fix] [--json]
+klint install-skill [--agents <list>] [--symlink | --copy]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--config <dir>` | Directory containing `klint.yaml` or `klint.config.json` (default: cwd) |
+| `--rules <file>` | Path to custom rules file (default: `<configDir>/klint.rules.ts` when present) |
+| `--fix` | Apply auto-fixes for fixable violations in-place |
+| `--json` | Emit structured JSON to stdout for agents and CI |
+
+`klint install-skill` installs the bundled rule-authoring skill for agent environments:
+
+```sh
+klint install-skill --agents claude,opencode,cursor,codex --copy
+```
+
+## Configuration
+
+`klint.yaml` lives at your project root alongside tools like `biome.json`, `tsconfig.json`, and `knip.json`.
+
+```yaml
+# yaml-language-server: $schema=./klint.schema.yaml
+
+include: ["src", "!**/node_modules/**"]
+plugins: [sonar]
+
+rules:
+  no-unguarded-json-parse: error
+  no-floating-promise: error
+  no-misused-promises: error
+  sonar/prefer-string-replaceall: warn
+  my-custom-rule:
+    severity: error
+    include: ["src/server/**"]
+
+arch:
+  layers:
+    server: ["src/server/**"]
+    client: ["src/client/**"]
+
+  imports:
+    - from: client
+      deny: server
+      message: "Client code must not import server-only modules"
+```
+
+`include` selects `.ts` files to lint. Patterns support `**` globs and `!` negation.
+
+`plugins` enables bundled rule groups. Today, `sonar` provides focused code-quality rules.
+
+`rules` maps rule names to `"error"`, `"warn"`, `"off"`, or an options object with `severity` and/or `include`.
+
+`arch` declares architecture constraints without writing a custom rule.
+
+`klint.config.json` is still supported for backwards compatibility.
 
 ## Architecture as Code
 
-klint's YAML config supports an `arch:` section that lets you define architectural rules declaratively — no code required.
-
-> **AGENTS.md tells the model what to do. Klint ensures it actually did.**
->
-> Instructions in a prompt are a contract with no enforcement. A model that's drifting, context-starved, or just wrong will violate AGENTS.md silently and ship anyway. Klint makes the violation structurally impossible to land — the gate blocks it regardless of what the model thought it understood.
+The `arch:` section turns project boundaries into executable policy.
 
 ### Layers
 
-Define named file groups once, reference them everywhere:
+Define named file groups once, then reference them from import rules:
 
 ```yaml
 arch:
   layers:
-    core:   ["src/hooks/lib/**", "src/tools/**"]
-    skills: ["assets/skills/**"]
+    core: ["src/core/**", "src/lib/**"]
+    features: ["src/features/**"]
+    adapters: ["src/adapters/**"]
 ```
 
-### Import boundaries
+### Import Boundaries
+
+Use `deny` to block one layer from importing another:
 
 ```yaml
 arch:
   imports:
-    # deny: block imports from one layer into another
-    - from: skills
-      deny: core
-      message: "Skills must be self-contained and portable"
-      severity: warn          # optional, default: error
-
-    # allow: whitelist mode — anything not listed is denied (npm/node: builtins always pass)
-    - from: ["src/dao/**"]
-      allow: ["src/dao/**", "src/prisma/**", "src/types/**"]
-      message: "DAO may only import from dao, prisma, or types"
-
-    # type-only: allow — import type {} is permitted even when value imports are denied
-    - from: core
-      deny: ["src/targets/**"]
-      type-only: allow
-      message: "Core must not depend on agent-specific code"
+    - from: features
+      deny: adapters
+      message: "Features must use core ports, not adapter implementations"
+      severity: error
 ```
 
-### Forbidden patterns
+Use `allow` for whitelist mode. Anything not listed is denied:
+
+```yaml
+arch:
+  imports:
+    - from: ["src/data/**"]
+      allow: ["src/data/**", "src/db/**", "src/types/**"]
+      message: "Data modules may only depend on data, db, and types"
+```
+
+Allow type-only imports when runtime imports are forbidden:
+
+```yaml
+arch:
+  imports:
+    - from: core
+      deny: adapters
+      type-only: allow
+      message: "Core may reference adapter types, but not adapter values"
+```
+
+### Forbidden Patterns
 
 Block literal string patterns inside a scoped layer:
 
@@ -58,131 +213,86 @@ Block literal string patterns inside a scoped layer:
 arch:
   forbidden:
     - pattern: "console.log("
-      in: core
-      message: "Leaks into the agent event stream — use the hook output API instead"
+      in: ["src/hooks/**"]
+      message: "Hook output must go through the structured output API"
 
     - pattern: "process.exit("
-      in: ["src/hooks/lib/**"]
-      message: "Library functions should return or throw, not terminate the process"
+      in: ["src/lib/**"]
+      message: "Libraries should return or throw, not terminate the process"
 ```
 
-### Singleton locations
+### Singleton Locations
 
 Enforce that a pattern appears only in one designated file:
 
 ```yaml
 arch:
   singleton:
-    - pattern: "process.env.PAL_HOME"
-      only: "src/hooks/lib/paths.ts"
-      in: ["src/**"]                  # optional: limit scan scope
-      message: "Use the paths module"
-
     - pattern: "process.env.API_KEY"
       only: "src/lib/auth.ts"
+      in: ["src/**"]
       message: "Use the auth module"
 ```
-
-### Agent integration
-
-Wire `--json` into your Stop hook so violations are machine-readable:
-
-```typescript
-// .agents/hooks/klint.ts
-import { runHook } from "./run-hook";
-const exitCode = runHook(["bun", "klint/cli.ts", "--json"]);
-process.exit(exitCode);
-```
-
-On errors the hook exits 2 (blocking) and emits:
-
-```json
-{
-  "violations": [
-    {
-      "rule": "arch/imports",
-      "file": "assets/skills/telos/tools/update-telos.ts",
-      "line": 23,
-      "severity": "warn",
-      "message": "Skills must be self-contained and portable",
-      "fix": null
-    }
-  ],
-  "summary": { "errors": 0, "warnings": 1 }
-}
-```
-
-The agent reads the structured violations and fixes them before the session can close.
-
----
-
-## Usage
-
-```sh
-bun klint/cli.ts [--config <dir>] [--rules <file>] [--fix] [--json]
-```
-
-| Flag | Description |
-|------|-------------|
-| `--config <dir>` | Directory containing `klint.yaml` or `klint.config.json` (default: cwd) |
-| `--rules <file>` | Path to custom rules file (default: auto-discovered — see below) |
-| `--fix` | Apply auto-fixes for fixable violations in-place |
-| `--json` | Emit structured JSON to stdout (for agent/CI consumption) |
-
-If `--rules` is omitted, klint looks for `klint.rules.ts` next to the config file. If it exists it is loaded automatically; if it doesn't, no custom rules are used.
-
-## Configuration
-
-**`klint.yaml`** — lives at your project root alongside `biome.json` and `knip.json`:
-
-```yaml
-# yaml-language-server: $schema=./klint.schema.yaml
-
-include: ["src", "klint", "!**/node_modules/**"]
-plugins: [sonar]
-rules:
-  no-unguarded-json-parse: error
-  no-sync-in-async:
-    severity: error
-    include: ["src/hooks/**"]
-  no-floating-promise: error
-  my-custom-rule: warn
-
-arch:
-  layers:
-    core: ["src/hooks/lib/**", "src/tools/**"]
-  imports:
-    - from: ["assets/skills/**"]
-      deny: ["src/**"]
-      message: "Skills must be self-contained"
-      severity: warn
-```
-
-`include` — glob patterns selecting which `.ts` files to lint.  
-`plugins` — named rule bundles (`"sonar"`) that apply a default set of rules.  
-`rules` — map of rule name → `"error" | "warn" | "off"` or an options object with `severity` and/or `include`.  
-`arch` — declarative architecture constraints (see Architecture as Code above).
-
-A `klint.config.json` fallback is supported for backwards compatibility.
 
 ## Built-in Rules
 
 | Rule | Type-aware | Description |
-|------|-----------|-------------|
+|------|------------|-------------|
 | `no-unguarded-json-parse` | No | `JSON.parse()` called outside a try/catch |
-| `no-sync-in-async` | No | Sync filesystem calls (`readFileSync` etc.) inside async functions |
-| `no-floating-promise` | **Yes** | Promise-returning call whose result is discarded |
-| `no-misused-promises` | **Yes** | Async function passed where a sync callback is expected |
+| `no-sync-in-async` | No | Sync filesystem calls inside async functions |
+| `no-floating-promise` | Yes | Promise-returning call whose result is discarded |
+| `no-misused-promises` | Yes | Async function passed where a sync callback is expected |
+| `no-async-predicate` | No | Async predicate passed to array filtering/search methods |
+| `no-date-equality` | No | Date values compared by object identity |
+| `no-optional-chain-on-non-nullable` | Yes | Optional chaining on values TypeScript knows are non-nullable |
+| `no-object-in-template` | Yes | Object values interpolated into template strings |
+| `no-nested-template-literals` | No | Template literals nested inside template literals |
+| `no-consecutive-array-push` | No | Multiple consecutive `push()` calls that should be grouped |
+| `no-string-match` | No | `String#match()` usage better expressed with clearer APIs |
+
+## Plugins
+
+Enable plugin rules with `plugins: [sonar]`, then override individual severities in `rules` when needed.
+
+| Rule | Description |
+|------|-------------|
+| `sonar/prefer-string-replaceall` | Prefer `replaceAll()` when replacing every string occurrence |
+| `sonar/prefer-string-raw-regexp` | Prefer `String.raw` for regex strings where escaping is easy to misread |
+| `sonar/prefer-string-raw` | Prefer `String.raw` for escape-heavy strings |
+| `sonar/prefer-nullish-coalescing-assign` | Prefer `??=` for nullish assignment patterns |
+| `sonar/no-single-char-class` | Avoid regex character classes with a single character |
+| `sonar/prefer-at` | Prefer `.at()` for relative index access |
+
+## Agent and CI Integration
+
+Agent hooks should run klint with `--json` so violations are machine-readable.
+
+```ts
+// .agents/hooks/klint.ts
+import { runHook } from "./run-hook";
+
+const exitCode = runHook(["bun", "run", "klint", "--", "--json"]);
+process.exit(exitCode);
+```
+
+In CI, run the same command you use locally:
+
+```sh
+bun install
+bun run klint
+```
+
+The important contract is simple: klint exits `0` when the project is clean, `2` when blocking errors exist, and can emit JSON for agents that need structured feedback.
 
 ## Custom Rules
 
-Create `klint.rules.ts` at your project root and export a `Record<string, KlintRule>` as default. Each key is the rule name:
+Create `klint.rules.ts` next to `klint.yaml` and export a `Record<string, KlintRule>` as default. Each key is the rule name.
 
 ```ts
 import { relative } from "node:path";
-import type { KlintRule } from "./klint/core/types";
+import type { KlintRule } from "@konvert7/klint/core/types";
 
-const myCustomRule: KlintRule = {
+const noForbiddenPattern: KlintRule = {
   check({ files, root, fileContents }, violations) {
     for (const file of files) {
       const lines = (fileContents.get(file) ?? "").split("\n");
@@ -191,7 +301,7 @@ const myCustomRule: KlintRule = {
           violations.push({
             file: relative(root, file),
             line: i + 1,
-            message: "Explain what's wrong and how to fix it.",
+            message: "Explain what is wrong and how to fix it.",
           });
         }
       }
@@ -200,25 +310,24 @@ const myCustomRule: KlintRule = {
 };
 
 export default {
-  "my-custom-rule": myCustomRule,
+  "no-forbidden-pattern": noForbiddenPattern,
 };
 ```
 
-All exported rules run at `"error"` severity by default. Override severity or scope them via `rules` in `klint.yaml` — the same mechanism as built-in rules:
+All exported custom rules run at `"error"` severity by default. Override severity or scope through `rules`:
 
 ```yaml
 rules:
-  my-custom-rule: warn
-  my-scoped-rule:
-    severity: error
-    include: ["src/hooks/**"]
+  no-forbidden-pattern:
+    severity: warn
+    include: ["src/server/**"]
 ```
 
-No separate registration step — everything exported from `klint.rules.ts` is picked up automatically.
+No separate registration step is required.
 
-### Auto-fix support
+### Auto-fix Support
 
-Add a `fix` field to a violation to make it auto-fixable with `--fix`. The fix replaces a line range with new text:
+Add a `fix` field to a violation to make it auto-fixable with `--fix`. Fixes replace a line range with new text:
 
 ```ts
 violations.push({
@@ -233,21 +342,22 @@ violations.push({
 });
 ```
 
-### Type-aware rules
+### Type-aware Rules
 
-For rules that need TypeScript's type checker, use `walkAst` from `klint/core/ast`:
+For rules that need the TypeScript AST, use `walkAst`:
 
 ```ts
 import ts from "typescript";
-import { walkAst } from "./klint/core/ast";
+import { walkAst } from "@konvert7/klint/core/ast";
+import type { KlintRule } from "@konvert7/klint/core/types";
 
-const myTypeAwareRule: KlintRule = {
-  check({ files, root, fileContents }, violations) {
+const noSpecificCall: KlintRule = {
+  check({ files, fileContents }, violations) {
     for (const file of files) {
       const content = fileContents.get(file) ?? "";
-      walkAst(file, content, (node, src) => {
+      walkAst(file, content, (node) => {
         if (ts.isCallExpression(node)) {
-          // inspect node using the TypeScript AST
+          // Inspect node with the TypeScript AST.
         }
       });
     }
@@ -255,32 +365,13 @@ const myTypeAwareRule: KlintRule = {
 };
 ```
 
-## Scoped includes
+## How It Fits
 
-Any rule can be restricted to a file subset via the `include` option. Patterns support `**` globs and negation with `!`:
+klint is not a replacement for Biome, oxlint, ESLint, knip, or TypeScript itself.
 
-```yaml
-no-sync-in-async:
-  severity: error
-  include: ["src/hooks/**", "!src/hooks/scripts/**"]
-```
+- Use TypeScript for type correctness.
+- Use Biome or oxlint for fast syntax and style checks.
+- Use knip for unused files and exports.
+- Use klint for architecture, agent constraints, project policy, and custom type-aware checks.
 
-## Architecture
-
-```
-klint/
-  cli.ts          — CLI entry point; discovers config + rules, reports violations
-  core/
-    types.ts      — KlintRule, KlintConfig, ArchConfig, Violation, RuleEntry
-    runner.ts     — runKlint(); resolves files, dispatches rules, calls arch engine
-    arch.ts       — runArchRules(); AST import scanner, layers/imports/forbidden/singleton
-    ast.ts        — walkAst(), createProgram(), nearestFunctionIsAsync(), isInsideTry()
-    fixer.ts      — applyFixes(); bottom-up line-range patch with overlap detection
-  rules/
-    index.ts      — BUILT_IN_RULES registry
-    ...
-  tests/
-    ...
-```
-
-The `klint/` directory is intentionally decoupled from the rest of the codebase — no imports cross the boundary in either direction. When it has enough rules, it ships as a standalone package.
+The goal is a small, sharp gate: the rules your project cannot afford to leave as prose.

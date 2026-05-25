@@ -283,7 +283,7 @@ function printHelp(): void {
       "klint — agent harness for TypeScript architecture rules",
       "",
       "Usage: klint [--config <dir>] [--rules <file>] [--fix] [--json]",
-      "       klint install-skill [--out <path>]",
+      "       klint install-skill [--agents <list>] [--symlink | --copy]",
       "",
       "  --config <dir>   directory containing klint.yaml or klint.config.json (default: cwd)",
       "  --rules  <file>  custom rules file (default: <configDir>/klint.rules.ts if present)",
