@@ -63,6 +63,7 @@ function ensureRustBinary(): string {
 
 describe("KLINT_ENGINE=rust", () => {
   test("matches TypeScript JSON output and exit code for arch errors", () => {
+    const bin = ensureRustBinary();
     const dir = setupFixture(
       `
 include: ["src"]
@@ -78,7 +79,10 @@ arch:
 
     try {
       const ts = runCli(dir);
-      const rust = runCli(dir, { KLINT_ENGINE: "rust" });
+      const rust = runCli(dir, {
+        KLINT_ENGINE: "rust",
+        KLINT_RUST_BIN: bin,
+      });
 
       expect(rust.code).toBe(2);
       expect(rust.code).toBe(ts.code);
@@ -89,6 +93,7 @@ arch:
   });
 
   test("matches TypeScript JSON output and exit code for warning-only arch runs", () => {
+    const bin = ensureRustBinary();
     const dir = setupFixture(
       `
 include: ["src"]
@@ -105,7 +110,10 @@ arch:
 
     try {
       const ts = runCli(dir);
-      const rust = runCli(dir, { KLINT_ENGINE: "rust" });
+      const rust = runCli(dir, {
+        KLINT_ENGINE: "rust",
+        KLINT_RUST_BIN: bin,
+      });
 
       expect(rust.code).toBe(0);
       expect(rust.code).toBe(ts.code);
