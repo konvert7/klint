@@ -1,0 +1,231 @@
+[
+  {
+    "name": "arch imports deny static and dynamic imports",
+    "config": {
+      "include": ["."],
+      "rules": {},
+      "arch": {
+        "layers": {
+          "skills": ["assets/skills/**"],
+          "core": ["src/lib/**"]
+        },
+        "imports": [
+          {
+            "from": "skills",
+            "deny": "core",
+            "message": "Skills must be self-contained"
+          }
+        ]
+      }
+    },
+    "files": {
+      "assets/skills/demo/index.ts": "import { foo } from \"../../../src/lib/utils\";\nexport async function load() {\n  return import(\"../../../src/lib/dynamic\");\n}\n",
+      "src/lib/utils.ts": "export const foo = 1;\n",
+      "src/lib/dynamic.ts": "export const dynamic = 1;\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "assets/skills/demo/index.ts",
+          "line": 1,
+          "rule": "arch/imports",
+          "message": "Skills must be self-contained",
+          "severity": "error",
+          "fix": null
+        },
+        {
+          "file": "assets/skills/demo/index.ts",
+          "line": 3,
+          "rule": "arch/imports",
+          "message": "Skills must be self-contained",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 2, "warnings": 0 }
+    }
+  },
+  {
+    "name": "arch imports allow type-only while blocking value import",
+    "config": {
+      "include": ["."],
+      "rules": {},
+      "arch": {
+        "layers": {
+          "skills": ["assets/skills/**"],
+          "core": ["src/lib/**"]
+        },
+        "imports": [
+          {
+            "from": "skills",
+            "deny": "core",
+            "type-only": "allow",
+            "message": "Use runtime boundary"
+          }
+        ]
+      }
+    },
+    "files": {
+      "assets/skills/demo/index.ts": "import type { Foo } from \"../../../src/lib/types\";\nimport { foo } from \"../../../src/lib/utils\";\nexport const value = foo;\n",
+      "src/lib/types.ts": "export interface Foo { value: string }\n",
+      "src/lib/utils.ts": "export const foo = 1;\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "assets/skills/demo/index.ts",
+          "line": 2,
+          "rule": "arch/imports",
+          "message": "Use runtime boundary",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "arch imports resolves tsconfig path aliases",
+    "tsconfig": {
+      "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+          "@/*": ["src/*"]
+        }
+      }
+    },
+    "config": {
+      "include": ["."],
+      "rules": {},
+      "arch": {
+        "layers": {
+          "skills": ["assets/skills/**"],
+          "core": ["src/**"]
+        },
+        "imports": [
+          {
+            "from": "skills",
+            "deny": "core",
+            "message": "No repo source imports from skills",
+            "severity": "warn"
+          }
+        ]
+      }
+    },
+    "files": {
+      "assets/skills/demo/index.ts": "import { foo } from \"@/lib/utils\";\nexport const value = foo;\n",
+      "src/lib/utils.ts": "export const foo = 1;\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "assets/skills/demo/index.ts",
+          "line": 1,
+          "rule": "arch/imports",
+          "message": "No repo source imports from skills",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 0, "warnings": 1 }
+    }
+  },
+  {
+    "name": "arch forbidden pattern and jsx element",
+    "config": {
+      "include": ["."],
+      "rules": {},
+      "arch": {
+        "forbidden": [
+          {
+            "pattern": "console.log(",
+            "in": ["src/lib/**"],
+            "message": "Use logger"
+          },
+          {
+            "jsx-element": "button",
+            "in": ["src/app/**/*.tsx"],
+            "message": "Use Button primitive",
+            "severity": "warn"
+          }
+        ]
+      }
+    },
+    "files": {
+      "src/lib/debug.ts": "export function debug() {\n  console.log(\"debug\");\n}\n",
+      "src/app/page.tsx": "export default function Page() { return <button>Click</button>; }\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/app/page.tsx",
+          "line": 1,
+          "rule": "arch/forbidden",
+          "message": "Use Button primitive",
+          "severity": "warn",
+          "fix": null
+        },
+        {
+          "file": "src/lib/debug.ts",
+          "line": 2,
+          "rule": "arch/forbidden",
+          "message": "Use logger",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 1 }
+    }
+  },
+  {
+    "name": "arch singleton pattern and jsx element",
+    "config": {
+      "include": ["."],
+      "rules": {},
+      "arch": {
+        "singleton": [
+          {
+            "pattern": "process.env.API_KEY",
+            "only": "src/lib/auth.ts",
+            "in": ["src/**"],
+            "message": "Use auth module"
+          },
+          {
+            "jsx-element": "button",
+            "only": "src/components/ui/button.tsx",
+            "in": ["src/**/*.tsx"],
+            "message": "Raw button belongs in the Button primitive",
+            "severity": "warn"
+          }
+        ]
+      }
+    },
+    "files": {
+      "src/lib/auth.ts": "export const key = process.env.API_KEY;\n",
+      "src/server/handler.ts": "const key = process.env.API_KEY;\n",
+      "src/components/ui/button.tsx": "export function Button() { return <button />; }\n",
+      "src/app/page.tsx": "export default function Page() { return <button>Click</button>; }\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/app/page.tsx",
+          "line": 1,
+          "rule": "arch/singleton",
+          "message": "Raw button belongs in the Button primitive",
+          "severity": "warn",
+          "fix": null
+        },
+        {
+          "file": "src/server/handler.ts",
+          "line": 1,
+          "rule": "arch/singleton",
+          "message": "Use auth module",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 1 }
+    }
+  }
+]
