@@ -2,6 +2,7 @@ mod arch;
 mod config;
 mod files;
 mod output;
+pub mod syntax;
 
 use std::path::PathBuf;
 
