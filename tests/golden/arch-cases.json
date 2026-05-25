@@ -1,7 +1,6 @@
 [
   {
     "name": "arch imports deny static and dynamic imports",
-    "runners": ["ts", "rust"],
     "config": {
       "include": ["."],
       "rules": {},
@@ -48,7 +47,6 @@
   },
   {
     "name": "arch imports allow type-only while blocking value import",
-    "runners": ["ts", "rust"],
     "config": {
       "include": ["."],
       "rules": {},
@@ -88,7 +86,6 @@
   },
   {
     "name": "arch imports resolves tsconfig path aliases",
-    "runners": ["ts", "rust"],
     "tsconfig": {
       "compilerOptions": {
         "baseUrl": ".",
@@ -135,7 +132,6 @@
   },
   {
     "name": "arch imports allow mode blocks unlisted relative import",
-    "runners": ["ts", "rust"],
     "config": {
       "include": ["."],
       "rules": {},
@@ -170,7 +166,6 @@
   },
   {
     "name": "arch forbidden pattern",
-    "runners": ["ts", "rust"],
     "config": {
       "include": ["."],
       "rules": {},
@@ -203,7 +198,6 @@
   },
   {
     "name": "arch forbidden jsx element",
-    "runners": ["ts", "rust"],
     "config": {
       "include": ["."],
       "rules": {},
@@ -237,7 +231,6 @@
   },
   {
     "name": "arch singleton pattern",
-    "runners": ["ts", "rust"],
     "config": {
       "include": ["."],
       "rules": {},
@@ -272,7 +265,6 @@
   },
   {
     "name": "arch singleton jsx element",
-    "runners": ["ts", "rust"],
     "config": {
       "include": ["."],
       "rules": {},

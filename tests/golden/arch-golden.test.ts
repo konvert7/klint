@@ -10,7 +10,6 @@ import cases from "./arch-cases.json";
 
 interface GoldenCase {
   name: string;
-  runners?: Array<"ts" | "rust">;
   tsconfig?: object;
   config: Omit<KlintConfig, "root">;
   files: Record<string, string>;
@@ -100,10 +99,8 @@ describe("golden parity — architecture rules", () => {
   }
 });
 
-describe("rust golden parity — supported architecture rules", () => {
-  for (const testCase of (cases as unknown as GoldenCase[]).filter((testCase) =>
-    testCase.runners?.includes("rust")
-  )) {
+describe("rust golden parity — architecture rules", () => {
+  for (const testCase of cases as unknown as GoldenCase[]) {
     test(testCase.name, () => {
       const root = writeCaseFixture(testCase);
       expect(runRustKlint(root, testCase)).toEqual(testCase.expected);
