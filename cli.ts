@@ -210,18 +210,43 @@ function runRustEngine({
     process.exit(1);
   }
 
-  const result = spawnSync(
-    "cargo",
-    ["run", "--quiet", "-p", "klint-rs", "--", "--config", configDir, "--json"],
-    {
-      cwd: import.meta.dir,
-      encoding: "utf-8",
-    }
-  );
+  const command = resolveRustEngineCommand(configDir);
+  const result = spawnSync(command.bin, command.args, {
+    cwd: import.meta.dir,
+    encoding: "utf-8",
+  });
 
   if (result.stdout) process.stdout.write(result.stdout);
   if (result.stderr) process.stderr.write(result.stderr);
   process.exit(result.status ?? 1);
+}
+
+interface RustEngineCommand {
+  bin: string;
+  args: string[];
+}
+
+function resolveRustEngineCommand(configDir: string): RustEngineCommand {
+  const args = ["--config", configDir, "--json"];
+  const explicitBin = process.env.KLINT_RUST_BIN;
+  if (explicitBin) {
+    return { bin: explicitBin, args };
+  }
+
+  const localBin = join(
+    import.meta.dir,
+    "target",
+    "debug",
+    process.platform === "win32" ? "klint-rs.exe" : "klint-rs"
+  );
+  if (existsSync(localBin)) {
+    return { bin: localBin, args };
+  }
+
+  return {
+    bin: "cargo",
+    args: ["run", "--quiet", "-p", "klint-rs", "--", ...args],
+  };
 }
 
 function rustEngineUnsupportedReason({
