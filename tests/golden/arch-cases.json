@@ -131,7 +131,8 @@
     }
   },
   {
-    "name": "arch forbidden pattern and jsx element",
+    "name": "arch forbidden pattern",
+    "runners": ["ts", "rust"],
     "config": {
       "include": ["."],
       "rules": {},
@@ -141,7 +142,34 @@
             "pattern": "console.log(",
             "in": ["src/lib/**"],
             "message": "Use logger"
-          },
+          }
+        ]
+      }
+    },
+    "files": {
+      "src/lib/debug.ts": "export function debug() {\n  console.log(\"debug\");\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/lib/debug.ts",
+          "line": 2,
+          "rule": "arch/forbidden",
+          "message": "Use logger",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "arch forbidden jsx element",
+    "config": {
+      "include": ["."],
+      "rules": {},
+      "arch": {
+        "forbidden": [
           {
             "jsx-element": "button",
             "in": ["src/app/**/*.tsx"],
@@ -152,7 +180,6 @@
       }
     },
     "files": {
-      "src/lib/debug.ts": "export function debug() {\n  console.log(\"debug\");\n}\n",
       "src/app/page.tsx": "export default function Page() { return <button>Click</button>; }\n"
     },
     "expected": {
@@ -164,17 +191,9 @@
           "message": "Use Button primitive",
           "severity": "warn",
           "fix": null
-        },
-        {
-          "file": "src/lib/debug.ts",
-          "line": 2,
-          "rule": "arch/forbidden",
-          "message": "Use logger",
-          "severity": "error",
-          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 1 }
+      "summary": { "errors": 0, "warnings": 1 }
     }
   },
   {

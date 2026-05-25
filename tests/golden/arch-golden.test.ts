@@ -1,13 +1,16 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import YAML from "yaml";
 import { runKlint } from "../../core/runner";
 import type { KlintConfig, Violation } from "../../core/types";
 import cases from "./arch-cases.json";
 
 interface GoldenCase {
   name: string;
+  runners?: Array<"ts" | "rust">;
   tsconfig?: object;
   config: Omit<KlintConfig, "root">;
   files: Record<string, string>;
@@ -34,6 +37,8 @@ function writeCaseFixture(testCase: GoldenCase): string {
   const root = mkdtempSync(join(tmpdir(), "klint-golden-arch-"));
   roots.push(root);
 
+  writeFileSync(join(root, "klint.yaml"), YAML.stringify(testCase.config));
+
   if (testCase.tsconfig) {
     writeFileSync(
       join(root, "tsconfig.json"),
@@ -48,6 +53,21 @@ function writeCaseFixture(testCase: GoldenCase): string {
   }
 
   return root;
+}
+
+function runRustKlint(root: string, testCase: GoldenCase): GoldenEnvelope {
+  const result = spawnSync(
+    "cargo",
+    ["run", "-p", "klint-rs", "--", "--config", root, "--json"],
+    {
+      cwd: join(import.meta.dir, "..", ".."),
+      encoding: "utf8",
+    }
+  );
+
+  const expectedStatus = testCase.expected.summary.errors > 0 ? 2 : 0;
+  expect(result.status, result.stderr || result.stdout).toBe(expectedStatus);
+  return JSON.parse(result.stdout) as GoldenEnvelope;
 }
 
 function normalize(violations: Violation[]): GoldenEnvelope {
@@ -76,6 +96,17 @@ describe("golden parity — architecture rules", () => {
       const root = writeCaseFixture(testCase);
       const actual = normalize(runKlint({ ...testCase.config, root }, {}));
       expect(actual).toEqual(testCase.expected);
+    });
+  }
+});
+
+describe("rust golden parity — supported architecture rules", () => {
+  for (const testCase of (cases as unknown as GoldenCase[]).filter((testCase) =>
+    testCase.runners?.includes("rust")
+  )) {
+    test(testCase.name, () => {
+      const root = writeCaseFixture(testCase);
+      expect(runRustKlint(root, testCase)).toEqual(testCase.expected);
     });
   }
 });
