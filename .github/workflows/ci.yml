@@ -62,6 +62,9 @@ jobs:
       - name: Rust shadow engine test
         run: bun run test:rust-engine
 
+      - name: Pack check
+        run: bun run pack:check
+
       - name: Rust format
         run: cargo fmt --check
 

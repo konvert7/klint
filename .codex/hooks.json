@@ -54,6 +54,14 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bun .agents/hooks/pack-check.ts --codex"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "bun .agents/hooks/knip.ts --codex"
           }
         ]

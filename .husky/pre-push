@@ -1,1 +1,1 @@
-bun run test && bun run test:rust-engine && cargo test -p klint-rs
+bun run test && bun run test:rust-engine && bun run pack:check && cargo test -p klint-rs
