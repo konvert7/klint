@@ -35,4 +35,5 @@ arch:
   singleton:
     - pattern: "process.exit("
       only: "cli.ts"
+      in: [core, rules, plugins]
       message: "process.exit() in a library layer terminates the host — only the CLI may exit."

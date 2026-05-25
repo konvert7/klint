@@ -115,7 +115,7 @@ const ArchForbiddenPatternRuleSchema = z
     pattern: z
       .string()
       .describe(
-        "Literal substring to search for in source. No regex — exact substring match (e.g. `console.log(`)."
+        "Literal substring to search for in source. No regex — exact substring match (for example, a console logging call)."
       ),
     in: StringOrStringArray.describe(
       "Layer name(s) or glob(s) the pattern is forbidden in. Files outside the scope are not checked."
@@ -153,7 +153,7 @@ const ArchForbiddenRuleSchema = z
   )
   .meta({
     examples: [
-      'arch:\n  forbidden:\n    - pattern: "console.log("\n      in: core\n      message: "Leaks into the agent event stream"',
+      'arch:\n  forbidden:\n    - pattern: "debugLog("\n      in: core\n      message: "Leaks into the agent event stream"',
       'arch:\n  forbidden:\n    - jsx-element: ["button", "input", "label"]\n      in: ["src/app/**/*.tsx", "src/components/**/*.tsx", "!src/components/ui/**"]\n      message: "Use the design-system primitives in @/components/ui/* instead of raw HTML elements."',
     ],
   });

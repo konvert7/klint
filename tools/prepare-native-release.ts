@@ -49,16 +49,17 @@ try {
     fail(`Missing native release binaries:\n${missing.join("\n")}`);
   }
 
-  process.stdout.write(
-    `${[
-      `native release dry-run ok (${options.version})`,
-      `output: ${options.outDir}`,
-      `native packages: ${nativeResults.length}`,
-      missing.length > 0
-        ? `missing binaries: ${missing.join(", ")}`
-        : "missing binaries: none",
-    ].join("\n")}\n`
-  );
+  const missingMessage =
+    missing.length > 0
+      ? `missing binaries: ${missing.join(", ")}`
+      : "missing binaries: none";
+  const outputLines = [
+    `native release dry-run ok (${options.version})`,
+    `output: ${options.outDir}`,
+    `native packages: ${nativeResults.length}`,
+    missingMessage,
+  ];
+  process.stdout.write(`${outputLines.join("\n")}\n`);
 } finally {
   if (!options.keep) {
     rmSync(options.outDir, { recursive: true, force: true });
@@ -125,7 +126,12 @@ function validateNativePackage(packageJson: PackageJson): void {
 }
 
 function readPackageJson(path: string): PackageJson {
-  return JSON.parse(readFileSync(path, "utf-8")) as PackageJson;
+  try {
+    return JSON.parse(readFileSync(path, "utf-8")) as PackageJson;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    fail(`Failed to read package JSON at ${path}: ${message}`);
+  }
 }
 
 function writeJson(path: string, value: unknown): void {

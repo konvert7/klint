@@ -13,7 +13,7 @@ import * as clack from "@clack/prompts";
 import { parse as parseYaml } from "yaml";
 import { applyFixes } from "./core/fixer";
 import { resolveNativePackageBinary } from "./core/native-binary";
-import { runKlint } from "./core/runner";
+import { type KlintDebugEvent, runKlint } from "./core/runner";
 import type { ArchConfig, KlintConfig, KlintRule, RuleConfigValue } from "./core/types";
 import { BUILT_IN_PLUGINS } from "./plugins/index";
 import { BUILT_IN_RULES } from "./rules/index";
@@ -40,12 +40,14 @@ export async function main(opts: CliOptions = {}): Promise<void> {
   let rulesFile = opts.rulesFile;
   let fix = false;
   let json = false;
+  let debug = false;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--config" && args[i + 1]) configDir = resolve(args[++i]);
     else if (args[i] === "--rules" && args[i + 1]) rulesFile = resolve(args[++i]);
     else if (args[i] === "--fix") fix = true;
     else if (args[i] === "--json") json = true;
+    else if (args[i] === "--debug" || args[i] === "-debug") debug = true;
     else if (args[i] === "--help" || args[i] === "-h") {
       printHelp();
       process.exit(0);
@@ -111,7 +113,8 @@ export async function main(opts: CliOptions = {}): Promise<void> {
       rules: allRules,
       arch: raw.arch as ArchConfig | undefined,
     },
-    customRules
+    customRules,
+    { onDebug: debug ? writeDebugEvent : undefined }
   );
 
   if (json) {
@@ -140,7 +143,8 @@ export async function main(opts: CliOptions = {}): Promise<void> {
           rules: allRules,
           arch: raw.arch as ArchConfig | undefined,
         },
-        customRules
+        customRules,
+        { onDebug: debug ? writeDebugEvent : undefined }
       );
       if (current.every((v) => !v.fix)) break;
     }
@@ -212,6 +216,11 @@ function runRustEngine({
   }
 
   const command = resolveRustEngineCommand(configDir);
+  if (process.argv.includes("--debug") || process.argv.includes("-debug")) {
+    process.stderr.write(
+      `[klint:debug] rust engine: ${command.bin} ${command.args.join(" ")}\n`
+    );
+  }
   const result = spawnSync(command.bin, command.args, {
     cwd: import.meta.dir,
     encoding: "utf-8",
@@ -220,6 +229,36 @@ function runRustEngine({
   if (result.stdout) process.stdout.write(result.stdout);
   if (result.stderr) process.stderr.write(result.stderr);
   process.exit(result.status ?? 1);
+}
+
+function writeDebugEvent(event: KlintDebugEvent): void {
+  switch (event.type) {
+    case "walk:start":
+      process.stderr.write(`[klint:debug] walk ${event.dir}\n`);
+      break;
+    case "walk:done":
+      process.stderr.write(`[klint:debug] walked ${event.dir} (${event.files} files)\n`);
+      break;
+    case "files:resolved":
+      process.stderr.write(`[klint:debug] resolved ${event.files} files\n`);
+      break;
+    case "rule:start":
+      process.stderr.write(
+        `[klint:debug] rule ${event.rule} start (${event.files} files)\n`
+      );
+      break;
+    case "rule:done":
+      process.stderr.write(
+        `[klint:debug] rule ${event.rule} done (${event.violations} violations)\n`
+      );
+      break;
+    case "arch:start":
+      process.stderr.write(`[klint:debug] arch start (${event.files} files)\n`);
+      break;
+    case "arch:done":
+      process.stderr.write(`[klint:debug] arch done (${event.violations} violations)\n`);
+      break;
+  }
 }
 
 interface RustEngineCommand {
@@ -396,6 +435,7 @@ function printHelp(): void {
       "  --rules  <file>  custom rules file (default: <configDir>/klint.rules.ts if present)",
       "  --fix            apply auto-fixes for fixable violations in-place",
       "  --json           emit structured JSON to stdout (for agent/CI consumption)",
+      "  --debug          print file resolution and rule progress to stderr",
       "",
       "  install-skill    install the rule-authoring skill into agent config directories",
       "                   --agents <list>  comma-separated: claude,opencode,cursor,codex (default: all)",

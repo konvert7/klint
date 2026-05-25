@@ -12,23 +12,49 @@ import type {
   Violation,
 } from "./types";
 
-function walk(dir: string): string[] {
+export type KlintDebugEvent =
+  | { type: "walk:start"; dir: string }
+  | { type: "walk:done"; dir: string; files: number }
+  | { type: "files:resolved"; files: number }
+  | { type: "rule:start"; rule: string; files: number }
+  | { type: "rule:done"; rule: string; violations: number }
+  | { type: "arch:start"; files: number }
+  | { type: "arch:done"; violations: number };
+
+export interface RunKlintOptions {
+  onDebug?: (event: KlintDebugEvent) => void;
+}
+
+function walk(dir: string, root: string, excludes: string[] = []): string[] {
   const out: string[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
-    if (entry.isDirectory()) out.push(...walk(full));
-    else if (/\.(tsx?|jsx?|mts|cts)$/.test(entry.name))
+    const rel = relative(root, full).replaceAll("\\", "/");
+    if (entry.isDirectory()) {
+      if (excludes.some((pattern) => matchPattern(rel, pattern))) continue;
+      out.push(...walk(full, root, excludes));
+    } else if (/\.(tsx?|jsx?|mts|cts)$/.test(entry.name))
       out.push(full.replaceAll("\\", "/"));
   }
   return out;
 }
 
-function resolveFiles(include: string[], root: string): string[] {
+function resolveFiles(
+  include: string[],
+  root: string,
+  onDebug?: (event: KlintDebugEvent) => void
+): string[] {
   const files = new Set<string>();
+  const excludes = include.filter((p) => p.startsWith("!")).map((p) => p.slice(1));
   for (const pattern of include) {
-    const dir = resolve(root, pattern.split("/**")[0].split("/*")[0]);
+    if (pattern.startsWith("!")) continue;
+    const base = pattern.split("/**")[0].split("/*")[0];
+    const dir = resolve(root, base === "**" ? "." : base);
     try {
-      for (const file of walk(dir)) files.add(file);
+      onDebug?.({ type: "walk:start", dir });
+      const before = files.size;
+      for (const file of walk(dir, root, excludes)) files.add(file);
+      onDebug?.({ type: "walk:done", dir, files: files.size - before });
     } catch {
       // directory doesn't exist — skip
     }
@@ -41,8 +67,17 @@ function matchPattern(relPath: string, pattern: string): boolean {
   const p = pattern.replaceAll("\\", "/");
   if (p === "." || p === "**") return true;
   if (p.endsWith("/**")) return norm.startsWith(`${p.slice(0, -3)}/`);
-  if (p.startsWith("**/")) return norm.endsWith(p.slice(2));
-  return norm === p || norm.startsWith(`${p}/`);
+  if (!p.includes("*")) return norm === p || norm.startsWith(`${p}/`);
+  return globToRegExp(p).test(norm);
+}
+
+function globToRegExp(pattern: string): RegExp {
+  const escaped = pattern
+    .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+    .replaceAll("**/", "(?:.*/)?")
+    .replaceAll("**", ".*")
+    .replaceAll("*", "[^/]*");
+  return new RegExp(`^${escaped}$`);
 }
 
 function applyPatterns(files: string[], patterns: string[], root: string): string[] {
@@ -66,7 +101,8 @@ function resolveInclude(value: RuleConfigValue): string[] | undefined {
 
 export function runKlint(
   config: KlintConfig,
-  customRules: Record<string, KlintRule> = {}
+  customRules: Record<string, KlintRule> = {},
+  options: RunKlintOptions = {}
 ): Violation[] {
   clearAstCache();
 
@@ -94,10 +130,11 @@ export function runKlint(
   };
 
   const allFiles = applyPatterns(
-    resolveFiles(config.include, config.root),
+    resolveFiles(config.include, config.root, options.onDebug),
     config.include,
     config.root
   );
+  options.onDebug?.({ type: "files:resolved", files: allFiles.length });
   const fileContents = new Map(allFiles.map((f) => [f, readFileSync(f, "utf-8")]));
   const violations: Violation[] = [];
 
@@ -112,12 +149,17 @@ export function runKlint(
     const files = include ? applyPatterns(allFiles, include, config.root) : allFiles;
 
     const batch: Omit<Violation, "severity">[] = [];
+    options.onDebug?.({ type: "rule:start", rule: ruleName, files: files.length });
     rule.check({ files, root: config.root, fileContents }, batch);
+    options.onDebug?.({ type: "rule:done", rule: ruleName, violations: batch.length });
     for (const v of batch) violations.push({ ...v, rule: ruleName, severity });
   }
 
   if (config.arch) {
-    violations.push(...runArchRules(config.arch, allFiles, fileContents, config.root));
+    options.onDebug?.({ type: "arch:start", files: allFiles.length });
+    const archViolations = runArchRules(config.arch, allFiles, fileContents, config.root);
+    options.onDebug?.({ type: "arch:done", violations: archViolations.length });
+    violations.push(...archViolations);
   }
 
   return violations;
