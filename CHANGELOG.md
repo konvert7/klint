@@ -1,3 +1,10 @@
+## [0.12.1](https://github.com/konvert7/klint/compare/v0.12.0...v0.12.1) (2026-05-25)
+
+
+### Bug Fixes
+
+* **runner:** enhance directory exclusion logic and improve glob pattern matching ([5a29387](https://github.com/konvert7/klint/commit/5a29387d65663fe53eb61759283022466641ec68))
+
 # [0.12.0](https://github.com/konvert7/klint/compare/v0.11.0...v0.12.0) (2026-05-25)
 
 
