@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 pub(crate) fn resolve_files(root: &Path, include: &[String]) -> Result<Vec<PathBuf>, String> {
     let mut files = Vec::new();
@@ -59,7 +59,19 @@ fn is_supported_source(path: &Path) -> bool {
 }
 
 pub(crate) fn normalize_path(path: &Path) -> PathBuf {
-    let text = path.to_string_lossy().replace('\\', "/");
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            Component::Normal(part) => normalized.push(part),
+            Component::RootDir | Component::Prefix(_) => normalized.push(component.as_os_str()),
+        }
+    }
+
+    let text = normalized.to_string_lossy().replace('\\', "/");
     PathBuf::from(text)
 }
 

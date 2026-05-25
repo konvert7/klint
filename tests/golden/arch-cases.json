@@ -1,6 +1,7 @@
 [
   {
     "name": "arch imports deny static and dynamic imports",
+    "runners": ["ts", "rust"],
     "config": {
       "include": ["."],
       "rules": {},

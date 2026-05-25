@@ -1,5 +1,6 @@
 use crate::files::{normalize_path, relative_path};
 use crate::output::Violation;
+use crate::syntax::scan_imports;
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -7,8 +8,20 @@ use std::path::{Path, PathBuf};
 #[derive(Debug, Deserialize)]
 pub(crate) struct ArchConfig {
     layers: Option<BTreeMap<String, Vec<String>>>,
+    imports: Option<Vec<ArchImportRule>>,
     forbidden: Option<Vec<ArchForbiddenRule>>,
     singleton: Option<Vec<ArchSingletonRule>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ArchImportRule {
+    from: StringOrVec,
+    deny: Option<StringOrVec>,
+    allow: Option<serde_yaml::Value>,
+    #[serde(rename = "type-only")]
+    type_only: Option<String>,
+    message: Option<String>,
+    severity: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -55,8 +68,65 @@ pub(crate) fn run_arch_rules(
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
+    run_arch_import_rules(arch, files, file_contents, root, violations);
     run_arch_forbidden_rules(arch, files, file_contents, root, violations);
     run_arch_singleton_rules(arch, files, file_contents, root, violations);
+}
+
+fn run_arch_import_rules(
+    arch: &ArchConfig,
+    files: &[PathBuf],
+    file_contents: &BTreeMap<PathBuf, String>,
+    root: &Path,
+    violations: &mut Vec<Violation>,
+) {
+    let Some(rules) = &arch.imports else {
+        return;
+    };
+
+    for rule in rules {
+        if rule.allow.is_some() || rule.type_only.is_some() {
+            continue;
+        }
+        let Some(deny) = &rule.deny else {
+            continue;
+        };
+
+        let severity = rule.severity.as_deref().unwrap_or("error");
+        let message = rule
+            .message
+            .as_deref()
+            .unwrap_or("Import crosses a denied boundary");
+        let from_files = resolve_layer_files(&rule.from, arch.layers.as_ref(), root, files);
+        let deny_prefixes = resolve_layer_prefixes(deny, arch.layers.as_ref(), root);
+
+        for file in from_files {
+            let Some(content) = file_contents.get(&file) else {
+                continue;
+            };
+            let Ok(imports) = scan_imports(&file, content) else {
+                continue;
+            };
+
+            for import in imports {
+                if is_bare_specifier(&import.specifier) {
+                    continue;
+                }
+                let resolved =
+                    normalize_path(&file.parent().unwrap_or(root).join(&import.specifier));
+                if in_prefixes(&resolved, &deny_prefixes) {
+                    violations.push(Violation {
+                        file: relative_path(root, &file),
+                        line: import.line,
+                        rule: "arch/imports".to_string(),
+                        message: message.to_string(),
+                        severity: severity.to_string(),
+                        fix: None,
+                    });
+                }
+            }
+        }
+    }
 }
 
 fn run_arch_forbidden_rules(
@@ -92,6 +162,18 @@ fn run_arch_forbidden_rules(
             violations,
         );
     }
+}
+
+fn resolve_layer_prefixes(
+    scope: &StringOrVec,
+    layers: Option<&BTreeMap<String, Vec<String>>>,
+    root: &Path,
+) -> Vec<PathBuf> {
+    resolve_globs(scope, layers)
+        .iter()
+        .filter(|glob| !glob.starts_with('!'))
+        .map(|glob| glob_to_prefix(glob, root))
+        .collect()
 }
 
 fn run_arch_singleton_rules(
@@ -211,6 +293,32 @@ fn glob_to_prefix(glob: &str, root: &Path) -> PathBuf {
 
 fn path_in_prefix(path: &Path, prefix: &Path) -> bool {
     path == prefix || path.starts_with(prefix)
+}
+
+fn in_prefixes(path: &Path, prefixes: &[PathBuf]) -> bool {
+    prefixes.iter().any(|prefix| {
+        if path_in_prefix(path, prefix) {
+            return true;
+        }
+        let Some(prefix_text) = prefix.to_str() else {
+            return false;
+        };
+        let bare_prefix = prefix_text
+            .strip_suffix(".ts")
+            .or_else(|| prefix_text.strip_suffix(".tsx"))
+            .or_else(|| prefix_text.strip_suffix(".js"))
+            .or_else(|| prefix_text.strip_suffix(".jsx"))
+            .or_else(|| prefix_text.strip_suffix(".mts"))
+            .or_else(|| prefix_text.strip_suffix(".cts"));
+        bare_prefix.is_some_and(|bare| {
+            let bare_path = PathBuf::from(bare);
+            path_in_prefix(path, &bare_path)
+        })
+    })
+}
+
+fn is_bare_specifier(specifier: &str) -> bool {
+    !specifier.starts_with('.') && !Path::new(specifier).is_absolute()
 }
 
 fn scan_lines_for_pattern(

@@ -268,4 +268,54 @@ arch:
         assert_eq!(output.violations[0].severity, "warn");
         let _ = fs::remove_dir_all(root);
     }
+
+    #[test]
+    fn imports_deny_mode_flags_static_and_dynamic_relative_imports() {
+        let root = temp_root("imports-deny-relative");
+        create_dir_all(root.join("assets/skills/demo")).expect("create skill dirs");
+        create_dir_all(root.join("src/lib")).expect("create core dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["."]
+rules: {}
+arch:
+  layers:
+    skills: ["assets/skills/**"]
+    core: ["src/lib/**"]
+  imports:
+    - from: skills
+      deny: core
+      message: "Skills must be self-contained"
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("assets/skills/demo/index.ts"),
+            "import { foo } from \"../../../src/lib/utils\";\nexport async function load() {\n  return import(\"../../../src/lib/dynamic\");\n}\n",
+        )
+        .expect("write importing source");
+        write(root.join("src/lib/utils.ts"), "export const foo = 1;\n").expect("write util");
+        write(
+            root.join("src/lib/dynamic.ts"),
+            "export const dynamic = 1;\n",
+        )
+        .expect("write dynamic util");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(output.summary.errors, 2);
+        assert_eq!(
+            output
+                .violations
+                .iter()
+                .map(|violation| violation.line)
+                .collect::<Vec<_>>(),
+            vec![1, 3]
+        );
+        let _ = fs::remove_dir_all(root);
+    }
 }
