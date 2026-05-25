@@ -4,7 +4,7 @@
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
     "@semantic-release/changelog",
-    ["@semantic-release/npm", { "npmPublish": true }],
+    "./tools/semantic-release-root-npm.js",
     ["@semantic-release/git", { "assets": ["package.json", "CHANGELOG.md"] }],
     "@semantic-release/github"
   ]
