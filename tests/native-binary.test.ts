@@ -13,6 +13,10 @@ interface PackageJson {
   name: string;
   optionalDependencies?: Record<string, string>;
   private?: boolean;
+  repository?: {
+    type?: string;
+    url?: string;
+  };
 }
 
 function readPackageJson(path: URL): PackageJson {
@@ -69,6 +73,10 @@ describe("native binary package metadata", () => {
 
       expect(packageJson.name).toBe(nativePackage.packageName);
       expect(packageJson.private).toBe(true);
+      expect(packageJson.repository).toEqual({
+        type: "git",
+        url: "https://github.com/konvert7/klint",
+      });
     }
   });
 

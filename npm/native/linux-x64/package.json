@@ -4,6 +4,10 @@
   "private": true,
   "description": "Native Linux x64 binary for @konvert7/klint.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/konvert7/klint"
+  },
   "os": ["linux"],
   "cpu": ["x64"],
   "files": ["bin/klint-rs"],
