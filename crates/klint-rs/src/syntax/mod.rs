@@ -15,10 +15,29 @@ pub use rules::{
 use std::path::Path;
 use tree_sitter::{Language, Node};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SourceLanguage {
+    JavaScriptLike,
+    Python,
+}
+
 fn language_for_path(path: &Path) -> Language {
+    match source_language_for_path(path) {
+        SourceLanguage::Python => tree_sitter_python::LANGUAGE.into(),
+        SourceLanguage::JavaScriptLike => {
+            if is_jsx_path(path) {
+                tree_sitter_typescript::LANGUAGE_TSX.into()
+            } else {
+                tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()
+            }
+        }
+    }
+}
+
+fn source_language_for_path(path: &Path) -> SourceLanguage {
     match path.extension().and_then(|ext| ext.to_str()) {
-        Some("tsx" | "jsx") => tree_sitter_typescript::LANGUAGE_TSX.into(),
-        _ => tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
+        Some("py") => SourceLanguage::Python,
+        _ => SourceLanguage::JavaScriptLike,
     }
 }
 

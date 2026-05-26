@@ -450,6 +450,60 @@ arch:
     }
   });
 
+  test("--engine rust applies architecture import rules to Python relative imports", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["src"]
+rules: {}
+arch:
+  layers:
+    jobs: ["src/jobs/**"]
+    lib: ["src/lib/**"]
+  imports:
+    - from: jobs
+      deny: lib
+      message: "Jobs must not import lib directly"
+`,
+      {
+        "src/jobs/worker.py": "import requests\nfrom ..lib.auth import load_key\n",
+        "src/lib/auth.py": "def load_key():\n    return 'x'\n",
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{
+          file: string;
+          line: number;
+          rule: string;
+          message: string;
+          severity: string;
+          fix: unknown;
+        }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(rust.code).toBe(2);
+      expect(payload.summary).toEqual({ errors: 1, warnings: 0 });
+      expect(payload.violations).toEqual([
+        {
+          file: "src/jobs/worker.py",
+          line: 2,
+          rule: "arch/imports",
+          message: "Jobs must not import lib directly",
+          severity: "error",
+          fix: null,
+        },
+      ]);
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine rust rejects unknown plugins", () => {
     const dir = setupFixture(
       `

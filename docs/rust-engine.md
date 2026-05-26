@@ -27,7 +27,7 @@ Architecture rules:
 
 | Area | Notes |
 |------|-------|
-| `arch.imports` | TypeScript/JavaScript only today. Includes static imports, dynamic imports, TS path aliases, allow/deny mode, and type-only allowance. |
+| `arch.imports` | Supports TypeScript/JavaScript static imports, dynamic imports, TS path aliases, allow/deny mode, and type-only allowance. Supports Python relative imports for local architecture boundaries; unresolved Python package imports are ignored. |
 | `arch.forbidden` | Supports literal pattern checks for TypeScript/JavaScript and Python files. JSX element checks are TypeScript/JavaScript only. |
 | `arch.singleton` | Supports literal pattern checks for TypeScript/JavaScript and Python files. JSX element checks are TypeScript/JavaScript only. |
 
@@ -78,9 +78,11 @@ Do not port these as tree-sitter approximations. A false Rust port would make `c
 
 Python support starts at the architecture layer. The Rust engine discovers `.py`
 files and applies language-neutral `arch.forbidden` and `arch.singleton` pattern
-rules to them. TypeScript/Sonar syntax rules are still restricted to
-TypeScript/JavaScript-like files, and Python import extraction for `arch.imports`
-is not implemented yet.
+rules to them. `arch.imports` supports Python relative imports such as
+`from ..lib.auth import load_key` for local architecture boundaries. Absolute
+package imports such as `import requests` stay unresolved and are ignored for
+now. TypeScript/Sonar syntax rules are still restricted to
+TypeScript/JavaScript-like files.
 
 ## Custom Rules And Plugins
 

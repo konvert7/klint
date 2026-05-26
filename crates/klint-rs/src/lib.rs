@@ -414,6 +414,95 @@ arch:
     }
 
     #[test]
+    fn imports_deny_mode_flags_python_relative_imports() {
+        let root = temp_root("imports-python-relative");
+        create_dir_all(root.join("src/jobs")).expect("create jobs dirs");
+        create_dir_all(root.join("src/lib")).expect("create lib dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["src"]
+rules: {}
+arch:
+  layers:
+    jobs: ["src/jobs/**"]
+    lib: ["src/lib/**"]
+  imports:
+    - from: jobs
+      deny: lib
+      message: "Jobs must not import lib directly"
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("src/jobs/worker.py"),
+            "import requests\nfrom ..lib.auth import load_key\n",
+        )
+        .expect("write importing source");
+        write(
+            root.join("src/lib/auth.py"),
+            "def load_key():\n    return 'x'\n",
+        )
+        .expect("write lib source");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(
+            output.violations,
+            vec![Violation {
+                file: "src/jobs/worker.py".to_string(),
+                line: 2,
+                rule: "arch/imports".to_string(),
+                message: "Jobs must not import lib directly".to_string(),
+                severity: "error".to_string(),
+                fix: None,
+            }]
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn imports_deny_mode_ignores_unresolved_python_packages() {
+        let root = temp_root("imports-python-package");
+        create_dir_all(root.join("src/jobs")).expect("create jobs dirs");
+        create_dir_all(root.join("src/lib")).expect("create lib dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["src"]
+rules: {}
+arch:
+  layers:
+    jobs: ["src/jobs/**"]
+    lib: ["src/lib/**"]
+  imports:
+    - from: jobs
+      deny: lib
+      message: "Jobs must not import lib directly"
+"#,
+        )
+        .expect("write config");
+        write(root.join("src/jobs/worker.py"), "import requests\n")
+            .expect("write importing source");
+        write(
+            root.join("src/lib/auth.py"),
+            "def load_key():\n    return 'x'\n",
+        )
+        .expect("write lib source");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(output, empty_output());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn imports_deny_mode_can_allow_type_only_imports() {
         let root = temp_root("imports-type-only-allow");
         create_dir_all(root.join("assets/skills/demo")).expect("create skill dirs");

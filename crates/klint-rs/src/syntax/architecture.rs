@@ -1,7 +1,7 @@
 use std::path::Path;
 use tree_sitter::{Node, Parser};
 
-use super::{is_jsx_path, language_for_path, node_text};
+use super::{SourceLanguage, is_jsx_path, language_for_path, node_text, source_language_for_path};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ImportRecord {
@@ -27,7 +27,10 @@ pub fn scan_imports(path: &Path, content: &str) -> Result<Vec<ImportRecord>, Str
 
     let root = tree.root_node();
     let mut imports = Vec::new();
-    walk_imports(root, content.as_bytes(), &mut imports);
+    match source_language_for_path(path) {
+        SourceLanguage::Python => walk_python_imports(root, content.as_bytes(), &mut imports),
+        SourceLanguage::JavaScriptLike => walk_imports(root, content.as_bytes(), &mut imports),
+    }
     Ok(imports)
 }
 
@@ -103,6 +106,66 @@ fn first_string_child(node: Node<'_>) -> Option<Node<'_>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
         .find(|child| child.kind() == "string")
+}
+
+fn walk_python_imports(node: Node<'_>, source: &[u8], imports: &mut Vec<ImportRecord>) {
+    if matches!(node.kind(), "import_statement" | "import_from_statement")
+        && let Some(record) = python_import_record(node, source)
+    {
+        imports.push(record);
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        walk_python_imports(child, source, imports);
+    }
+}
+
+fn python_import_record(node: Node<'_>, source: &[u8]) -> Option<ImportRecord> {
+    let text = node.utf8_text(source).ok()?.trim();
+    let specifier = if let Some(rest) = text.strip_prefix("import ") {
+        first_python_import_target(rest)?.to_string()
+    } else {
+        let rest = text.strip_prefix("from ")?;
+        let (module, imports) = rest.split_once(" import ")?;
+        python_from_import_specifier(module.trim(), imports.trim())?
+    };
+
+    Some(ImportRecord {
+        specifier,
+        line: node.start_position().row + 1,
+        is_type_only: false,
+        is_dynamic: false,
+    })
+}
+
+fn python_from_import_specifier(module: &str, imports: &str) -> Option<String> {
+    if !module.starts_with('.') {
+        return Some(module.to_string());
+    }
+
+    let dot_count = module.chars().take_while(|char| *char == '.').count();
+    let module_path = module[dot_count..].replace('.', "/");
+    let target = if module_path.is_empty() {
+        first_python_import_target(imports)?.to_string()
+    } else {
+        module_path
+    };
+    let prefix = if dot_count == 1 {
+        "./".to_string()
+    } else {
+        "../".repeat(dot_count - 1)
+    };
+    Some(format!("{prefix}{target}"))
+}
+
+fn first_python_import_target(imports: &str) -> Option<&str> {
+    imports
+        .split(',')
+        .next()?
+        .split_whitespace()
+        .next()
+        .filter(|target| !target.is_empty() && *target != "*")
 }
 
 fn walk_jsx_elements(node: Node<'_>, source: &[u8], elements: &mut Vec<JsxElementRecord>) {
@@ -219,6 +282,39 @@ mod tests {
                 is_type_only: false,
                 is_dynamic: false,
             }]
+        );
+    }
+
+    #[test]
+    fn extracts_python_relative_imports_with_line_numbers() {
+        let records = scan_imports(
+            &PathBuf::from("src/jobs/worker.py"),
+            "import requests\nfrom ..lib.auth import load_key\nfrom . import local\n",
+        )
+        .expect("python source should parse");
+
+        assert_eq!(
+            records,
+            vec![
+                ImportRecord {
+                    specifier: "requests".to_string(),
+                    line: 1,
+                    is_type_only: false,
+                    is_dynamic: false,
+                },
+                ImportRecord {
+                    specifier: "../lib/auth".to_string(),
+                    line: 2,
+                    is_type_only: false,
+                    is_dynamic: false,
+                },
+                ImportRecord {
+                    specifier: "./local".to_string(),
+                    line: 3,
+                    is_type_only: false,
+                    is_dynamic: false,
+                },
+            ]
         );
     }
 
