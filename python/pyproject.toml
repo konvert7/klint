@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=69", "wheel>=0.43"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "klint"
+version = "0.0.0"
+description = "Architecture-as-Code linter for TypeScript and Python projects."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [
+  { name = "Konvert7" }
+]
+keywords = [
+  "architecture",
+  "linter",
+  "typescript",
+  "python",
+  "rust"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Rust",
+  "Topic :: Software Development :: Quality Assurance"
+]
+
+[project.urls]
+Homepage = "https://klint.dev"
+Repository = "https://github.com/konvert7/klint"
+Issues = "https://github.com/konvert7/klint/issues"
+
+[project.scripts]
+klint = "klint.__main__:main"
+
+[tool.setuptools]
+packages = ["klint"]
+
+[tool.setuptools.package-data]
+klint = ["_bin/klint-rs", "_bin/klint-rs.exe"]

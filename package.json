@@ -40,6 +40,8 @@
     "pack:check": "bun tests/pack-check.ts",
     "native:stage": "bun tests/stage-native-binary.ts",
     "native:smoke": "bun tests/smoke-native-binary.ts",
+    "python:stage": "bun tests/stage-python-wheel.ts",
+    "python:smoke": "bun tests/smoke-python-wheel.ts",
     "native:release:dry-run": "bun tools/prepare-native-release.ts --version 0.0.0-dry-run",
     "check": "biome check",
     "check-write": "biome check --write",
