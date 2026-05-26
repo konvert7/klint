@@ -1,6 +1,7 @@
 mod consecutive_array_push;
 mod nested_template_literals;
 mod prefer_at;
+mod prefer_string_raw;
 mod prefer_string_raw_regexp;
 mod prefer_string_replaceall;
 mod single_char_class;
@@ -11,6 +12,7 @@ mod unguarded_json_parse;
 pub use consecutive_array_push::scan_consecutive_array_push;
 pub use nested_template_literals::scan_nested_template_literals;
 pub use prefer_at::scan_prefer_at;
+pub use prefer_string_raw::scan_prefer_string_raw;
 pub use prefer_string_raw_regexp::scan_prefer_string_raw_regexp;
 pub use prefer_string_replaceall::scan_prefer_string_replaceall;
 pub use single_char_class::scan_single_char_classes;
@@ -83,6 +85,16 @@ pub struct PreferStringReplaceAllRecord {
     pub pattern: String,
     pub pattern_lit: String,
     pub replacement: String,
+    pub start_row: usize,
+    pub end_row: usize,
+    pub start_byte: usize,
+    pub end_byte: usize,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct PreferStringRawRecord {
+    pub line: usize,
+    pub fixed: String,
     pub start_row: usize,
     pub end_row: usize,
     pub start_byte: usize,

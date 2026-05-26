@@ -723,5 +723,50 @@
       "violations": [],
       "summary": { "errors": 0, "warnings": 0 }
     }
+  },
+  {
+    "name": "sonar/prefer-string-raw flags and fixes escaped backslashes",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "sonar/prefer-string-raw": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const p = \"C:\\\\Users\\\\Documents\\\\file.txt\";\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "sonar/prefer-string-raw",
+          "message": "String literal with escaped backslashes — use String.raw`...` for clarity (Sonar S6535).",
+          "severity": "error",
+          "fix": {
+            "startLine": 1,
+            "endLine": 1,
+            "replacement": "const p = String.raw`C:\\Users\\Documents\\file.txt`;"
+          }
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "sonar/prefer-string-raw ignores unsupported template-unsafe strings",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "sonar/prefer-string-raw": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a = \"hello\";\nconst b = \"foo\\\\bar`baz\";\nconst c = \"C:\\\\Users${foo}\";\nconst d = \"trailing\\\\\";\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": { "errors": 0, "warnings": 0 }
+    }
   }
 ]

@@ -148,6 +148,7 @@ Rust currently supports:
 - `sonar/no-single-char-class`
 - `sonar/prefer-at`
 - `sonar/prefer-string-replaceall`
+- `sonar/prefer-string-raw`
 - `sonar/prefer-string-raw-regexp`
 
 These rules remain TypeScript-owned because they need TypeScript semantic information:

@@ -47,11 +47,12 @@ Plugin rules:
 | `sonar/no-single-char-class` | Syntax-only regex literal parsing and character-class rewrite. |
 | `sonar/prefer-at` | Syntax-only negative index access rewrite matching the TypeScript rule contract. |
 | `sonar/prefer-string-replaceall` | Syntax-only `.replace(/literal/g, value)` rewrite with plain-regex filtering. |
+| `sonar/prefer-string-raw` | Syntax-only string literal rewrite for escaped-backslash strings that are safe as raw templates. |
 | `sonar/prefer-string-raw-regexp` | Syntax-only `new RegExp(template)` rewrite for template literals with double backslashes. |
 
 Every Rust-supported rule should have:
 
-- Rust syntax scanner coverage in `crates/klint-rs/src/syntax.rs`.
+- Rust syntax scanner coverage in `crates/klint-rs/src/syntax/rules/<rule>.rs`.
 - Rust rule dispatch in `crates/klint-rs/src/rules.rs`.
 - CLI compare coverage in `tests/rust-engine-cli.test.ts`.
 - Golden parity coverage in `tests/golden/rule-cases.json`.
