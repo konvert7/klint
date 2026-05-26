@@ -468,7 +468,7 @@ include: ["src"]
 rules:
   no-sync-in-async: error
 `,
-      "async function load() {\n  readFileSync(path);\n}\nfunction ok() {\n  readFileSync(path);\n}\n"
+      'import { readFileSync } from "node:fs";\nasync function load() {\n  readFileSync(path);\n}\nfunction ok() {\n  readFileSync(path);\n}\n'
     );
 
     try {
