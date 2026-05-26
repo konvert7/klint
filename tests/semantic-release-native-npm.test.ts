@@ -70,11 +70,13 @@ describe("semantic-release native npm plugin", () => {
     }
   });
 
-  test("publish skips missing native packages during dark rollout", async () => {
+  test("publish skips missing native packages only with explicit env escape hatch", async () => {
     const cwd = fixture();
     const logs: string[] = [];
+    const previous = process.env.KLINT_SKIP_MISSING_NATIVE_PUBLISH;
 
     try {
+      process.env.KLINT_SKIP_MISSING_NATIVE_PUBLISH = "1";
       await publish(
         {
           spawnSync() {
@@ -96,6 +98,38 @@ describe("semantic-release native npm plugin", () => {
       expect(logs).toHaveLength(PACKAGES.length);
       expect(logs[0]).toContain("Skipping @konvert7/klint-darwin-arm64");
     } finally {
+      restoreEnv("KLINT_SKIP_MISSING_NATIVE_PUBLISH", previous);
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  test("publish fails on missing native packages by default", async () => {
+    const cwd = fixture();
+    const previous = process.env.KLINT_SKIP_MISSING_NATIVE_PUBLISH;
+
+    try {
+      delete process.env.KLINT_SKIP_MISSING_NATIVE_PUBLISH;
+      await expect(
+        publish(
+          {
+            spawnSync() {
+              return {
+                status: 1,
+                stdout: "",
+                stderr:
+                  "npm error code E404\nnpm error 404 Not Found - PUT https://registry.npmjs.org/@konvert7%2fklint-darwin-arm64 - Not found\n",
+              };
+            },
+          },
+          {
+            cwd,
+            options: {},
+            logger: { log() {} },
+          }
+        )
+      ).rejects.toThrow("@konvert7/klint-darwin-arm64 npm publish failed");
+    } finally {
+      restoreEnv("KLINT_SKIP_MISSING_NATIVE_PUBLISH", previous);
       rmSync(cwd, { recursive: true, force: true });
     }
   });
@@ -170,4 +204,9 @@ function readPackageJson(cwd: string, dir: string) {
   return JSON.parse(
     readFileSync(join(cwd, "npm", "native", dir, "package.json"), "utf-8")
   );
+}
+
+function restoreEnv(name: string, value: string | undefined): void {
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
 }
