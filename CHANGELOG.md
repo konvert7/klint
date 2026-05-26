@@ -1,3 +1,21 @@
+# [0.21.0](https://github.com/konvert7/klint/compare/v0.20.0...v0.21.0) (2026-05-26)
+
+
+### Features
+
+* **python:** introduce klint Python package with wheel support and staging scripts ([1b58f6e](https://github.com/konvert7/klint/commit/1b58f6ef6f7d9c536607bd2ceac8492fbc2025d3))
+* **rust:** add sonar/prefer-at rule for cleaner negative indexing ([738dd58](https://github.com/konvert7/klint/commit/738dd58eb362a44263b9977841426df2368b2adb))
+* **rust:** add sonar/prefer-nullish-coalescing-assign rule for explicit nullish assignment handling ([2fd3f79](https://github.com/konvert7/klint/commit/2fd3f79f817231febe74d764b1f2eb6d89f73f1d))
+* **rust:** add sonar/prefer-string-raw rule for handling escaped backslashes in string literals ([6376be3](https://github.com/konvert7/klint/commit/6376be328a6779762cb415d713a12dc2a72b3389))
+* **rust:** add sonar/prefer-string-raw-regexp rule for improved RegExp template handling ([42e89a5](https://github.com/konvert7/klint/commit/42e89a5e0d219ebf4a5830bd209202ead15b8088))
+* **rust:** add sonar/prefer-string-replaceall rule for improved string replacement ([f23a3c1](https://github.com/konvert7/klint/commit/f23a3c17646374024243c6fce7832eb6cccdb8f0))
+* **rust:** add support for Python files in architecture rules ([65920c8](https://github.com/konvert7/klint/commit/65920c8147126672cd7838a8a6d401eaaf60fed9))
+* **rust:** add support for sonar/no-single-char-class rule ([330e978](https://github.com/konvert7/klint/commit/330e9788edb769644db43f7790e5594c9ba4d303))
+* **rust:** enhance architecture rules to resolve Python absolute imports ([7f5d503](https://github.com/konvert7/klint/commit/7f5d503251411eac850ee724c908a7f529fa4190))
+* **rust:** enhance Rust engine to support built-in Sonar plugin defaults and reject unknown plugins ([b3d7d9f](https://github.com/konvert7/klint/commit/b3d7d9f62b8853249cc6014b50b337b229c4603d))
+* **rust:** implement Python relative import handling in architecture rules ([f8ebd77](https://github.com/konvert7/klint/commit/f8ebd7712032abde4af23a996e3a92fecf1d5fb8))
+* **rust:** restructure syntax module and add new rules for improved code analysis ([a3c0434](https://github.com/konvert7/klint/commit/a3c04343ad06344da1de76770cedb09ca77b1d66))
+
 # [0.20.0](https://github.com/konvert7/klint/compare/v0.19.2...v0.20.0) (2026-05-26)
 
 
