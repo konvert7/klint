@@ -328,10 +328,23 @@ function rustEngineUnsupportedReason({
   if (rulesFile) return "KLINT_ENGINE=rust does not support --rules";
   if (!raw.arch) return "KLINT_ENGINE=rust requires an arch config";
   if ((raw.plugins?.length ?? 0) > 0) return "KLINT_ENGINE=rust does not support plugins";
-  if (Object.values(raw.rules ?? {}).some((value) => value !== "off")) {
-    return "KLINT_ENGINE=rust does not support TypeScript rules";
+  const unsupportedRules = Object.entries(raw.rules ?? {})
+    .filter(([, value]) => ruleConfigSeverity(value) !== "off")
+    .map(([name]) => name);
+  if (unsupportedRules.length > 0) {
+    return [
+      "Rust engine currently supports arch rules only",
+      "",
+      "Unsupported TypeScript rules:",
+      ...unsupportedRules.map((rule) => `- ${rule}`),
+    ].join("\n");
   }
   return undefined;
+}
+
+function ruleConfigSeverity(value: RuleConfigValue): string | undefined {
+  if (typeof value === "string") return value;
+  return value.severity;
 }
 
 const AGENT_TARGETS = [

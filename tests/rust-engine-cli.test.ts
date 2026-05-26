@@ -178,6 +178,39 @@ rules:
     }
   });
 
+  test("lists unsupported TypeScript rules for mixed configs", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules:
+  no-floating-promise: error
+  no-string-match:
+    severity: warn
+  no-nested-template-literals: off
+arch:
+  forbidden:
+    - pattern: "console.log("
+      in: "src/**"
+      message: "Use logger"
+`,
+      `console.log("x");\n`
+    );
+
+    try {
+      const rust = runCli(dir, { KLINT_ENGINE: "rust" });
+
+      expect(rust.code).toBe(1);
+      expect(rust.stderr).toContain("Rust engine currently supports arch rules only");
+      expect(rust.stderr).toContain("Unsupported TypeScript rules:");
+      expect(rust.stderr).toContain("- no-floating-promise");
+      expect(rust.stderr).toContain("- no-string-match");
+      expect(rust.stderr).not.toContain("- no-nested-template-literals");
+      expect(rust.stdout).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("respects explicit KLINT_RUST_BIN override", () => {
     const dir = setupFixture(
       `
