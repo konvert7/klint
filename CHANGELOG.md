@@ -1,3 +1,15 @@
+# [0.16.0](https://github.com/konvert7/klint/compare/v0.15.2...v0.16.0) (2026-05-26)
+
+
+### Bug Fixes
+
+* **npm:** update package repo prefix ([3cbc9b4](https://github.com/konvert7/klint/commit/3cbc9b4c82318766254d8d72f461f85b8b6cbac2))
+
+
+### Features
+
+* **tests:** enhance tests for optional dependencies and CLI behavior ([1ffb37d](https://github.com/konvert7/klint/commit/1ffb37d61d988dc7a81d1525fe485b8b1237caec))
+
 ## [0.15.2](https://github.com/konvert7/klint/compare/v0.15.1...v0.15.2) (2026-05-26)
 
 
