@@ -610,6 +610,13 @@ function resolveRustEngineCommand(configDir: string): RustEngineCommand {
     return { bin: nativePackageBin, args };
   }
 
+  if (!isSourceCheckout()) {
+    process.stderr.write(
+      "klint: native Rust engine binary is unavailable for this package version\n"
+    );
+    process.exit(1);
+  }
+
   return {
     bin: "cargo",
     args: ["run", "--quiet", "-p", "klint-rs", "--", ...args],

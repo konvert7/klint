@@ -23,6 +23,12 @@ describe("semantic-release root npm plugin", () => {
 
       const packageJson = JSON.parse(readFileSync(join(cwd, "package.json"), "utf-8"));
       expect(packageJson.version).toBe("1.2.3");
+      expect(packageJson.optionalDependencies).toEqual({
+        "@konvert7/klint-darwin-arm64": "1.2.3",
+        "@konvert7/klint-darwin-x64": "1.2.3",
+        "@konvert7/klint-linux-x64": "1.2.3",
+        "@konvert7/klint-win32-x64": "1.2.3",
+      });
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }

@@ -105,9 +105,36 @@ describe("native binary package metadata", () => {
       exists(path) {
         return path === expectedBinary;
       },
+      readPackageJson(path) {
+        expect([join(packageRoot, "package.json"), packageJsonPath]).toContain(path);
+        return { version: "1.2.3" };
+      },
     });
 
     expect(binaryPath).toBe(expectedBinary);
+  });
+
+  test("skips stale optional package binaries from older root versions", () => {
+    const packageRoot = "/repo/node_modules/@konvert7/klint";
+    const packageJsonPath =
+      "/repo/node_modules/@konvert7/klint-darwin-arm64/package.json";
+
+    const binaryPath = resolveNativePackageBinary({
+      packageRoot,
+      platform: "darwin",
+      arch: "arm64",
+      resolvePackageJson() {
+        return packageJsonPath;
+      },
+      exists() {
+        return true;
+      },
+      readPackageJson(path) {
+        return { version: path === packageJsonPath ? "1.2.2" : "1.2.3" };
+      },
+    });
+
+    expect(binaryPath).toBeUndefined();
   });
 
   test("resolves a package for an explicit platform and arch", () => {
@@ -129,6 +156,9 @@ describe("native binary package metadata", () => {
       },
       exists(path) {
         return path === expectedBinary;
+      },
+      readPackageJson() {
+        return { version: "1.2.3" };
       },
     });
 

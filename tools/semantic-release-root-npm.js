@@ -2,6 +2,13 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+const NATIVE_PACKAGE_NAMES = [
+  "@konvert7/klint-darwin-arm64",
+  "@konvert7/klint-darwin-x64",
+  "@konvert7/klint-linux-x64",
+  "@konvert7/klint-win32-x64",
+];
+
 export async function verifyConditions(_, context) {
   const cwd = context.cwd ?? process.cwd();
   const packageJson = readPackageJson(cwd);
@@ -21,6 +28,10 @@ export async function prepare(_, context) {
 
   const packageJson = readPackageJson(cwd);
   packageJson.version = version;
+  packageJson.optionalDependencies ??= {};
+  for (const packageName of NATIVE_PACKAGE_NAMES) {
+    packageJson.optionalDependencies[packageName] = version;
+  }
   writePackageJson(cwd, packageJson);
 }
 

@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 
@@ -44,6 +44,7 @@ interface NativeBinaryOptions {
   platform?: string;
   arch?: string;
   exists?: (path: string) => boolean;
+  readPackageJson?: (path: string) => { version?: string };
   resolvePackageJson?: (packageName: string) => string;
 }
 
@@ -63,6 +64,7 @@ export function resolveNativePackageBinary({
   platform = process.platform,
   arch = process.arch,
   exists = existsSync,
+  readPackageJson = readJsonFile,
   resolvePackageJson,
 }: NativeBinaryOptions): string | undefined {
   const nativePackage = nativePackageForPlatform(platform, arch);
@@ -74,9 +76,31 @@ export function resolveNativePackageBinary({
     resolvePackageJson
   );
   if (!packageJsonPath) return undefined;
+  if (!nativePackageVersionMatches(packageRoot, packageJsonPath, readPackageJson)) {
+    return undefined;
+  }
 
   const binaryPath = join(dirname(packageJsonPath), nativePackage.binaryPath);
   return exists(binaryPath) ? binaryPath : undefined;
+}
+
+function nativePackageVersionMatches(
+  packageRoot: string,
+  nativePackageJsonPath: string,
+  readPackageJson: (path: string) => { version?: string }
+): boolean {
+  try {
+    const rootVersion = readPackageJson(join(packageRoot, "package.json")).version;
+    const nativeVersion = readPackageJson(nativePackageJsonPath).version;
+    if (!rootVersion || !nativeVersion) return true;
+    return rootVersion === nativeVersion;
+  } catch {
+    return true;
+  }
+}
+
+function readJsonFile(path: string): { version?: string } {
+  return JSON.parse(readFileSync(path, "utf-8")) as { version?: string };
 }
 
 function resolveOptionalPackageJson(
