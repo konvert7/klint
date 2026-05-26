@@ -507,7 +507,7 @@ arch:
     }
   });
 
-  test("--engine auto requires JSON output", () => {
+  test("--engine auto supports clean text output", () => {
     const dir = setupFixture(
       `
 include: ["src"]
@@ -519,9 +519,35 @@ rules: {}
     try {
       const result = runCliArgs(dir, ["--engine", "auto"]);
 
-      expect(result.code).toBe(1);
-      expect(result.stderr).toContain("--engine auto currently requires --json");
+      expect(result.code).toBe(0);
+      expect(result.stdout).toContain("klint: 0 violations");
+      expect(result.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine auto supports violation text output", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules:
+  no-string-match: error
+  no-floating-promise: error
+`,
+      `async function load(): Promise<string> { return "ok"; }\nload();\nconst hit = "abc".match(/a/);\n`
+    );
+
+    try {
+      const result = runCliArgs(dir, ["--engine", "auto"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+
+      expect(result.code).toBe(2);
       expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("klint: 2 error(s)");
+      expect(result.stderr).toContain("[no-floating-promise]");
+      expect(result.stderr).toContain("[no-string-match]");
     } finally {
       rmSync(dir, { recursive: true });
     }

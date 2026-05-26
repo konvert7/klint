@@ -142,6 +142,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
       raw,
       root,
       rulesFile,
+      startedAt,
       customRules,
       customRulesMap,
     });
@@ -199,7 +200,19 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     process.stdout.write(`${msg} Finished in ${formatDuration(startedAt)}.\n`);
     process.exit(0);
   }
+  writeTextOutput(violations, startedAt);
+}
 
+function formatDuration(startedAt: number): string {
+  const elapsedMs = performance.now() - startedAt;
+  if (elapsedMs < 1000) return `${Math.round(elapsedMs)}ms`;
+  return `${(elapsedMs / 1000).toFixed(elapsedMs < 10_000 ? 2 : 1)}s`;
+}
+
+function writeTextOutput(
+  violations: Array<Omit<Violation, "fix">>,
+  startedAt: number
+): never {
   const errors = violations.filter((v) => v.severity === "error");
   const warns = violations.filter((v) => v.severity === "warn");
 
@@ -229,12 +242,6 @@ export async function main(opts: CliOptions = {}): Promise<void> {
   }
   process.stderr.write(`\nklint: finished in ${formatDuration(startedAt)}\n`);
   process.exit(0);
-}
-
-function formatDuration(startedAt: number): string {
-  const elapsedMs = performance.now() - startedAt;
-  if (elapsedMs < 1000) return `${Math.round(elapsedMs)}ms`;
-  return `${(elapsedMs / 1000).toFixed(elapsedMs < 10_000 ? 2 : 1)}s`;
 }
 
 function runRustEngine({
@@ -351,6 +358,7 @@ function runAutoEngine({
   raw,
   root,
   rulesFile,
+  startedAt,
   customRules,
   customRulesMap,
 }: {
@@ -365,13 +373,10 @@ function runAutoEngine({
   };
   root: string;
   rulesFile?: string;
+  startedAt: number;
   customRules: Record<string, KlintRule>;
   customRulesMap: Record<string, RuleConfigValue>;
 }): void {
-  if (!json) {
-    process.stderr.write("klint: --engine auto currently requires --json\n");
-    process.exit(1);
-  }
   if (fix) {
     process.stderr.write("klint: --engine auto does not support --fix\n");
     process.exit(1);
@@ -399,8 +404,11 @@ function runAutoEngine({
   });
   const tsOutput = toJsonPayload(tsViolations);
   const merged = mergeJsonOutputs(rustOutput, tsOutput);
-  process.stdout.write(JSON.stringify(merged));
-  process.exit(merged.summary.errors > 0 ? 2 : 0);
+  if (json) {
+    process.stdout.write(JSON.stringify(merged));
+    process.exit(merged.summary.errors > 0 ? 2 : 0);
+  }
+  writeTextOutput(merged.violations, startedAt);
 }
 
 function splitRulesForAuto(rules: Record<string, RuleConfigValue>): {
@@ -781,7 +789,7 @@ function printHelp(): void {
       "",
       "  --config <dir>   directory containing klint.yaml or klint.config.json (default: cwd)",
       "  --rules  <file>  custom rules file (default: <configDir>/klint.rules.ts if present)",
-      "  --engine <name>  engine to use: ts (default), rust, compare, or auto (experimental, requires --json)",
+      "  --engine <name>  engine to use: ts (default), rust, compare, or auto (experimental)",
       "  --fix            apply auto-fixes for fixable violations in-place",
       "  --json           emit structured JSON to stdout (for agent/CI consumption)",
       "  --debug          print file resolution and rule progress to stderr",

@@ -36,7 +36,7 @@
     "type-check": "tsc --noEmit",
     "test": "bun test",
     "test:rust-engine": "bun test tests/rust-engine-cli.test.ts",
-    "test:auto-engine": "bun cli.ts --engine auto --json",
+    "test:auto-engine": "bun cli.ts --engine auto",
     "pack:check": "bun tests/pack-check.ts",
     "native:stage": "bun tests/stage-native-binary.ts",
     "native:smoke": "bun tests/smoke-native-binary.ts",
