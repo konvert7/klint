@@ -1,0 +1,94 @@
+[
+  {
+    "name": "no-string-match flags non-global regex and emits fix",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-string-match": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const hit = \"abc\".match(/a/);\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-string-match",
+          "message": "Use RegExp.exec() instead of String.match() for non-global regexes — use new RegExp(/a/).exec(\"abc\") instead.",
+          "severity": "error",
+          "fix": {
+            "startLine": 1,
+            "endLine": 1,
+            "replacement": "const hit = new RegExp(/a/).exec(\"abc\");"
+          }
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "no-string-match ignores global regex",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-string-match": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const hit = \"abc\".match(/a/g);\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": { "errors": 0, "warnings": 0 }
+    }
+  },
+  {
+    "name": "no-string-match honors warning severity",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-string-match": {
+          "severity": "warn"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const hit = \"abc\".match(/a/i);\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-string-match",
+          "message": "Use RegExp.exec() instead of String.match() for non-global regexes — use new RegExp(/a/i).exec(\"abc\") instead.",
+          "severity": "warn",
+          "fix": {
+            "startLine": 1,
+            "endLine": 1,
+            "replacement": "const hit = new RegExp(/a/i).exec(\"abc\");"
+          }
+        }
+      ],
+      "summary": { "errors": 0, "warnings": 1 }
+    }
+  },
+  {
+    "name": "no-string-match ignores variable regex argument",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-string-match": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "declare const pattern: RegExp;\nconst hit = \"abc\".match(pattern);\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": { "errors": 0, "warnings": 0 }
+    }
+  }
+]
