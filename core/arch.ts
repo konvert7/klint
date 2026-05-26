@@ -1,9 +1,8 @@
-import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 import ts from "typescript";
 import { walkAst } from "./ast";
+import { relativeSlashPath, toSlashPath } from "./paths";
 import type { ArchConfig, Severity, Violation } from "./types";
-
-const toSlash = (p: string) => p.replaceAll("\\", "/");
 
 interface AliasEntry {
   /** The prefix to match (pattern with `/*` stripped, e.g. `"@"` from `"@/*"`). */
@@ -31,7 +30,7 @@ function loadPathAliases(root: string): AliasEntry[] {
     const prefix = isWildcard ? pattern.slice(0, -2) : pattern;
     const targetStr = targets[0];
     const targetBase = targetStr.endsWith("/*") ? targetStr.slice(0, -2) : targetStr;
-    entries.push({ prefix, base: toSlash(resolve(base, targetBase)), isWildcard });
+    entries.push({ prefix, base: toSlashPath(resolve(base, targetBase)), isWildcard });
   }
   return entries;
 }
@@ -41,7 +40,7 @@ function resolveAlias(importPath: string, aliases: AliasEntry[]): string | undef
     if (alias.isWildcard) {
       const matchPrefix = `${alias.prefix}/`;
       if (importPath.startsWith(matchPrefix)) {
-        return toSlash(resolve(alias.base, importPath.slice(matchPrefix.length)));
+        return toSlashPath(resolve(alias.base, importPath.slice(matchPrefix.length)));
       }
     } else if (importPath === alias.prefix) {
       return alias.base;
@@ -62,7 +61,7 @@ function isBareSpecifier(path: string): boolean {
 }
 
 function globToPrefix(glob: string, root: string): string {
-  return toSlash(resolve(root, glob.split("/**")[0].split("/*")[0].split("*")[0]));
+  return toSlashPath(resolve(root, glob.split("/**")[0].split("/*")[0].split("*")[0]));
 }
 
 function resolveGlobs(
@@ -145,7 +144,7 @@ function scanImports(
     if (isBareSpecifier(path)) {
       resolved = resolveAlias(path, aliases) ?? path;
     } else {
-      resolved = toSlash(resolve(fileDir, path));
+      resolved = toSlashPath(resolve(fileDir, path));
     }
     const { line } = src.getLineAndCharacterOfPosition(specifierNode.getStart());
     records.push({ path, resolved, isTypeOnly, line: line + 1 });
@@ -176,7 +175,7 @@ export function runArchRules(
         if (isBareSpecifier(imp.resolved)) continue;
         if (rule["type-only"] === "allow" && imp.isTypeOnly) continue;
 
-        const relFile = relative(root, file).replaceAll("\\", "/");
+        const relFile = relativeSlashPath(root, file);
 
         if (rule.deny !== undefined) {
           const denyPrefixes = resolveLayerPrefixes(rule.deny, layers, root);
@@ -235,7 +234,7 @@ export function runArchRules(
 
   for (const rule of arch.singleton ?? []) {
     const severity: Severity = rule.severity ?? "error";
-    const onlyFile = toSlash(resolve(root, rule.only));
+    const onlyFile = toSlashPath(resolve(root, rule.only));
     const inFiles = rule.in
       ? resolveLayerFiles(rule.in, layers, root, allFiles)
       : allFiles;
@@ -294,7 +293,7 @@ function scanJsxElements(
       if (!targets.has(tagName.text)) return;
       const { line } = src.getLineAndCharacterOfPosition(tagName.getStart());
       violations.push({
-        file: relative(root, file).replaceAll("\\", "/"),
+        file: relativeSlashPath(root, file),
         line: line + 1,
         message,
         rule: ruleName,
@@ -321,7 +320,7 @@ function scanLinesForPattern(
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].includes(pattern)) {
         violations.push({
-          file: relative(root, file).replaceAll("\\", "/"),
+          file: relativeSlashPath(root, file),
           line: i + 1,
           message,
           rule: ruleName,

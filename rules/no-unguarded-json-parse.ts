@@ -1,6 +1,6 @@
-import { relative } from "node:path";
 import ts from "typescript";
 import { isInsideTry, walkAst } from "../core/ast";
+import { relativeSlashPath } from "../core/paths";
 import type { KlintRule } from "../core/types";
 
 export const noUnguardedJsonParse: KlintRule = {
@@ -23,7 +23,7 @@ export const noUnguardedJsonParse: KlintRule = {
         ) {
           const { line } = src.getLineAndCharacterOfPosition(node.getStart());
           violations.push({
-            file: relative(root, file).replaceAll("\\", "/"),
+            file: relativeSlashPath(root, file),
             line: line + 1,
             message:
               "JSON.parse() called without a surrounding try/catch — a malformed payload will throw an unhandled exception.",

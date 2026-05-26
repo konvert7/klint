@@ -1,6 +1,6 @@
-import { relative } from "node:path";
 import ts from "typescript";
 import { walkAst } from "../core/ast";
+import { relativeSlashPath } from "../core/paths";
 import { buildNodeReplacementFix } from "../core/rule-helpers";
 import type { KlintRule } from "../core/types";
 
@@ -27,7 +27,7 @@ export const preferStringRaw: KlintRule = {
         const fix = buildNodeReplacementFix(src, node, fixedNode);
 
         violations.push({
-          file: relative(root, file),
+          file: relativeSlashPath(root, file),
           line: fix.startLine,
           message:
             "String literal with escaped backslashes — use String.raw`...` for clarity (Sonar S6535).",

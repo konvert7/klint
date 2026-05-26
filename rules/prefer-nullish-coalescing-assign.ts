@@ -1,6 +1,6 @@
-import { relative } from "node:path";
 import ts from "typescript";
 import { walkAst } from "../core/ast";
+import { relativeSlashPath } from "../core/paths";
 import type { KlintRule } from "../core/types";
 
 export const preferNullishCoalescingAssign: KlintRule = {
@@ -33,7 +33,7 @@ export const preferNullishCoalescingAssign: KlintRule = {
         const indent = getIndent(src, node);
 
         violations.push({
-          file: relative(root, file),
+          file: relativeSlashPath(root, file),
           line: s + 1,
           message: `Prefer \`${xText} ??= ${yText}\` over \`if (!${xText}) ${xText} = ${yText}\` — ??= only assigns when null or undefined.`,
           fix: {

@@ -1,6 +1,6 @@
-import { relative } from "node:path";
 import ts from "typescript";
 import { createProgram } from "./ast";
+import { relativeSlashPath } from "./paths";
 import type { KlintRule, RawViolation, RuleMeta } from "./types";
 import { defineRule } from "./types";
 
@@ -34,7 +34,7 @@ export function defineAstRule(opts: {
           report(node, message) {
             const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
             violations.push({
-              file: relative(root, sourceFile.fileName),
+              file: relativeSlashPath(root, sourceFile.fileName),
               line: line + 1,
               message,
             });

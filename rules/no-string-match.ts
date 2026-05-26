@@ -1,6 +1,6 @@
-import { relative } from "node:path";
 import ts from "typescript";
 import { walkAst } from "../core/ast";
+import { relativeSlashPath } from "../core/paths";
 import type { KlintRule } from "../core/types";
 
 export const noStringMatch: KlintRule = {
@@ -45,7 +45,7 @@ export const noStringMatch: KlintRule = {
                   })()
                 : undefined;
             violations.push({
-              file: relative(root, file).replaceAll("\\", "/"),
+              file: relativeSlashPath(root, file),
               line: s + 1,
               message: `Use RegExp.exec() instead of String.match() for non-global regexes — use new RegExp(${regexText}).exec(${strText}) instead.`,
               fix,

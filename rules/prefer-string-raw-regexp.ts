@@ -1,6 +1,6 @@
-import { relative } from "node:path";
 import ts from "typescript";
 import { walkAst } from "../core/ast";
+import { relativeSlashPath } from "../core/paths";
 import type { KlintRule } from "../core/types";
 
 export const preferStringRawRegexp: KlintRule = {
@@ -47,7 +47,7 @@ export const preferStringRawRegexp: KlintRule = {
           linesText.slice(0, argOffset) + fixedArg + linesText.slice(argEndOffset);
 
         violations.push({
-          file: relative(root, file),
+          file: relativeSlashPath(root, file),
           line: line + 1,
           message:
             "Use String.raw`...` for RegExp template argument to avoid double backslashes (Sonar S7780).",

@@ -1,9 +1,10 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { BUILT_IN_PLUGINS } from "../plugins/index";
 import { BUILT_IN_RULES } from "../rules/index";
 import { runArchRules } from "./arch";
 import { clearAstCache } from "./ast";
+import { relativeSlashPath, toSlashPath } from "./paths";
 import type {
   KlintConfig,
   KlintRule,
@@ -29,7 +30,7 @@ function walk(dir: string, root: string, excludes: string[] = []): string[] {
   const out: string[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
-    const rel = relative(root, full).replaceAll("\\", "/");
+    const rel = relativeSlashPath(root, full);
     if (entry.isDirectory()) {
       if (
         excludes.some(
@@ -38,8 +39,7 @@ function walk(dir: string, root: string, excludes: string[] = []): string[] {
       )
         continue;
       out.push(...walk(full, root, excludes));
-    } else if (/\.(tsx?|jsx?|mts|cts)$/.test(entry.name))
-      out.push(full.replaceAll("\\", "/"));
+    } else if (/\.(tsx?|jsx?|mts|cts)$/.test(entry.name)) out.push(toSlashPath(full));
   }
   return out;
 }
@@ -68,8 +68,8 @@ function resolveFiles(
 }
 
 function matchPattern(relPath: string, pattern: string): boolean {
-  const norm = relPath.replaceAll("\\", "/");
-  const p = pattern.replaceAll("\\", "/");
+  const norm = toSlashPath(relPath);
+  const p = toSlashPath(pattern);
   if (p === "." || p === "**") return true;
   if (!p.includes("*")) return norm === p || norm.startsWith(`${p}/`);
   return globToRegExp(p).test(norm);
@@ -107,7 +107,7 @@ function applyPatterns(files: string[], patterns: string[], root: string): strin
   const includes = patterns.filter((p) => !p.startsWith("!"));
   const excludes = patterns.filter((p) => p.startsWith("!")).map((p) => p.slice(1));
   return files.filter((file) => {
-    const rel = relative(root, file).replaceAll("\\", "/");
+    const rel = relativeSlashPath(root, file);
     const included = includes.length === 0 || includes.some((p) => matchPattern(rel, p));
     const excluded = excludes.some((p) => matchPattern(rel, p));
     return included && !excluded;

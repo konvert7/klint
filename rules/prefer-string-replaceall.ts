@@ -1,6 +1,6 @@
-import { relative } from "node:path";
 import ts from "typescript";
 import { walkAst } from "../core/ast";
+import { relativeSlashPath } from "../core/paths";
 import { buildNodeReplacementFix } from "../core/rule-helpers";
 import type { KlintRule } from "../core/types";
 
@@ -41,7 +41,7 @@ export const preferStringReplaceall: KlintRule = {
         const fix = buildNodeReplacementFix(src, node, fixedCall);
 
         violations.push({
-          file: relative(root, file),
+          file: relativeSlashPath(root, file),
           line: fix.startLine,
           message: `Prefer \`${strText}.replaceAll(${patternLit}, ...)\` over \`.replace(/${pattern}/g, ...)\` — replaceAll() with a string is clearer and avoids regex escaping pitfalls.`,
           fix,

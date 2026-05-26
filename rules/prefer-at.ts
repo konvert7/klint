@@ -1,6 +1,6 @@
-import { relative } from "node:path";
 import ts from "typescript";
 import { walkAst } from "../core/ast";
+import { relativeSlashPath } from "../core/paths";
 import { buildNodeReplacementFix } from "../core/rule-helpers";
 import type { KlintRule } from "../core/types";
 
@@ -35,7 +35,7 @@ export const preferAt: KlintRule = {
         const fix = buildNodeReplacementFix(src, node, fixedCall);
 
         violations.push({
-          file: relative(root, file),
+          file: relativeSlashPath(root, file),
           line: fix.startLine,
           message: `Prefer ${baseText}.at(-${n}) over ${baseText}[${baseText}.length - ${n}] for cleaner negative indexing.`,
           fix,

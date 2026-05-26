@@ -1,6 +1,6 @@
-import { relative } from "node:path";
 import ts from "typescript";
 import { walkAst } from "../core/ast";
+import { relativeSlashPath } from "../core/paths";
 import { buildNodeReplacementFix } from "../core/rule-helpers";
 import type { KlintRule } from "../core/types";
 
@@ -99,7 +99,7 @@ export const noSingleCharClass: KlintRule = {
         const fix = buildNodeReplacementFix(src, node, fixedRegex);
 
         violations.push({
-          file: relative(root, file),
+          file: relativeSlashPath(root, file),
           line: fix.startLine,
           message: `Character class [${toFix[0].inner}] contains a single element — remove the brackets.`,
           fix,

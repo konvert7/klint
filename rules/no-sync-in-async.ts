@@ -1,6 +1,6 @@
-import { relative } from "node:path";
 import ts from "typescript";
 import { nearestFunctionIsAsync, walkAst } from "../core/ast";
+import { relativeSlashPath } from "../core/paths";
 import type { KlintRule } from "../core/types";
 
 export const noSyncInAsync: KlintRule = {
@@ -31,7 +31,7 @@ export const noSyncInAsync: KlintRule = {
           ) {
             const { line } = src.getLineAndCharacterOfPosition(node.getStart());
             violations.push({
-              file: relative(root, file).replaceAll("\\", "/"),
+              file: relativeSlashPath(root, file),
               line: line + 1,
               message: `${name}() blocks the event loop inside an async function — use the async equivalent from node:fs/promises.`,
             });

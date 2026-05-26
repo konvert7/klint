@@ -1,6 +1,6 @@
-import { relative } from "node:path";
 import ts from "typescript";
 import { walkAst } from "../core/ast";
+import { relativeSlashPath } from "../core/paths";
 import type { KlintRule } from "../core/types";
 
 export const noConsecutiveArrayPush: KlintRule = {
@@ -26,7 +26,7 @@ export const noConsecutiveArrayPush: KlintRule = {
               statements[runStart].getStart()
             );
             violations.push({
-              file: relative(root, file).replaceAll("\\", "/"),
+              file: relativeSlashPath(root, file),
               line: line + 1,
               message: `${upTo - runStart} consecutive .push() calls on \`${runReceiver}\` — combine into a single .push(a, b, …) call.`,
             });
