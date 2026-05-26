@@ -1,5 +1,7 @@
 # yaml-language-server: $schema=./klint.schema.json
 
+plugins:
+  - sonar
 include: ["**/*.ts", "!tests/**", "!node_modules/**"]
 rules:
   no-unguarded-json-parse: error

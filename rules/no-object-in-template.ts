@@ -87,7 +87,7 @@ function wouldRenderAsObjectObject(type: ts.Type, checker: ts.TypeChecker): bool
     const fileName = d.getSourceFile().fileName;
     return (
       !fileName.includes("/typescript/lib/lib") &&
-      !fileName.includes("\\typescript\\lib\\lib")
+      !fileName.includes(String.raw`\typescript\lib\lib`)
     );
   });
 

@@ -35,7 +35,7 @@ export const preferStringReplaceall: KlintRule = {
         ).expression.getText(src);
         const replacementText = node.arguments[1].getText(src);
         const patternLit = pattern.includes('"')
-          ? `'${pattern.replaceAll("'", "\\'")}'`
+          ? `'${pattern.replaceAll("'", String.raw`\'`)}'`
           : `"${pattern}"`;
         const fixedCall = `${strText}.replaceAll(${patternLit}, ${replacementText})`;
         const fix = buildNodeReplacementFix(src, node, fixedCall);
