@@ -45,7 +45,7 @@ export const noStringMatch: KlintRule = {
                   })()
                 : undefined;
             violations.push({
-              file: relative(root, file),
+              file: relative(root, file).replaceAll("\\", "/"),
               line: s + 1,
               message: `Use RegExp.exec() instead of String.match() for non-global regexes — use new RegExp(${regexText}).exec(${strText}) instead.`,
               fix,

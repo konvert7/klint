@@ -63,7 +63,7 @@ function runRustKlint(root: string, testCase: GoldenCase): GoldenEnvelope {
 
 function normalize(violations: Violation[]): GoldenEnvelope {
   const normalized = violations
-    .map((v) => ({ ...v, fix: v.fix ?? null }))
+    .map((v) => ({ ...v, file: v.file.replaceAll("\\", "/"), fix: v.fix ?? null }))
     .sort(
       (a, b) =>
         a.file.localeCompare(b.file) ||
