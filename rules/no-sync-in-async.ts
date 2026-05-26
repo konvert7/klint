@@ -31,7 +31,7 @@ export const noSyncInAsync: KlintRule = {
           ) {
             const { line } = src.getLineAndCharacterOfPosition(node.getStart());
             violations.push({
-              file: relative(root, file),
+              file: relative(root, file).replaceAll("\\", "/"),
               line: line + 1,
               message: `${name}() blocks the event loop inside an async function — use the async equivalent from node:fs/promises.`,
             });
