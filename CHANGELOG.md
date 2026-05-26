@@ -1,3 +1,10 @@
+## [0.19.1](https://github.com/konvert7/klint/compare/v0.19.0...v0.19.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* **rust:** enhance file resolution to support exclusion patterns and improve directory traversal ([8467dec](https://github.com/konvert7/klint/commit/8467dec1add0070aa272df6b1739435964675a70))
+
 # [0.19.0](https://github.com/konvert7/klint/compare/v0.18.0...v0.19.0) (2026-05-26)
 
 
