@@ -1,3 +1,10 @@
+## [0.15.1](https://github.com/konvert7/klint/compare/v0.15.0...v0.15.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* **npm:** add option to skip missing packages ([6f059a0](https://github.com/konvert7/klint/commit/6f059a0ec1878fc4555664045b8ad0bd1488af89))
+
 # [0.15.0](https://github.com/konvert7/klint/compare/v0.14.0...v0.15.0) (2026-05-26)
 
 
