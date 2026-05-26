@@ -44,7 +44,7 @@
     "check": "biome check",
     "check-write": "biome check --write",
     "knip": "knip-bun",
-    "klint": "bun cli.ts",
+    "klint": "bun cli.ts --engine auto",
     "jscpd": "jscpd --noTips",
     "schema": "bun tools/generate-schema.ts",
     "lint-staged": "lint-staged",
