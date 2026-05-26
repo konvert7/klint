@@ -5,6 +5,7 @@ rules:
   no-unguarded-json-parse: error
   no-floating-promise: error
   no-misused-promises: error
+  no-async-predicate: error
   no-date-equality: error
   no-optional-chain-on-non-nullable: error
   no-object-in-template: error
