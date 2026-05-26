@@ -75,7 +75,7 @@ describe("native binary package metadata", () => {
       expect(packageJson.private).toBe(true);
       expect(packageJson.repository).toEqual({
         type: "git",
-        url: "https://github.com/konvert7/klint",
+        url: "git+https://github.com/konvert7/klint.git",
       });
     }
   });
