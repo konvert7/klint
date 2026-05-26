@@ -11,6 +11,7 @@ rules:
   no-nested-template-literals: error
   no-string-match: error
   no-consecutive-array-push: error
+  no-sync-in-async: error
 
 arch:
   layers:
