@@ -155,7 +155,7 @@ jobs:
         run: bun tests/stage-native-binary.ts --package ${{ matrix.package }} --source target/${{ matrix.rust-target }}/release/${{ matrix.binary }}
 
       - name: Upload native package binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: native-${{ matrix.package }}
           path: npm/native/${{ matrix.package }}/bin/*
@@ -226,7 +226,7 @@ jobs:
         run: bun tests/smoke-python-wheel.ts
 
       - name: Upload Python wheel
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: python-wheel-${{ matrix.package }}
           path: python/dist/*.whl
