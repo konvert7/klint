@@ -28,6 +28,19 @@ function runCli(dir: string, env: Record<string, string> = {}): CliResult {
   };
 }
 
+function runCliText(dir: string, env: Record<string, string> = {}): CliResult {
+  const result = spawnSync("bun", [CLI, "--config", dir], {
+    encoding: "utf-8",
+    env: { ...process.env, ...env },
+    timeout: 30000,
+  });
+  return {
+    stdout: result.stdout ?? "",
+    stderr: result.stderr ?? "",
+    code: result.status ?? -1,
+  };
+}
+
 function setupFixture(config: string, source: string): string {
   const dir = mkdtempSync(join(tmpdir(), "klint-rust-engine-"));
   mkdirSync(join(dir, "src"));
@@ -173,6 +186,26 @@ arch:
       expect(rust.code).toBe(ts.code);
       expect(parseJson(rust)).toEqual(parseJson(ts));
       expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("normal CLI stays on TypeScript engine even when a native package exists", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules: {}
+`,
+      `export const value = 1;\n`
+    );
+
+    try {
+      const result = runCliText(dir);
+
+      expect(result.code).toBe(0);
+      expect(result.stdout).toContain("klint: 0 violations");
+      expect(result.stderr).not.toContain("KLINT_ENGINE=rust");
     } finally {
       rmSync(dir, { recursive: true });
     }

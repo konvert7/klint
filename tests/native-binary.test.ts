@@ -53,12 +53,16 @@ describe("native binary package metadata", () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
-  test("root package does not consume dark native packages yet", () => {
+  test("root optional dependencies list every native package", () => {
     const packageJson = readPackageJson(new URL("package.json", root));
     const optionalDependencies = packageJson.optionalDependencies ?? {};
+    const expectedNames = nativePackages()
+      .map((pkg) => pkg.packageName)
+      .sort();
 
-    for (const nativePackage of nativePackages()) {
-      expect(optionalDependencies[nativePackage.packageName]).toBeUndefined();
+    expect(Object.keys(optionalDependencies).sort()).toEqual(expectedNames);
+    for (const packageName of expectedNames) {
+      expect(optionalDependencies[packageName]).toBe("*");
     }
   });
 
