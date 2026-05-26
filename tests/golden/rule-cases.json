@@ -456,5 +456,50 @@
       ],
       "summary": { "errors": 1, "warnings": 0 }
     }
+  },
+  {
+    "name": "sonar/no-single-char-class flags and fixes single literal class",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "sonar/no-single-char-class": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const r = /a[b]c/;\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "sonar/no-single-char-class",
+          "message": "Character class [b] contains a single element — remove the brackets.",
+          "severity": "error",
+          "fix": {
+            "startLine": 1,
+            "endLine": 1,
+            "replacement": "const r = /abc/;"
+          }
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "sonar/no-single-char-class ignores exception classes",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "sonar/no-single-char-class": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const r = /[.][*][$]/;\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": { "errors": 0, "warnings": 0 }
+    }
   }
 ]

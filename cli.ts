@@ -27,12 +27,13 @@ import type {
 import { BUILT_IN_PLUGINS } from "./plugins/index";
 import { BUILT_IN_RULES } from "./rules/index";
 
-const RUST_SUPPORTED_TYPESCRIPT_RULES = new Set([
+const RUST_SUPPORTED_RULES = new Set([
   "no-consecutive-array-push",
   "no-nested-template-literals",
   "no-string-match",
   "no-sync-in-async",
   "no-unguarded-json-parse",
+  "sonar/no-single-char-class",
 ]);
 
 interface CliOptions {
@@ -401,12 +402,13 @@ function runAutoEngine({
     process.exit(1);
   }
 
-  const { rustRules, tsRules } = splitRulesForAuto(raw.rules ?? {});
+  const effectiveRules = resolveEffectiveRules(raw.plugins, raw.rules ?? {});
+  const { rustRules, tsRules } = splitRulesForAuto(effectiveRules);
   const tsViolations = runKlint(
     {
       root,
       include: raw.include ?? ["."],
-      plugins: raw.plugins,
+      plugins: [],
       rules: { ...customRulesMap, ...tsRules },
     },
     customRules
@@ -434,7 +436,7 @@ function splitRulesForAuto(rules: Record<string, RuleConfigValue>): {
   const tsRules: Record<string, RuleConfigValue> = {};
 
   for (const [name, value] of Object.entries(rules)) {
-    if (RUST_SUPPORTED_TYPESCRIPT_RULES.has(name)) rustRules[name] = value;
+    if (RUST_SUPPORTED_RULES.has(name)) rustRules[name] = value;
     else tsRules[name] = value;
   }
 
@@ -643,29 +645,49 @@ function rustEngineUnsupportedReason({
 }): string | undefined {
   if (fix) return "KLINT_ENGINE=rust does not support --fix";
   if (rulesFile) return "KLINT_ENGINE=rust does not support --rules";
-  if ((raw.plugins?.length ?? 0) > 0) return "KLINT_ENGINE=rust does not support plugins";
-  const activeSupportedRules = Object.entries(raw.rules ?? {}).filter(
+  let effectiveRules: Record<string, RuleConfigValue>;
+  try {
+    effectiveRules = resolveEffectiveRules(raw.plugins, raw.rules ?? {});
+  } catch (error) {
+    return error instanceof Error
+      ? error.message
+      : "KLINT_ENGINE=rust failed to load plugins";
+  }
+  const activeSupportedRules = Object.entries(effectiveRules).filter(
     ([name, value]) =>
-      ruleConfigSeverity(value) !== "off" && RUST_SUPPORTED_TYPESCRIPT_RULES.has(name)
+      ruleConfigSeverity(value) !== "off" && RUST_SUPPORTED_RULES.has(name)
   );
-  const unsupportedRules = Object.entries(raw.rules ?? {})
+  const unsupportedRules = Object.entries(effectiveRules)
     .filter(
       ([name, value]) =>
-        ruleConfigSeverity(value) !== "off" && !RUST_SUPPORTED_TYPESCRIPT_RULES.has(name)
+        ruleConfigSeverity(value) !== "off" && !RUST_SUPPORTED_RULES.has(name)
     )
     .map(([name]) => name);
   if (!raw.arch && activeSupportedRules.length === 0 && unsupportedRules.length === 0) {
-    return "KLINT_ENGINE=rust requires an arch config or supported TypeScript rule";
+    return "KLINT_ENGINE=rust requires an arch config or supported rule";
   }
   if (unsupportedRules.length > 0) {
     return [
-      "Rust engine currently supports arch rules and selected TypeScript rules only",
+      "Rust engine currently supports arch rules and selected rules only",
       "",
-      "Unsupported TypeScript rules:",
+      "Unsupported rules:",
       ...unsupportedRules.map((rule) => `- ${rule}`),
     ].join("\n");
   }
   return undefined;
+}
+
+function resolveEffectiveRules(
+  plugins: string[] | undefined,
+  rules: Record<string, RuleConfigValue>
+): Record<string, RuleConfigValue> {
+  const pluginDefaults: Record<string, RuleConfigValue> = {};
+  for (const pluginName of plugins ?? []) {
+    const plugin = BUILT_IN_PLUGINS[pluginName];
+    if (!plugin) throw new Error(`Unknown klint plugin: "${pluginName}"`);
+    Object.assign(pluginDefaults, plugin.rules);
+  }
+  return { ...pluginDefaults, ...rules };
 }
 
 function ruleConfigSeverity(value: RuleConfigValue): string | undefined {

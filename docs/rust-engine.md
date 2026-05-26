@@ -16,9 +16,9 @@ The package entrypoint is still `cli.ts`. It resolves the native Rust binary, va
 | Engine | Status | Contract |
 |--------|--------|----------|
 | `ts` | Stable default | Runs the full TypeScript implementation. |
-| `rust` | Experimental strict mode | Runs only Rust-supported config. Rejects unsupported TS-only rules, plugins, custom rules, `--rules`, and `--fix`. |
+| `rust` | Experimental strict mode | Runs only Rust-supported config. Rejects unsupported rules, custom rules, `--rules`, and `--fix`. |
 | `compare` | Migration guard | Runs TS and Rust on the same supported config and fails on JSON mismatch. Requires `--json`. |
-| `auto` | Experimental dogfood mode | Runs Rust-supported rules in Rust, TS-owned rules in TypeScript, and merges output. |
+| `auto` | Experimental dogfood mode | Runs Rust-supported rules and supported plugin defaults in Rust, TS-owned rules in TypeScript, and merges output. |
 
 ## Rust-Supported Surface
 
@@ -39,6 +39,12 @@ Top-level rules:
 | `no-nested-template-literals` | Syntax-only template-substitution traversal. |
 | `no-consecutive-array-push` | Syntax-only statement-run detection. |
 | `no-string-match` | Syntax-only call detection with regex literal flag handling. |
+
+Plugin rules:
+
+| Rule | Why it is Rust-portable |
+|------|-------------------------|
+| `sonar/no-single-char-class` | Syntax-only regex literal parsing and character-class rewrite. |
 
 Every Rust-supported rule should have:
 
@@ -64,9 +70,9 @@ Do not port these as tree-sitter approximations. A false Rust port would make `c
 
 ## Custom Rules And Plugins
 
-Custom rules and plugin rules are TypeScript-owned in `auto` mode. The Rust engine does not load `klint.rules.ts` or plugin implementations.
+Custom rules are TypeScript-owned in `auto` mode. The Rust engine does not load `klint.rules.ts`.
 
-Strict `rust` and `compare` modes reject custom rule files, plugins, and unsupported top-level rules so they cannot silently skip behavior.
+Plugin defaults are expanded by the TypeScript CLI wrapper before `auto` splits work between engines. Strict `rust` and `compare` modes reject unsupported active plugin rules so they cannot silently skip behavior.
 
 ## Next Decisions
 

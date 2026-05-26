@@ -171,7 +171,7 @@ rules:
 
       expect(rust.code).toBe(1);
       expect(rust.stderr).toContain(
-        "Rust engine currently supports arch rules and selected TypeScript rules only"
+        "Rust engine currently supports arch rules and selected rules only"
       );
       expect(rust.stderr).toContain("- no-floating-promise");
       expect(rust.stdout).toBe("");
@@ -203,9 +203,9 @@ arch:
 
       expect(rust.code).toBe(1);
       expect(rust.stderr).toContain(
-        "Rust engine currently supports arch rules and selected TypeScript rules only"
+        "Rust engine currently supports arch rules and selected rules only"
       );
-      expect(rust.stderr).toContain("Unsupported TypeScript rules:");
+      expect(rust.stderr).toContain("Unsupported rules:");
       expect(rust.stderr).toContain("- no-floating-promise");
       expect(rust.stderr).not.toContain("- no-string-match");
       expect(rust.stderr).not.toContain("- no-nested-template-literals");
@@ -486,6 +486,31 @@ rules:
     }
   });
 
+  test("--engine compare supports sonar/no-single-char-class parity", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules:
+  sonar/no-single-char-class: error
+`,
+      `const r = /a[b]c/;\n`
+    );
+
+    try {
+      const ts = runCliArgs(dir, ["--engine", "ts", "--json"]);
+      const compare = runCliArgs(dir, ["--engine", "compare", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+
+      expect(compare.code).toBe(2);
+      expect(compare.code).toBe(ts.code);
+      expect(parseJson(compare)).toEqual(parseJson(ts));
+      expect(compare.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine compare refuses configs Rust cannot verify", () => {
     const dir = setupFixture(
       `
@@ -508,7 +533,7 @@ arch:
 
       expect(compare.code).toBe(1);
       expect(compare.stderr).toContain(
-        "Rust engine currently supports arch rules and selected TypeScript rules only"
+        "Rust engine currently supports arch rules and selected rules only"
       );
       expect(compare.stderr).toContain("- no-floating-promise");
       expect(compare.stdout).toBe("");
@@ -544,6 +569,43 @@ rules:
       expect(payload.violations.map((violation) => violation.rule).sort()).toEqual([
         "no-floating-promise",
         "no-string-match",
+      ]);
+      expect(auto.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine auto splits sonar plugin defaults between Rust and TypeScript", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+plugins: ["sonar"]
+rules:
+  sonar/prefer-string-replaceall: off
+  sonar/prefer-string-raw-regexp: off
+  sonar/prefer-string-raw: off
+  sonar/prefer-nullish-coalescing-assign: off
+`,
+      `const r = /a[b]c/;\nconst last = items[items.length - 1];\n`
+    );
+
+    try {
+      const ts = runCliArgs(dir, ["--engine", "ts", "--json"]);
+      const auto = runCliArgs(dir, ["--engine", "auto", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(auto) as {
+        violations: Array<{ rule: string }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(auto.code).toBe(2);
+      expect(auto.code).toBe(ts.code);
+      expect(payload.summary).toEqual({ errors: 2, warnings: 0 });
+      expect(payload.violations.map((violation) => violation.rule).sort()).toEqual([
+        "sonar/no-single-char-class",
+        "sonar/prefer-at",
       ]);
       expect(auto.stderr).toBe("");
     } finally {

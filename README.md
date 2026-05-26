@@ -127,14 +127,14 @@ Maintainer migration notes live in [`docs/rust-engine.md`](docs/rust-engine.md).
 | `ts` | Runs the full TypeScript implementation. This is the default. | Maximum compatibility |
 | `rust` | Runs only rules supported by the Rust engine. Unsupported TS-only rules are rejected. | Strict Rust smoke tests and native-engine debugging |
 | `compare` | Runs TS and Rust on the same supported config and fails if JSON output differs. Requires `--json`. | Parity verification while porting rules |
-| `auto` | Runs Rust-supported rules in Rust, TS-only rules in TypeScript, then merges output. | Recommended experimental migration path |
+| `auto` | Runs Rust-supported rules in Rust, TS-only rules and unsupported plugin defaults in TypeScript, then merges output. | Recommended experimental migration path |
 
 Examples:
 
 ```sh
 klint --engine auto
-klint --engine rust --json     # strict Rust-only run; rejects unsupported TS-only rules
-klint --engine compare --json  # parity check; rejects unsupported TS-only rules
+klint --engine rust --json     # strict Rust-only run; rejects unsupported rules
+klint --engine compare --json  # parity check; rejects unsupported rules
 ```
 
 Rust currently supports:
@@ -145,6 +145,7 @@ Rust currently supports:
 - `no-nested-template-literals`
 - `no-consecutive-array-push`
 - `no-string-match`
+- `sonar/no-single-char-class`
 
 These rules remain TypeScript-owned because they need TypeScript semantic information:
 
@@ -281,8 +282,8 @@ arch:
 | `no-sync-in-async` | No | Sync filesystem calls inside async functions |
 | `no-floating-promise` | Yes | Promise-returning call whose result is discarded |
 | `no-misused-promises` | Yes | Async function passed where a sync callback is expected |
-| `no-async-predicate` | No | Async predicate passed to array filtering/search methods |
-| `no-date-equality` | No | Date values compared by object identity |
+| `no-async-predicate` | Yes | Async predicate passed to array filtering/search methods |
+| `no-date-equality` | Yes | Date values compared by object identity |
 | `no-optional-chain-on-non-nullable` | Yes | Optional chaining on values TypeScript knows are non-nullable |
 | `no-object-in-template` | Yes | Object values interpolated into template strings |
 | `no-nested-template-literals` | No | Template literals nested inside template literals |
