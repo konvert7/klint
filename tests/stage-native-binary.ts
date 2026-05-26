@@ -41,6 +41,8 @@ copyFileSync(source, destination);
 
 const resolved = resolveNativePackageBinary({
   packageRoot: root,
+  platform: nativePackage.platform,
+  arch: nativePackage.arch,
   resolvePackageJson: (packageName) => {
     if (packageName !== nativePackage.packageName) {
       throw new Error(`Unexpected package resolution: ${packageName}`);

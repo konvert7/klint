@@ -98,6 +98,31 @@ describe("native binary package metadata", () => {
     expect(binaryPath).toBe(expectedBinary);
   });
 
+  test("resolves a package for an explicit platform and arch", () => {
+    const packageRoot = "/repo/node_modules/@konvert7/klint";
+    const packageJsonPath = "/repo/node_modules/@konvert7/klint-darwin-x64/package.json";
+    const expectedBinary = join(
+      "/repo/node_modules/@konvert7/klint-darwin-x64",
+      "bin",
+      "klint-rs"
+    );
+
+    const binaryPath = resolveNativePackageBinary({
+      packageRoot,
+      platform: "darwin",
+      arch: "x64",
+      resolvePackageJson(packageName) {
+        expect(packageName).toBe("@konvert7/klint-darwin-x64");
+        return packageJsonPath;
+      },
+      exists(path) {
+        return path === expectedBinary;
+      },
+    });
+
+    expect(binaryPath).toBe(expectedBinary);
+  });
+
   test("skips optional package when binary is missing", () => {
     const binaryPath = resolveNativePackageBinary({
       packageRoot: "/repo/node_modules/@konvert7/klint",
