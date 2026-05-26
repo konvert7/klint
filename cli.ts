@@ -42,10 +42,12 @@ export async function main(opts: CliOptions = {}): Promise<void> {
   let fix = false;
   let json = false;
   let debug = false;
+  let engine = process.env.KLINT_ENGINE;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--config" && args[i + 1]) configDir = resolve(args[++i]);
     else if (args[i] === "--rules" && args[i + 1]) rulesFile = resolve(args[++i]);
+    else if (args[i] === "--engine" && args[i + 1]) engine = args[++i];
     else if (args[i] === "--fix") fix = true;
     else if (args[i] === "--json") json = true;
     else if (args[i] === "--debug" || args[i] === "-debug") debug = true;
@@ -85,11 +87,14 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     process.exit(1);
   }
   const root = resolve(configDir, raw.root ?? ".");
-  const engine = process.env.KLINT_ENGINE;
 
   if (engine === "rust") {
     runRustEngine({ configDir, fix, json, raw, rulesFile });
     return;
+  }
+  if (engine !== undefined && engine !== "ts") {
+    process.stderr.write(`klint: unknown engine "${engine}" (expected "ts" or "rust")\n`);
+    process.exit(1);
   }
 
   let customRules: Record<string, KlintRule> = {};
@@ -437,11 +442,12 @@ function printHelp(): void {
     [
       "klint — agent harness for TypeScript architecture rules",
       "",
-      "Usage: klint [--config <dir>] [--rules <file>] [--fix] [--json]",
+      "Usage: klint [--config <dir>] [--rules <file>] [--engine ts|rust] [--fix] [--json]",
       "       klint install-skill [--agents <list>] [--symlink | --copy]",
       "",
       "  --config <dir>   directory containing klint.yaml or klint.config.json (default: cwd)",
       "  --rules  <file>  custom rules file (default: <configDir>/klint.rules.ts if present)",
+      "  --engine <name>  engine to use: ts (default) or rust (experimental, requires --json)",
       "  --fix            apply auto-fixes for fixable violations in-place",
       "  --json           emit structured JSON to stdout (for agent/CI consumption)",
       "  --debug          print file resolution and rule progress to stderr",

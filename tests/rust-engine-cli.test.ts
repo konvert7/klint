@@ -28,6 +28,23 @@ function runCli(dir: string, env: Record<string, string> = {}): CliResult {
   };
 }
 
+function runCliArgs(
+  dir: string,
+  args: string[],
+  env: Record<string, string> = {}
+): CliResult {
+  const result = spawnSync("bun", [CLI, "--config", dir, ...args], {
+    encoding: "utf-8",
+    env: { ...process.env, ...env },
+    timeout: 30000,
+  });
+  return {
+    stdout: result.stdout ?? "",
+    stderr: result.stderr ?? "",
+    code: result.status ?? -1,
+  };
+}
+
 function runCliText(dir: string, env: Record<string, string> = {}): CliResult {
   const result = spawnSync("bun", [CLI, "--config", dir], {
     encoding: "utf-8",
@@ -186,6 +203,83 @@ arch:
       expect(rust.code).toBe(ts.code);
       expect(parseJson(rust)).toEqual(parseJson(ts));
       expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine rust matches the KLINT_ENGINE=rust path", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules: {}
+arch:
+  forbidden:
+    - pattern: "console.log("
+      in: "src/**"
+      message: "Use logger"
+`,
+      `console.log("x");\n`
+    );
+
+    try {
+      const envRust = runCli(dir, {
+        KLINT_ENGINE: "rust",
+        KLINT_RUST_BIN: rustBin,
+      });
+      const flagRust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+
+      expect(flagRust.code).toBe(2);
+      expect(flagRust.code).toBe(envRust.code);
+      expect(parseJson(flagRust)).toEqual(parseJson(envRust));
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine ts uses the TypeScript engine even when KLINT_ENGINE=rust is set", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules:
+  no-string-match: error
+`,
+      `const hit = "abc".match(/a/);\n`
+    );
+
+    try {
+      const result = runCliArgs(dir, ["--engine", "ts", "--json"], {
+        KLINT_ENGINE: "rust",
+        KLINT_RUST_BIN: rustBin,
+      });
+
+      expect(result.code).toBe(2);
+      expect(parseJson(result)).toMatchObject({
+        summary: { errors: 1, warnings: 0 },
+      });
+      expect(result.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("rejects unknown engine names", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules: {}
+`,
+      `export const value = 1;\n`
+    );
+
+    try {
+      const result = runCliArgs(dir, ["--engine", "go", "--json"]);
+
+      expect(result.code).toBe(1);
+      expect(result.stderr).toContain('unknown engine "go"');
+      expect(result.stdout).toBe("");
     } finally {
       rmSync(dir, { recursive: true });
     }
