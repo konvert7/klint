@@ -611,6 +611,31 @@ rules:
     }
   });
 
+  test("--engine compare supports sonar/prefer-nullish-coalescing-assign parity", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules:
+  sonar/prefer-nullish-coalescing-assign: error
+`,
+      "let x: object | undefined;\nif (x == null) x = {};\nif (!y) y = {};\nif (z === null || z === undefined) { z = fallback; }\n"
+    );
+
+    try {
+      const ts = runCliArgs(dir, ["--engine", "ts", "--json"]);
+      const compare = runCliArgs(dir, ["--engine", "compare", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+
+      expect(compare.code).toBe(2);
+      expect(compare.code).toBe(ts.code);
+      expect(parseJson(compare)).toEqual(parseJson(ts));
+      expect(compare.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine compare refuses configs Rust cannot verify", () => {
     const dir = setupFixture(
       `
@@ -681,10 +706,8 @@ rules:
       `
 include: ["src"]
 plugins: ["sonar"]
-rules:
-  sonar/prefer-nullish-coalescing-assign: off
 `,
-      'const r = /a[b]c/;\nconst last = items[items.length - 1];\nconst next = text.replace(/foo/g, repl);\nconst rx = new RegExp(`\\\\.foo`);\nconst path = "C:\\\\Users";\n'
+      'const r = /a[b]c/;\nconst last = items[items.length - 1];\nconst next = text.replace(/foo/g, repl);\nconst rx = new RegExp(`\\\\.foo`);\nconst path = "C:\\\\Users";\nif (value == null) value = fallback;\n'
     );
 
     try {
@@ -699,10 +722,11 @@ rules:
 
       expect(auto.code).toBe(2);
       expect(auto.code).toBe(ts.code);
-      expect(payload.summary).toEqual({ errors: 5, warnings: 0 });
+      expect(payload.summary).toEqual({ errors: 6, warnings: 0 });
       expect(payload.violations.map((violation) => violation.rule).sort()).toEqual([
         "sonar/no-single-char-class",
         "sonar/prefer-at",
+        "sonar/prefer-nullish-coalescing-assign",
         "sonar/prefer-string-raw",
         "sonar/prefer-string-raw-regexp",
         "sonar/prefer-string-replaceall",

@@ -46,6 +46,7 @@ Plugin rules:
 |------|-------------------------|
 | `sonar/no-single-char-class` | Syntax-only regex literal parsing and character-class rewrite. |
 | `sonar/prefer-at` | Syntax-only negative index access rewrite matching the TypeScript rule contract. |
+| `sonar/prefer-nullish-coalescing-assign` | Syntax-only rewrite for explicit nullish assignment guards, excluding unsafe falsy checks. |
 | `sonar/prefer-string-replaceall` | Syntax-only `.replace(/literal/g, value)` rewrite with plain-regex filtering. |
 | `sonar/prefer-string-raw` | Syntax-only string literal rewrite for escaped-backslash strings that are safe as raw templates. |
 | `sonar/prefer-string-raw-regexp` | Syntax-only `new RegExp(template)` rewrite for template literals with double backslashes. |

@@ -6,8 +6,9 @@ use crate::files::{match_pattern, relative_path};
 use crate::output::Violation;
 use crate::syntax::{
     scan_consecutive_array_push, scan_nested_template_literals, scan_prefer_at,
-    scan_prefer_string_raw, scan_prefer_string_raw_regexp, scan_prefer_string_replaceall,
-    scan_single_char_classes, scan_string_match, scan_sync_in_async, scan_unguarded_json_parse,
+    scan_prefer_nullish_coalescing_assign, scan_prefer_string_raw, scan_prefer_string_raw_regexp,
+    scan_prefer_string_replaceall, scan_single_char_classes, scan_string_match, scan_sync_in_async,
+    scan_unguarded_json_parse,
 };
 
 pub(crate) fn run_supported_rules(
@@ -46,6 +47,9 @@ pub(crate) fn run_supported_rules(
     }
     if let Some(config) = rules.get("sonar/prefer-string-raw-regexp") {
         run_sonar_prefer_string_raw_regexp(config, files, file_contents, root, violations);
+    }
+    if let Some(config) = rules.get("sonar/prefer-nullish-coalescing-assign") {
+        run_sonar_prefer_nullish_coalescing_assign(config, files, file_contents, root, violations);
     }
 }
 
@@ -469,6 +473,53 @@ fn run_sonar_prefer_string_raw(
                     record.start_byte,
                     record.end_byte,
                     &record.fixed,
+                ),
+            });
+        }
+    }
+}
+
+fn run_sonar_prefer_nullish_coalescing_assign(
+    config: &RuleConfig,
+    files: &[PathBuf],
+    file_contents: &BTreeMap<PathBuf, String>,
+    root: &Path,
+    violations: &mut Vec<Violation>,
+) {
+    let severity = config.severity();
+    if severity == "off" {
+        return;
+    }
+
+    for file in files {
+        if !rule_applies_to_file(config, root, file) {
+            continue;
+        }
+        let Some(content) = file_contents.get(file) else {
+            continue;
+        };
+        let Ok(records) = scan_prefer_nullish_coalescing_assign(file, content) else {
+            continue;
+        };
+
+        for record in records {
+            let replacement = format!("{} ??= {};", record.target, record.value);
+            let message_replacement = format!("{} ??= {}", record.target, record.value);
+            violations.push(Violation {
+                file: relative_path(root, file),
+                line: record.line,
+                rule: "sonar/prefer-nullish-coalescing-assign".to_string(),
+                message: format!(
+                    "Prefer `{message_replacement}` over explicit nullish guard assignment — ??= only assigns when null or undefined."
+                ),
+                severity: severity.to_string(),
+                fix: line_fix(
+                    content,
+                    record.start_row,
+                    record.end_row,
+                    record.start_byte,
+                    record.end_byte,
+                    &replacement,
                 ),
             });
         }

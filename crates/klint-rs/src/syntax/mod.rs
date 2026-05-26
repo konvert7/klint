@@ -3,10 +3,11 @@ mod rules;
 
 pub use architecture::{ImportRecord, JsxElementRecord, scan_imports, scan_jsx_elements};
 pub use rules::{
-    ConsecutiveArrayPushRecord, NestedTemplateLiteralRecord, PreferAtRecord, PreferStringRawRecord,
-    PreferStringRawRegexpRecord, PreferStringReplaceAllRecord, SingleCharClassRecord,
-    StringMatchRecord, SyncInAsyncRecord, UnguardedJsonParseRecord, scan_consecutive_array_push,
-    scan_nested_template_literals, scan_prefer_at, scan_prefer_string_raw,
+    ConsecutiveArrayPushRecord, NestedTemplateLiteralRecord, PreferAtRecord,
+    PreferNullishCoalescingAssignRecord, PreferStringRawRecord, PreferStringRawRegexpRecord,
+    PreferStringReplaceAllRecord, SingleCharClassRecord, StringMatchRecord, SyncInAsyncRecord,
+    UnguardedJsonParseRecord, scan_consecutive_array_push, scan_nested_template_literals,
+    scan_prefer_at, scan_prefer_nullish_coalescing_assign, scan_prefer_string_raw,
     scan_prefer_string_raw_regexp, scan_prefer_string_replaceall, scan_single_char_classes,
     scan_string_match, scan_sync_in_async, scan_unguarded_json_parse,
 };

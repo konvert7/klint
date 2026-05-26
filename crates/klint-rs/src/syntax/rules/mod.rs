@@ -1,6 +1,7 @@
 mod consecutive_array_push;
 mod nested_template_literals;
 mod prefer_at;
+mod prefer_nullish_coalescing_assign;
 mod prefer_string_raw;
 mod prefer_string_raw_regexp;
 mod prefer_string_replaceall;
@@ -12,6 +13,7 @@ mod unguarded_json_parse;
 pub use consecutive_array_push::scan_consecutive_array_push;
 pub use nested_template_literals::scan_nested_template_literals;
 pub use prefer_at::scan_prefer_at;
+pub use prefer_nullish_coalescing_assign::scan_prefer_nullish_coalescing_assign;
 pub use prefer_string_raw::scan_prefer_string_raw;
 pub use prefer_string_raw_regexp::scan_prefer_string_raw_regexp;
 pub use prefer_string_replaceall::scan_prefer_string_replaceall;
@@ -105,6 +107,17 @@ pub struct PreferStringRawRecord {
 pub struct PreferStringRawRegexpRecord {
     pub line: usize,
     pub fixed_arg: String,
+    pub start_row: usize,
+    pub end_row: usize,
+    pub start_byte: usize,
+    pub end_byte: usize,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct PreferNullishCoalescingAssignRecord {
+    pub line: usize,
+    pub target: String,
+    pub value: String,
     pub start_row: usize,
     pub end_row: usize,
     pub start_byte: usize,

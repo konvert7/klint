@@ -35,6 +35,7 @@ const RUST_SUPPORTED_RULES = new Set([
   "no-unguarded-json-parse",
   "sonar/no-single-char-class",
   "sonar/prefer-at",
+  "sonar/prefer-nullish-coalescing-assign",
   "sonar/prefer-string-replaceall",
   "sonar/prefer-string-raw",
   "sonar/prefer-string-raw-regexp",

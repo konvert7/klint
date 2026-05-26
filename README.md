@@ -147,6 +147,7 @@ Rust currently supports:
 - `no-string-match`
 - `sonar/no-single-char-class`
 - `sonar/prefer-at`
+- `sonar/prefer-nullish-coalescing-assign`
 - `sonar/prefer-string-replaceall`
 - `sonar/prefer-string-raw`
 - `sonar/prefer-string-raw-regexp`

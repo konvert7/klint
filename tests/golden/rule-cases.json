@@ -768,5 +768,79 @@
       "violations": [],
       "summary": { "errors": 0, "warnings": 0 }
     }
+  },
+  {
+    "name": "sonar/prefer-nullish-coalescing-assign flags direct nullish guard",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "sonar/prefer-nullish-coalescing-assign": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "let x: object | undefined;\nif (x == null) x = {};\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "sonar/prefer-nullish-coalescing-assign",
+          "message": "Prefer `x ??= {}` over explicit nullish guard assignment — ??= only assigns when null or undefined.",
+          "severity": "error",
+          "fix": {
+            "startLine": 2,
+            "endLine": 2,
+            "replacement": "x ??= {};"
+          }
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "sonar/prefer-nullish-coalescing-assign flags strict nullish pair",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "sonar/prefer-nullish-coalescing-assign": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "if (x === null || x === undefined) { x = fallback; }\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "sonar/prefer-nullish-coalescing-assign",
+          "message": "Prefer `x ??= fallback` over explicit nullish guard assignment — ??= only assigns when null or undefined.",
+          "severity": "error",
+          "fix": {
+            "startLine": 1,
+            "endLine": 1,
+            "replacement": "x ??= fallback;"
+          }
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "sonar/prefer-nullish-coalescing-assign ignores unsafe falsy guard",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "sonar/prefer-nullish-coalescing-assign": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "if (!x) x = {};\nif (x == null) y = {};\nif (x === null || x === false) x = {};\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": { "errors": 0, "warnings": 0 }
+    }
   }
 ]
