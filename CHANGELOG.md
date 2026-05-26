@@ -1,3 +1,11 @@
+# [0.14.0](https://github.com/konvert7/klint/compare/v0.13.0...v0.14.0) (2026-05-26)
+
+
+### Features
+
+* **release:** implement native npm publishing and CI enhancements ([420c173](https://github.com/konvert7/klint/commit/420c1736f11aa377e34dee0e654fd0af858042a1))
+* **tests:** add tests for resolving native package binaries for specific platforms ([2766f32](https://github.com/konvert7/klint/commit/2766f32db106c289e54f3065a50e48a6a0c623a8))
+
 # [0.13.0](https://github.com/konvert7/klint/compare/v0.12.1...v0.13.0) (2026-05-25)
 
 
