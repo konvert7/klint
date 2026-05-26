@@ -4,17 +4,26 @@ import {
   cpSync,
   existsSync,
   mkdirSync,
+  mkdtempSync,
   readFileSync,
   rmSync,
   symlinkSync,
+  writeFileSync,
 } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import * as clack from "@clack/prompts";
 import { parse as parseYaml } from "yaml";
 import { applyFixes } from "./core/fixer";
 import { resolveNativePackageBinary } from "./core/native-binary";
 import { type KlintDebugEvent, runKlint } from "./core/runner";
-import type { ArchConfig, KlintConfig, KlintRule, RuleConfigValue } from "./core/types";
+import type {
+  ArchConfig,
+  KlintConfig,
+  KlintRule,
+  RuleConfigValue,
+  Violation,
+} from "./core/types";
 import { BUILT_IN_PLUGINS } from "./plugins/index";
 import { BUILT_IN_RULES } from "./rules/index";
 
@@ -99,9 +108,15 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     runRustEngine({ configDir, fix, json, raw, rulesFile });
     return;
   }
-  if (engine !== undefined && engine !== "ts" && engine !== "compare") {
+  if (
+    engine !== undefined &&
+    engine !== "ts" &&
+    engine !== "rust" &&
+    engine !== "compare" &&
+    engine !== "auto"
+  ) {
     process.stderr.write(
-      `klint: unknown engine "${engine}" (expected "ts", "rust", or "compare")\n`
+      `klint: unknown engine "${engine}" (expected "ts", "rust", "compare", or "auto")\n`
     );
     process.exit(1);
   }
@@ -119,6 +134,19 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     Object.keys(customRules).map((name) => [name, "error" as const])
   );
   const allRules: KlintConfig["rules"] = { ...customRulesMap, ...(raw.rules ?? {}) };
+
+  if (engine === "auto") {
+    runAutoEngine({
+      fix,
+      json,
+      raw,
+      root,
+      rulesFile,
+      customRules,
+      customRulesMap,
+    });
+    return;
+  }
 
   const violations = runKlint(
     {
@@ -317,17 +345,189 @@ function runCompareEngine({
   process.exit(tsResult.status);
 }
 
+function runAutoEngine({
+  fix,
+  json,
+  raw,
+  root,
+  rulesFile,
+  customRules,
+  customRulesMap,
+}: {
+  fix: boolean;
+  json: boolean;
+  raw: {
+    root?: string;
+    include?: string[];
+    plugins?: string[];
+    rules?: Record<string, RuleConfigValue>;
+    arch?: unknown;
+  };
+  root: string;
+  rulesFile?: string;
+  customRules: Record<string, KlintRule>;
+  customRulesMap: Record<string, RuleConfigValue>;
+}): void {
+  if (!json) {
+    process.stderr.write("klint: --engine auto currently requires --json\n");
+    process.exit(1);
+  }
+  if (fix) {
+    process.stderr.write("klint: --engine auto does not support --fix\n");
+    process.exit(1);
+  }
+  if (rulesFile) {
+    process.stderr.write("klint: --engine auto does not support --rules\n");
+    process.exit(1);
+  }
+
+  const { rustRules, tsRules } = splitRulesForAuto(raw.rules ?? {});
+  const tsViolations = runKlint(
+    {
+      root,
+      include: raw.include ?? ["."],
+      plugins: raw.plugins,
+      rules: { ...customRulesMap, ...tsRules },
+    },
+    customRules
+  );
+
+  const rustOutput = runAutoRustSubset({
+    raw,
+    root,
+    rustRules,
+  });
+  const tsOutput = toJsonPayload(tsViolations);
+  const merged = mergeJsonOutputs(rustOutput, tsOutput);
+  process.stdout.write(JSON.stringify(merged));
+  process.exit(merged.summary.errors > 0 ? 2 : 0);
+}
+
+function splitRulesForAuto(rules: Record<string, RuleConfigValue>): {
+  rustRules: Record<string, RuleConfigValue>;
+  tsRules: Record<string, RuleConfigValue>;
+} {
+  const rustRules: Record<string, RuleConfigValue> = {};
+  const tsRules: Record<string, RuleConfigValue> = {};
+
+  for (const [name, value] of Object.entries(rules)) {
+    if (RUST_SUPPORTED_TYPESCRIPT_RULES.has(name)) rustRules[name] = value;
+    else tsRules[name] = value;
+  }
+
+  return { rustRules, tsRules };
+}
+
+function runAutoRustSubset({
+  raw,
+  root,
+  rustRules,
+}: {
+  raw: {
+    include?: string[];
+    arch?: unknown;
+  };
+  root: string;
+  rustRules: Record<string, RuleConfigValue>;
+}): JsonPayload {
+  const hasRustRules = Object.values(rustRules).some(
+    (value) => ruleConfigSeverity(value) !== "off"
+  );
+  if (!raw.arch && !hasRustRules) {
+    return emptyJsonPayload();
+  }
+
+  const tempDir = mkdtempSync(join(tmpdir(), "klint-auto-rust-"));
+  try {
+    writeFileSync(
+      join(tempDir, "klint.config.json"),
+      JSON.stringify({
+        root,
+        include: raw.include ?? ["."],
+        rules: rustRules,
+        arch: raw.arch,
+      })
+    );
+
+    const command = resolveRustEngineCommand(tempDir);
+    const result = spawnSync(command.bin, command.args, {
+      cwd: import.meta.dir,
+      encoding: "utf-8",
+    });
+    if (result.stderr) process.stderr.write(result.stderr);
+    if ((result.status ?? 1) !== 0 && (result.status ?? 1) !== 2) {
+      process.stderr.write(result.stdout);
+      process.exit(result.status ?? 1);
+    }
+
+    const payload = parseJsonPayload(result.stdout);
+    if (!isJsonPayload(payload)) {
+      process.stderr.write("klint: --engine auto failed to parse Rust JSON output\n");
+      process.exit(1);
+    }
+    return payload;
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
+interface JsonPayload {
+  violations: Array<Omit<Violation, "fix"> & { fix: unknown }>;
+  summary: {
+    errors: number;
+    warnings: number;
+  };
+}
+
+function emptyJsonPayload(): JsonPayload {
+  return {
+    violations: [],
+    summary: { errors: 0, warnings: 0 },
+  };
+}
+
+function toJsonPayload(violations: ReturnType<typeof runKlint>): JsonPayload {
+  const errors = violations.filter((v) => v.severity === "error");
+  return {
+    violations: violations.map((v) => ({ ...v, fix: v.fix ?? null })),
+    summary: { errors: errors.length, warnings: violations.length - errors.length },
+  };
+}
+
+function mergeJsonOutputs(...outputs: JsonPayload[]): JsonPayload {
+  const violations = outputs
+    .flatMap((output) => output.violations)
+    .sort(
+      (a, b) =>
+        a.file.localeCompare(b.file) ||
+        a.line - b.line ||
+        a.rule.localeCompare(b.rule) ||
+        a.message.localeCompare(b.message)
+    );
+  const errors = violations.filter((violation) => violation.severity === "error").length;
+  return {
+    violations,
+    summary: {
+      errors,
+      warnings: violations.length - errors,
+    },
+  };
+}
+
+function isJsonPayload(value: unknown): value is JsonPayload {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<JsonPayload>;
+  return Array.isArray(candidate.violations) && typeof candidate.summary === "object";
+}
+
 function toJsonCliResult(violations: ReturnType<typeof runKlint>): {
   stdout: string;
   status: number;
 } {
-  const errors = violations.filter((v) => v.severity === "error");
+  const payload = toJsonPayload(violations);
   return {
-    stdout: JSON.stringify({
-      violations: violations.map((v) => ({ ...v, fix: v.fix ?? null })),
-      summary: { errors: errors.length, warnings: violations.length - errors.length },
-    }),
-    status: errors.length > 0 ? 2 : 0,
+    stdout: JSON.stringify(payload),
+    status: payload.summary.errors > 0 ? 2 : 0,
   };
 }
 
@@ -576,12 +776,12 @@ function printHelp(): void {
     [
       "klint — agent harness for TypeScript architecture rules",
       "",
-      "Usage: klint [--config <dir>] [--rules <file>] [--engine ts|rust|compare] [--fix] [--json]",
+      "Usage: klint [--config <dir>] [--rules <file>] [--engine ts|rust|compare|auto] [--fix] [--json]",
       "       klint install-skill [--agents <list>] [--symlink | --copy]",
       "",
       "  --config <dir>   directory containing klint.yaml or klint.config.json (default: cwd)",
       "  --rules  <file>  custom rules file (default: <configDir>/klint.rules.ts if present)",
-      "  --engine <name>  engine to use: ts (default), rust, or compare (experimental, requires --json)",
+      "  --engine <name>  engine to use: ts (default), rust, compare, or auto (experimental, requires --json)",
       "  --fix            apply auto-fixes for fixable violations in-place",
       "  --json           emit structured JSON to stdout (for agent/CI consumption)",
       "  --debug          print file resolution and rule progress to stderr",

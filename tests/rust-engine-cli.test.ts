@@ -437,6 +437,96 @@ arch:
     }
   });
 
+  test("--engine auto merges Rust-supported and TypeScript-only rules", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules:
+  no-string-match: error
+  no-floating-promise: error
+`,
+      `async function load(): Promise<string> { return "ok"; }\nload();\nconst hit = "abc".match(/a/);\n`
+    );
+
+    try {
+      const ts = runCliArgs(dir, ["--engine", "ts", "--json"]);
+      const auto = runCliArgs(dir, ["--engine", "auto", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(auto) as {
+        violations: Array<{ rule: string }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(auto.code).toBe(2);
+      expect(auto.code).toBe(ts.code);
+      expect(payload.summary).toEqual({ errors: 2, warnings: 0 });
+      expect(payload.violations.map((violation) => violation.rule).sort()).toEqual([
+        "no-floating-promise",
+        "no-string-match",
+      ]);
+      expect(auto.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine auto merges architecture and TypeScript-only rules", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules:
+  no-floating-promise: error
+arch:
+  forbidden:
+    - pattern: "console.log("
+      in: "src/**"
+      message: "Use logger"
+`,
+      `async function load(): Promise<string> { return "ok"; }\nload();\nconsole.log("x");\n`
+    );
+
+    try {
+      const auto = runCliArgs(dir, ["--engine", "auto", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(auto) as {
+        violations: Array<{ rule: string }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(auto.code).toBe(2);
+      expect(payload.summary).toEqual({ errors: 2, warnings: 0 });
+      expect(payload.violations.map((violation) => violation.rule).sort()).toEqual([
+        "arch/forbidden",
+        "no-floating-promise",
+      ]);
+      expect(auto.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine auto requires JSON output", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules: {}
+`,
+      `export const value = 1;\n`
+    );
+
+    try {
+      const result = runCliArgs(dir, ["--engine", "auto"]);
+
+      expect(result.code).toBe(1);
+      expect(result.stderr).toContain("--engine auto currently requires --json");
+      expect(result.stdout).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine ts uses the TypeScript engine even when KLINT_ENGINE=rust is set", () => {
     const dir = setupFixture(
       `
@@ -477,7 +567,7 @@ rules: {}
 
       expect(result.code).toBe(1);
       expect(result.stderr).toContain('unknown engine "go"');
-      expect(result.stderr).toContain('expected "ts", "rust", or "compare"');
+      expect(result.stderr).toContain('expected "ts", "rust", "compare", or "auto"');
       expect(result.stdout).toBe("");
     } finally {
       rmSync(dir, { recursive: true });
