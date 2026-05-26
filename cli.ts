@@ -92,8 +92,10 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     runRustEngine({ configDir, fix, json, raw, rulesFile });
     return;
   }
-  if (engine !== undefined && engine !== "ts") {
-    process.stderr.write(`klint: unknown engine "${engine}" (expected "ts" or "rust")\n`);
+  if (engine !== undefined && engine !== "ts" && engine !== "compare") {
+    process.stderr.write(
+      `klint: unknown engine "${engine}" (expected "ts", "rust", or "compare")\n`
+    );
     process.exit(1);
   }
 
@@ -123,15 +125,15 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     { onDebug: debug ? writeDebugEvent : undefined }
   );
 
+  if (engine === "compare") {
+    runCompareEngine({ configDir, fix, json, raw, rulesFile, tsViolations: violations });
+    return;
+  }
+
   if (json) {
-    const errors = violations.filter((v) => v.severity === "error");
-    process.stdout.write(
-      JSON.stringify({
-        violations: violations.map((v) => ({ ...v, fix: v.fix ?? null })),
-        summary: { errors: errors.length, warnings: violations.length - errors.length },
-      })
-    );
-    process.exit(errors.length > 0 ? 2 : 0);
+    const tsResult = toJsonCliResult(violations);
+    process.stdout.write(tsResult.stdout);
+    process.exit(tsResult.status);
   }
 
   if (fix) {
@@ -245,6 +247,83 @@ function runRustEngine({
   process.exit(result.status ?? 1);
 }
 
+function runCompareEngine({
+  configDir,
+  fix,
+  json,
+  raw,
+  rulesFile,
+  tsViolations,
+}: {
+  configDir: string;
+  fix: boolean;
+  json: boolean;
+  raw: {
+    plugins?: string[];
+    rules?: Record<string, RuleConfigValue>;
+    arch?: unknown;
+  };
+  rulesFile?: string;
+  tsViolations: ReturnType<typeof runKlint>;
+}): void {
+  const unsupportedReason = rustEngineUnsupportedReason({
+    fix,
+    json,
+    raw,
+    rulesFile,
+  });
+
+  if (unsupportedReason) {
+    process.stderr.write(`klint: ${unsupportedReason}\n`);
+    process.exit(1);
+  }
+
+  const tsResult = toJsonCliResult(tsViolations);
+  const rustCommand = resolveRustEngineCommand(configDir);
+  const rustResult = spawnSync(rustCommand.bin, rustCommand.args, {
+    cwd: import.meta.dir,
+    encoding: "utf-8",
+  });
+
+  const rustStatus = rustResult.status ?? 1;
+  if (rustResult.stderr) process.stderr.write(rustResult.stderr);
+
+  const tsPayload = parseJsonPayload(tsResult.stdout);
+  const rustPayload = parseJsonPayload(rustResult.stdout);
+
+  if (
+    rustStatus !== tsResult.status ||
+    tsPayload === undefined ||
+    rustPayload === undefined ||
+    !jsonPayloadEquals(tsPayload, rustPayload)
+  ) {
+    const mismatchLines = [
+      "klint: compare engine mismatch",
+      `TypeScript exit: ${tsResult.status}`,
+      `Rust exit: ${rustStatus}`,
+    ];
+    process.stderr.write(`${mismatchLines.join("\n")}\n`);
+    process.exit(1);
+  }
+
+  process.stdout.write(tsResult.stdout);
+  process.exit(tsResult.status);
+}
+
+function toJsonCliResult(violations: ReturnType<typeof runKlint>): {
+  stdout: string;
+  status: number;
+} {
+  const errors = violations.filter((v) => v.severity === "error");
+  return {
+    stdout: JSON.stringify({
+      violations: violations.map((v) => ({ ...v, fix: v.fix ?? null })),
+      summary: { errors: errors.length, warnings: violations.length - errors.length },
+    }),
+    status: errors.length > 0 ? 2 : 0,
+  };
+}
+
 function writeDebugEvent(event: KlintDebugEvent): void {
   switch (event.type) {
     case "walk:start":
@@ -345,6 +424,28 @@ function rustEngineUnsupportedReason({
 function ruleConfigSeverity(value: RuleConfigValue): string | undefined {
   if (typeof value === "string") return value;
   return value.severity;
+}
+
+function parseJsonPayload(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
+}
+
+function jsonPayloadEquals(a: unknown, b: unknown): boolean {
+  return JSON.stringify(canonicalJson(a)) === JSON.stringify(canonicalJson(b));
+}
+
+function canonicalJson(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalJson);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entry]) => [key, canonicalJson(entry)])
+  );
 }
 
 const AGENT_TARGETS = [
@@ -455,12 +556,12 @@ function printHelp(): void {
     [
       "klint — agent harness for TypeScript architecture rules",
       "",
-      "Usage: klint [--config <dir>] [--rules <file>] [--engine ts|rust] [--fix] [--json]",
+      "Usage: klint [--config <dir>] [--rules <file>] [--engine ts|rust|compare] [--fix] [--json]",
       "       klint install-skill [--agents <list>] [--symlink | --copy]",
       "",
       "  --config <dir>   directory containing klint.yaml or klint.config.json (default: cwd)",
       "  --rules  <file>  custom rules file (default: <configDir>/klint.rules.ts if present)",
-      "  --engine <name>  engine to use: ts (default) or rust (experimental, requires --json)",
+      "  --engine <name>  engine to use: ts (default), rust, or compare (experimental, requires --json)",
       "  --fix            apply auto-fixes for fixable violations in-place",
       "  --json           emit structured JSON to stdout (for agent/CI consumption)",
       "  --debug          print file resolution and rule progress to stderr",

@@ -272,6 +272,64 @@ arch:
     }
   });
 
+  test("--engine compare emits TypeScript JSON when Rust matches", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules: {}
+arch:
+  forbidden:
+    - pattern: "console.log("
+      in: "src/**"
+      message: "Use logger"
+`,
+      `console.log("x");\n`
+    );
+
+    try {
+      const ts = runCliArgs(dir, ["--engine", "ts", "--json"]);
+      const compare = runCliArgs(dir, ["--engine", "compare", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+
+      expect(compare.code).toBe(2);
+      expect(compare.code).toBe(ts.code);
+      expect(parseJson(compare)).toEqual(parseJson(ts));
+      expect(compare.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine compare refuses configs Rust cannot verify", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules:
+  no-string-match: error
+arch:
+  forbidden:
+    - pattern: "console.log("
+      in: "src/**"
+      message: "Use logger"
+`,
+      `console.log("x");\n`
+    );
+
+    try {
+      const compare = runCliArgs(dir, ["--engine", "compare", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+
+      expect(compare.code).toBe(1);
+      expect(compare.stderr).toContain("Rust engine currently supports arch rules only");
+      expect(compare.stderr).toContain("- no-string-match");
+      expect(compare.stdout).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine ts uses the TypeScript engine even when KLINT_ENGINE=rust is set", () => {
     const dir = setupFixture(
       `
@@ -312,6 +370,7 @@ rules: {}
 
       expect(result.code).toBe(1);
       expect(result.stderr).toContain('unknown engine "go"');
+      expect(result.stderr).toContain('expected "ts", "rust", or "compare"');
       expect(result.stdout).toBe("");
     } finally {
       rmSync(dir, { recursive: true });
