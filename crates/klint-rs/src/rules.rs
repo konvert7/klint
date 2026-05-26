@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use crate::config::RuleConfig;
-use crate::files::{match_pattern, relative_path};
+use crate::files::{is_javascript_like_source, match_pattern, relative_path};
 use crate::output::Violation;
 use crate::syntax::{
     scan_consecutive_array_push, scan_nested_template_literals, scan_prefer_at,
@@ -527,6 +527,10 @@ fn run_sonar_prefer_nullish_coalescing_assign(
 }
 
 fn rule_applies_to_file(config: &RuleConfig, root: &Path, file: &Path) -> bool {
+    if !is_javascript_like_source(file) {
+        return false;
+    }
+
     let Some(include) = config.include() else {
         return true;
     };

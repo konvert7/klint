@@ -27,9 +27,9 @@ Architecture rules:
 
 | Area | Notes |
 |------|-------|
-| `arch.imports` | Includes static imports, dynamic imports, TS path aliases, allow/deny mode, and type-only allowance. |
-| `arch.forbidden` | Supports literal pattern checks and JSX element checks. |
-| `arch.singleton` | Supports literal pattern checks and JSX element checks. |
+| `arch.imports` | TypeScript/JavaScript only today. Includes static imports, dynamic imports, TS path aliases, allow/deny mode, and type-only allowance. |
+| `arch.forbidden` | Supports literal pattern checks for TypeScript/JavaScript and Python files. JSX element checks are TypeScript/JavaScript only. |
+| `arch.singleton` | Supports literal pattern checks for TypeScript/JavaScript and Python files. JSX element checks are TypeScript/JavaScript only. |
 
 Top-level rules:
 
@@ -73,6 +73,14 @@ These rules must stay TypeScript-owned unless klint gains a real Rust semantic l
 | `no-object-in-template` | Needs symbol/type analysis to distinguish primitives, safe builtins, custom `toString()`, and plain objects. |
 
 Do not port these as tree-sitter approximations. A false Rust port would make `compare` and `auto` look safer while silently changing rule meaning.
+
+## Python Support
+
+Python support starts at the architecture layer. The Rust engine discovers `.py`
+files and applies language-neutral `arch.forbidden` and `arch.singleton` pattern
+rules to them. TypeScript/Sonar syntax rules are still restricted to
+TypeScript/JavaScript-like files, and Python import extraction for `arch.imports`
+is not implemented yet.
 
 ## Custom Rules And Plugins
 

@@ -66,6 +66,17 @@ function setupFixture(config: string, source: string): string {
   return dir;
 }
 
+function setupNamedFixture(config: string, files: Record<string, string>): string {
+  const dir = mkdtempSync(join(tmpdir(), "klint-rust-engine-"));
+  writeFileSync(join(dir, "klint.yaml"), config);
+  for (const [file, source] of Object.entries(files)) {
+    const path = join(dir, file);
+    mkdirSync(resolve(path, ".."), { recursive: true });
+    writeFileSync(path, source);
+  }
+  return dir;
+}
+
 function parseJson(result: CliResult): unknown {
   return JSON.parse(result.stdout);
 }
@@ -369,6 +380,70 @@ plugins: ["sonar"]
       expect(payload.violations.map((violation) => violation.rule).sort()).toEqual(
         sonarPluginRules()
       );
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine rust applies architecture pattern rules to Python files", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["src"]
+rules: {}
+arch:
+  forbidden:
+    - pattern: "print("
+      in: "src/**"
+      message: "Use logger"
+  singleton:
+    - pattern: "os.environ[\\"API_KEY\\"]"
+      only: "src/lib/auth.py"
+      in: "src/**"
+      message: "Use auth module"
+`,
+      {
+        "src/lib/auth.py": 'import os\nKEY = os.environ["API_KEY"]\n',
+        "src/jobs/worker.py": 'import os\nprint("debug")\nKEY = os.environ["API_KEY"]\n',
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{
+          file: string;
+          line: number;
+          rule: string;
+          message: string;
+          severity: string;
+          fix: unknown;
+        }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(rust.code).toBe(2);
+      expect(payload.summary).toEqual({ errors: 2, warnings: 0 });
+      expect(payload.violations).toEqual([
+        {
+          file: "src/jobs/worker.py",
+          line: 2,
+          rule: "arch/forbidden",
+          message: "Use logger",
+          severity: "error",
+          fix: null,
+        },
+        {
+          file: "src/jobs/worker.py",
+          line: 3,
+          rule: "arch/singleton",
+          message: "Use auth module",
+          severity: "error",
+          fix: null,
+        },
+      ]);
       expect(rust.stderr).toBe("");
     } finally {
       rmSync(dir, { recursive: true });

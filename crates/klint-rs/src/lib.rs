@@ -187,6 +187,48 @@ arch:
     }
 
     #[test]
+    fn forbidden_pattern_reports_python_source_matches() {
+        let root = temp_root("forbidden-python-pattern");
+        create_dir_all(root.join("src/service")).expect("create fixture dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["src"]
+rules: {}
+arch:
+  forbidden:
+    - pattern: "print("
+      in: "src/**"
+      message: "Use logger"
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("src/service/handler.py"),
+            "def run():\n    print('debug')\n",
+        )
+        .expect("write python source");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(
+            output.violations,
+            vec![Violation {
+                file: "src/service/handler.py".to_string(),
+                line: 2,
+                rule: "arch/forbidden".to_string(),
+                message: "Use logger".to_string(),
+                severity: "error".to_string(),
+                fix: None,
+            }]
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn singleton_pattern_ignores_only_file_and_reports_other_matches() {
         let root = temp_root("singleton-pattern");
         create_dir_all(root.join("src/lib")).expect("create lib dirs");
@@ -269,6 +311,55 @@ arch:
         assert_eq!(output.violations.len(), 1);
         assert_eq!(output.violations[0].file, "src/app/page.ts");
         assert_eq!(output.violations[0].severity, "warn");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn singleton_pattern_reports_python_source_matches() {
+        let root = temp_root("singleton-python-pattern");
+        create_dir_all(root.join("src/lib")).expect("create lib dirs");
+        create_dir_all(root.join("src/jobs")).expect("create job dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["src"]
+rules: {}
+arch:
+  singleton:
+    - pattern: "os.environ[\"API_KEY\"]"
+      only: "src/lib/auth.py"
+      in: ["src/**"]
+      message: "Use auth module"
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("src/lib/auth.py"),
+            "import os\nKEY = os.environ[\"API_KEY\"]\n",
+        )
+        .expect("write allowed source");
+        write(
+            root.join("src/jobs/worker.py"),
+            "import os\nKEY = os.environ[\"API_KEY\"]\n",
+        )
+        .expect("write violating source");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(
+            output.violations,
+            vec![Violation {
+                file: "src/jobs/worker.py".to_string(),
+                line: 2,
+                rule: "arch/singleton".to_string(),
+                message: "Use auth module".to_string(),
+                severity: "error".to_string(),
+                fix: None,
+            }]
+        );
         let _ = fs::remove_dir_all(root);
     }
 

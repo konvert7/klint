@@ -10,7 +10,7 @@ pub(crate) fn resolve_files(root: &Path, include: &[String]) -> Result<Vec<PathB
         .collect();
     for pattern in include.iter().filter(|pattern| !pattern.starts_with('!')) {
         let base = include_base(root, pattern);
-        collect_ts_files(&base, root, &excludes, &mut files)?;
+        collect_source_files(&base, root, &excludes, &mut files)?;
     }
     files.sort();
     files.dedup();
@@ -38,7 +38,7 @@ fn include_base(root: &Path, pattern: &str) -> PathBuf {
     normalize_path(&root.join(prefix))
 }
 
-fn collect_ts_files(
+fn collect_source_files(
     dir: &Path,
     root: &Path,
     excludes: &[&str],
@@ -58,7 +58,7 @@ fn collect_ts_files(
             }) {
                 continue;
             }
-            collect_ts_files(&path, root, excludes, files)?;
+            collect_source_files(&path, root, excludes, files)?;
         } else if is_supported_source(&path) {
             files.push(normalize_path(&path));
         }
@@ -67,6 +67,11 @@ fn collect_ts_files(
 }
 
 fn is_supported_source(path: &Path) -> bool {
+    is_javascript_like_source(path)
+        || matches!(path.extension().and_then(|ext| ext.to_str()), Some("py"))
+}
+
+pub(crate) fn is_javascript_like_source(path: &Path) -> bool {
     matches!(
         path.extension().and_then(|ext| ext.to_str()),
         Some("ts" | "tsx" | "js" | "jsx" | "mts" | "cts")
@@ -214,6 +219,25 @@ mod tests {
             .map(|file| relative_path(&root, file))
             .collect::<Vec<_>>();
         assert_eq!(rel_files, vec!["src/index.ts"]);
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn resolve_files_includes_python_sources_for_architecture_rules() {
+        let root = temp_root("python-source");
+        create_dir_all(root.join("src/app")).expect("create src dirs");
+        write(root.join("src/app/main.py"), "print('x')\n").expect("write python source");
+        write(root.join("src/app/main.ts"), "console.log('x');\n").expect("write ts source");
+        write(root.join("src/app/readme.md"), "# ignored\n").expect("write markdown");
+
+        let files = resolve_files(&root, &["src".to_string()]).expect("resolve files");
+
+        let rel_files = files
+            .iter()
+            .map(|file| relative_path(&root, file))
+            .collect::<Vec<_>>();
+        assert_eq!(rel_files, vec!["src/app/main.py", "src/app/main.ts"]);
 
         let _ = fs::remove_dir_all(root);
     }
