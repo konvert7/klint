@@ -1,3 +1,20 @@
+# [0.20.0](https://github.com/konvert7/klint/compare/v0.19.2...v0.20.0) (2026-05-26)
+
+
+### Bug Fixes
+
+* **dependencies:** update optional dependencies to use wildcard versioning ([c224b09](https://github.com/konvert7/klint/commit/c224b09f4b1fcde45fc7a675b77c3819c6e28710))
+* **tests:** import readFileSync from node:fs in rust-engine-cli test ([9e95982](https://github.com/konvert7/klint/commit/9e95982f6f757805b7631cad058d37148a316ce1))
+* **windows:** normalize paths ([3c585f9](https://github.com/konvert7/klint/commit/3c585f9f19481506bc077bf80b188c3e79854da5))
+
+
+### Features
+
+* **klint:** configure no-async-predicate ([f45f3c6](https://github.com/konvert7/klint/commit/f45f3c6c815150bd0b7cf60f5a43d88ae109cadd))
+* **klint:** configure no-sync-in-async ([eaea7bf](https://github.com/konvert7/klint/commit/eaea7bf047d7a49137942ed6b80a7b0a0a3aa5c8))
+* **klint:** configure sonar ([490587f](https://github.com/konvert7/klint/commit/490587f4dab50e9e2391d75b9a36feb8625369c8))
+* **rust:** add 'no-sync-in-async' rule to detect synchronous calls in async functions ([efd0ecb](https://github.com/konvert7/klint/commit/efd0ecbb654948b50a9e9f6793c60d9cbac4e537))
+
 ## [0.19.2](https://github.com/konvert7/klint/compare/v0.19.1...v0.19.2) (2026-05-26)
 
 
