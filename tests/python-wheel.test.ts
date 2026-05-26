@@ -30,6 +30,26 @@ describe("Python wheel package scaffold", () => {
     expect(existsSync(join(import.meta.dir, "smoke-python-wheel.ts"))).toBe(true);
   });
 
+  test("release workflow uses publishable platform wheel tags", () => {
+    const workflow = readFileSync(
+      new URL(".github/workflows/python-release.yml", root),
+      "utf-8"
+    );
+
+    expect(workflow).toContain("python-platform-tag: manylinux_2_28_x86_64");
+    expect(workflow).toContain("python-platform-tag: macosx_11_0_arm64");
+    expect(workflow).toContain("python-platform-tag: macosx_10_13_x86_64");
+    expect(workflow).toContain("python-platform-tag: win_amd64");
+    expect(workflow).not.toContain("linux_x86_64");
+  });
+
+  test("wheel setup honors explicit platform tag override", () => {
+    const setup = readFileSync(new URL("python/setup.py", root), "utf-8");
+
+    expect(setup).toContain('os.environ.get("KLINT_PYTHON_PLAT_NAME")');
+    expect(setup).toContain("self.plat_name = plat_name");
+  });
+
   test("release prep stages TestPyPI package name and release version", () => {
     const fixture = mkdtempSync(join(tmpdir(), "klint-python-release-"));
     const pythonRoot = join(fixture, "python");

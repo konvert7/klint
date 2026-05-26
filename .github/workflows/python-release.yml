@@ -72,18 +72,22 @@ jobs:
             package: linux-x64
             rust-target: x86_64-unknown-linux-gnu
             binary: klint-rs
+            python-platform-tag: manylinux_2_28_x86_64
           - os: macos-latest
             package: darwin-arm64
             rust-target: aarch64-apple-darwin
             binary: klint-rs
-          - os: macos-latest
+            python-platform-tag: macosx_11_0_arm64
+          - os: macos-15-intel
             package: darwin-x64
             rust-target: x86_64-apple-darwin
             binary: klint-rs
+            python-platform-tag: macosx_10_13_x86_64
           - os: windows-latest
             package: win32-x64
             rust-target: x86_64-pc-windows-msvc
             binary: klint-rs.exe
+            python-platform-tag: win_amd64
 
     steps:
       - name: Checkout
@@ -100,12 +104,15 @@ jobs:
           python-version: "3.13"
 
       - name: Setup Rust
+        if: matrix.package != 'linux-x64'
         run: rustup toolchain install stable --profile minimal
 
       - name: Install Rust target
+        if: matrix.package != 'linux-x64'
         run: rustup target add ${{ matrix.rust-target }}
 
       - name: Rust cache
+        if: matrix.package != 'linux-x64'
         uses: Swatinem/rust-cache@v2
         with:
           key: python-release-${{ matrix.rust-target }}
@@ -116,7 +123,17 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build native binary
+        if: matrix.package != 'linux-x64'
         run: cargo build -p klint-rs --release --target ${{ matrix.rust-target }}
+
+      - name: Build manylinux native binary
+        if: matrix.package == 'linux-x64'
+        run: |
+          docker run --rm \
+            -v "$PWD:/io" \
+            -w /io \
+            quay.io/pypa/manylinux_2_28_x86_64 \
+            bash -lc 'curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal && source "$HOME/.cargo/env" && cargo build -p klint-rs --release --target x86_64-unknown-linux-gnu'
 
       - name: Stage Python wheel binary
         run: bun tests/stage-python-wheel.ts --source target/${{ matrix.rust-target }}/release/${{ matrix.binary }}
@@ -126,6 +143,8 @@ jobs:
 
       - name: Smoke Python wheel
         run: bun tests/smoke-python-wheel.ts
+        env:
+          KLINT_PYTHON_PLAT_NAME: ${{ matrix.python-platform-tag }}
 
       - name: Upload Python wheel
         uses: actions/upload-artifact@v7
