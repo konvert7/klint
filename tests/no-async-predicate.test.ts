@@ -27,6 +27,16 @@ describe("no-async-predicate", () => {
     expect(v[0].message).toContain("filter");
   });
 
+  test("flags async callback on readonly array filter", () => {
+    const v = lint(`
+      declare function isValid(x: number): Promise<boolean>;
+      const values: ReadonlyArray<number> = [1, 2, 3];
+      const result = values.filter(async (x) => await isValid(x));
+    `);
+    expect(v).toHaveLength(1);
+    expect(v[0].message).toContain("filter");
+  });
+
   test("flags async callback on some", () => {
     const v = lint(`
       declare function check(x: string): Promise<boolean>;
@@ -77,6 +87,19 @@ describe("no-async-predicate", () => {
     const v = lint(`
       declare function process(x: number): Promise<void>;
       [1, 2, 3].forEach(async (x) => { await process(x); });
+    `);
+    expect(v).toHaveLength(0);
+  });
+
+  test("does not flag async callback on custom filter method", () => {
+    const v = lint(`
+      const query = {
+        filter(callback: (value: number) => Promise<boolean>) {
+          return callback;
+        },
+      };
+
+      query.filter(async (value) => value > 1);
     `);
     expect(v).toHaveLength(0);
   });
