@@ -1,3 +1,11 @@
+# [0.19.0](https://github.com/konvert7/klint/compare/v0.18.0...v0.19.0) (2026-05-26)
+
+
+### Features
+
+* **cli:** enhance Rust engine to support non-JSON output and improve error handling ([f4d9811](https://github.com/konvert7/klint/commit/f4d98115dc87cc1bd058041f2a2f5b749e71a487))
+* **cli:** implement 'auto' engine for merging TypeScript and Rust rules ([2b0a867](https://github.com/konvert7/klint/commit/2b0a867fc77d9a38261d42231ba4a81a6e40cf59))
+
 # [0.18.0](https://github.com/konvert7/klint/compare/v0.17.0...v0.18.0) (2026-05-26)
 
 
