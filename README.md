@@ -141,6 +141,7 @@ Rust currently supports:
 
 - `arch` rules: imports, forbidden patterns, singleton locations
 - `no-unguarded-json-parse`
+- `no-sync-in-async`
 - `no-nested-template-literals`
 - `no-consecutive-array-push`
 - `no-string-match`

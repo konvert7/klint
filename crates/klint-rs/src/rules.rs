@@ -2,11 +2,11 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use crate::config::RuleConfig;
-use crate::files::relative_path;
+use crate::files::{match_pattern, relative_path};
 use crate::output::Violation;
 use crate::syntax::{
     scan_consecutive_array_push, scan_nested_template_literals, scan_string_match,
-    scan_unguarded_json_parse,
+    scan_sync_in_async, scan_unguarded_json_parse,
 };
 
 pub(crate) fn run_supported_rules(
@@ -28,6 +28,9 @@ pub(crate) fn run_supported_rules(
     if let Some(config) = rules.get("no-unguarded-json-parse") {
         run_no_unguarded_json_parse(config, files, file_contents, root, violations);
     }
+    if let Some(config) = rules.get("no-sync-in-async") {
+        run_no_sync_in_async(config, files, file_contents, root, violations);
+    }
 }
 
 fn run_no_string_match(
@@ -43,6 +46,9 @@ fn run_no_string_match(
     }
 
     for file in files {
+        if !rule_applies_to_file(config, root, file) {
+            continue;
+        }
         let Some(content) = file_contents.get(file) else {
             continue;
         };
@@ -79,6 +85,9 @@ fn run_no_nested_template_literals(
     }
 
     for file in files {
+        if !rule_applies_to_file(config, root, file) {
+            continue;
+        }
         let Some(content) = file_contents.get(file) else {
             continue;
         };
@@ -114,6 +123,9 @@ fn run_no_consecutive_array_push(
     }
 
     for file in files {
+        if !rule_applies_to_file(config, root, file) {
+            continue;
+        }
         let Some(content) = file_contents.get(file) else {
             continue;
         };
@@ -150,6 +162,9 @@ fn run_no_unguarded_json_parse(
     }
 
     for file in files {
+        if !rule_applies_to_file(config, root, file) {
+            continue;
+        }
         let Some(content) = file_contents.get(file) else {
             continue;
         };
@@ -170,6 +185,64 @@ fn run_no_unguarded_json_parse(
             });
         }
     }
+}
+
+fn run_no_sync_in_async(
+    config: &RuleConfig,
+    files: &[PathBuf],
+    file_contents: &BTreeMap<PathBuf, String>,
+    root: &Path,
+    violations: &mut Vec<Violation>,
+) {
+    let severity = config.severity();
+    if severity == "off" {
+        return;
+    }
+
+    for file in files {
+        if !rule_applies_to_file(config, root, file) {
+            continue;
+        }
+        let Some(content) = file_contents.get(file) else {
+            continue;
+        };
+        let Ok(records) = scan_sync_in_async(file, content) else {
+            continue;
+        };
+
+        for record in records {
+            violations.push(Violation {
+                file: relative_path(root, file),
+                line: record.line,
+                rule: "no-sync-in-async".to_string(),
+                message: format!(
+                    "{}() blocks the event loop inside an async function — use the async equivalent from node:fs/promises.",
+                    record.name
+                ),
+                severity: severity.to_string(),
+                fix: None,
+            });
+        }
+    }
+}
+
+fn rule_applies_to_file(config: &RuleConfig, root: &Path, file: &Path) -> bool {
+    let Some(include) = config.include() else {
+        return true;
+    };
+
+    let rel = relative_path(root, file);
+    let includes = include
+        .iter()
+        .filter(|pattern| !pattern.starts_with('!'))
+        .collect::<Vec<_>>();
+    let excluded = include
+        .iter()
+        .filter_map(|pattern| pattern.strip_prefix('!'))
+        .any(|pattern| match_pattern(&rel, pattern));
+
+    !excluded
+        && (includes.is_empty() || includes.iter().any(|pattern| match_pattern(&rel, pattern)))
 }
 
 fn line_fix(

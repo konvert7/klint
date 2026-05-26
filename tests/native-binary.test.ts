@@ -11,6 +11,7 @@ const root = new URL("..", import.meta.url);
 
 interface PackageJson {
   name: string;
+  version?: string;
   optionalDependencies?: Record<string, string>;
   private?: boolean;
   repository?: {
@@ -61,8 +62,9 @@ describe("native binary package metadata", () => {
       .sort();
 
     expect(Object.keys(optionalDependencies).sort()).toEqual(expectedNames);
+    expect(packageJson.version).toBeString();
     for (const packageName of expectedNames) {
-      expect(optionalDependencies[packageName]).toBe("*");
+      expect(optionalDependencies[packageName]).toBe(packageJson.version as string);
     }
   });
 

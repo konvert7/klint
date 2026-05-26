@@ -31,6 +31,7 @@ const RUST_SUPPORTED_TYPESCRIPT_RULES = new Set([
   "no-consecutive-array-push",
   "no-nested-template-literals",
   "no-string-match",
+  "no-sync-in-async",
   "no-unguarded-json-parse",
 ]);
 

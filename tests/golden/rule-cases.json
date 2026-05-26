@@ -359,5 +359,102 @@
       "violations": [],
       "summary": { "errors": 0, "warnings": 0 }
     }
+  },
+  {
+    "name": "no-sync-in-async flags sync calls inside async function",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-sync-in-async": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function load() {\n  readFileSync(path);\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-sync-in-async",
+          "message": "readFileSync() blocks the event loop inside an async function — use the async equivalent from node:fs/promises.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "no-sync-in-async honors warning severity",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-sync-in-async": {
+          "severity": "warn"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const load = async () => {\n  fs.writeFileSync(path, value);\n};\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-sync-in-async",
+          "message": "writeFileSync() blocks the event loop inside an async function — use the async equivalent from node:fs/promises.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 0, "warnings": 1 }
+    }
+  },
+  {
+    "name": "no-sync-in-async ignores existsSync and nested sync function",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-sync-in-async": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function load() {\n  existsSync(path);\n  function nested() {\n    readFileSync(path);\n  }\n}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": { "errors": 0, "warnings": 0 }
+    }
+  },
+  {
+    "name": "no-sync-in-async respects rule include scope",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-sync-in-async": {
+          "severity": "error",
+          "include": ["src/hooks/**"]
+        }
+      }
+    },
+    "files": {
+      "src/hooks/subject.ts": "async function load() {\n  readFileSync(path);\n}\n",
+      "src/tools/subject.ts": "async function load() {\n  readFileSync(path);\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/hooks/subject.ts",
+          "line": 2,
+          "rule": "no-sync-in-async",
+          "message": "readFileSync() blocks the event loop inside an async function — use the async equivalent from node:fs/promises.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
   }
 ]

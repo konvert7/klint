@@ -35,6 +35,7 @@ Top-level rules:
 | Rule | Why it is Rust-portable |
 |------|-------------------------|
 | `no-unguarded-json-parse` | Syntax-only call detection plus `try_statement` ancestor tracking. |
+| `no-sync-in-async` | Syntax-only sync-call detection with nearest async function tracking. |
 | `no-nested-template-literals` | Syntax-only template-substitution traversal. |
 | `no-consecutive-array-push` | Syntax-only statement-run detection. |
 | `no-string-match` | Syntax-only call detection with regex literal flag handling. |
@@ -54,6 +55,7 @@ These rules must stay TypeScript-owned unless klint gains a real Rust semantic l
 |------|-------------------------------------|
 | `no-floating-promise` | Needs return-type information to know whether a call is Promise-like. |
 | `no-misused-promises` | Needs resolved call signatures and callback return types. |
+| `no-async-predicate` | Needs receiver type information to avoid flagging custom `.filter()`/`.some()` methods. |
 | `no-date-equality` | Needs static type information to know both operands are Date-like. |
 | `no-optional-chain-on-non-nullable` | Needs strict-nullability type information. |
 | `no-object-in-template` | Needs symbol/type analysis to distinguish primitives, safe builtins, custom `toString()`, and plain objects. |
@@ -79,4 +81,3 @@ Open architectural question:
 - Keep hybrid mode permanently, or research a Rust semantic layer for TypeScript.
 
 The current default answer is hybrid mode. Tree-sitter is excellent for syntax and structure; it is not a TypeScript type checker.
-

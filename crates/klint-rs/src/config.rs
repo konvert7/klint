@@ -18,14 +18,24 @@ pub(crate) struct RawConfig {
 #[serde(untagged)]
 pub(crate) enum RuleConfig {
     Severity(String),
-    Options { severity: Option<String> },
+    Options {
+        severity: Option<String>,
+        include: Option<Vec<String>>,
+    },
 }
 
 impl RuleConfig {
     pub(crate) fn severity(&self) -> &str {
         match self {
             RuleConfig::Severity(value) => value,
-            RuleConfig::Options { severity } => severity.as_deref().unwrap_or("error"),
+            RuleConfig::Options { severity, .. } => severity.as_deref().unwrap_or("error"),
+        }
+    }
+
+    pub(crate) fn include(&self) -> Option<&[String]> {
+        match self {
+            RuleConfig::Severity(_) => None,
+            RuleConfig::Options { include, .. } => include.as_deref(),
         }
     }
 }

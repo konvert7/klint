@@ -97,7 +97,7 @@ pub(crate) fn relative_path(root: &Path, file: &Path) -> String {
         .replace('\\', "/")
 }
 
-fn match_pattern(rel_path: &str, pattern: &str) -> bool {
+pub(crate) fn match_pattern(rel_path: &str, pattern: &str) -> bool {
     let norm = rel_path.replace('\\', "/");
     let pattern = pattern.replace('\\', "/");
     if pattern == "." || pattern == "**" {
