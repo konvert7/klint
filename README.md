@@ -98,7 +98,7 @@ Rules give agents room to move quickly because the unsafe moves are blocked stru
 ## CLI
 
 ```sh
-klint [--config <dir>] [--rules <file>] [--fix] [--json]
+klint [--config <dir>] [--rules <file>] [--engine ts|rust|compare|auto] [--fix] [--json]
 klint install-skill [--agents <list>] [--symlink | --copy]
 ```
 
@@ -106,6 +106,7 @@ klint install-skill [--agents <list>] [--symlink | --copy]
 |------|-------------|
 | `--config <dir>` | Directory containing `klint.yaml` or `klint.config.json` (default: cwd) |
 | `--rules <file>` | Path to custom rules file (default: `<configDir>/klint.rules.ts` when present) |
+| `--engine <name>` | Engine mode: `ts` (default), `rust`, `compare`, or `auto` |
 | `--fix` | Apply auto-fixes for fixable violations in-place |
 | `--json` | Emit structured JSON to stdout for agents and CI |
 
@@ -114,6 +115,41 @@ klint install-skill [--agents <list>] [--symlink | --copy]
 ```sh
 klint install-skill --agents claude,opencode,cursor,codex --copy
 ```
+
+## Engines
+
+klint currently ships a TypeScript engine and an experimental Rust engine. The Rust path is built for portable architecture checks and syntax-local rules; type-aware checks stay in TypeScript for now.
+
+| Engine | What it does | When to use it |
+|--------|--------------|----------------|
+| `ts` | Runs the full TypeScript implementation. This is the default. | Maximum compatibility |
+| `rust` | Runs only rules supported by the Rust engine. Unsupported TS-only rules are rejected. | Strict Rust smoke tests and native-engine debugging |
+| `compare` | Runs TS and Rust on the same supported config and fails if JSON output differs. Requires `--json`. | Parity verification while porting rules |
+| `auto` | Runs Rust-supported rules in Rust, TS-only rules in TypeScript, then merges output. | Recommended experimental migration path |
+
+Examples:
+
+```sh
+klint --engine auto
+klint --engine rust --json     # strict Rust-only run; rejects unsupported TS-only rules
+klint --engine compare --json  # parity check; rejects unsupported TS-only rules
+```
+
+Rust currently supports:
+
+- `arch` rules: imports, forbidden patterns, singleton locations
+- `no-unguarded-json-parse`
+- `no-nested-template-literals`
+- `no-consecutive-array-push`
+- `no-string-match`
+
+These rules remain TypeScript-owned because they need TypeScript semantic information:
+
+- `no-floating-promise`
+- `no-misused-promises`
+- `no-date-equality`
+- `no-optional-chain-on-non-nullable`
+- `no-object-in-template`
 
 ## Configuration
 
