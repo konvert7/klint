@@ -120,6 +120,8 @@ klint install-skill --agents claude,opencode,cursor,codex --copy
 
 klint currently ships a TypeScript engine and an experimental Rust engine. The Rust path is built for portable architecture checks and syntax-local rules; type-aware checks stay in TypeScript for now.
 
+Maintainer migration notes live in [`docs/rust-engine.md`](docs/rust-engine.md).
+
 | Engine | What it does | When to use it |
 |--------|--------------|----------------|
 | `ts` | Runs the full TypeScript implementation. This is the default. | Maximum compatibility |
