@@ -28,22 +28,31 @@ export async function prepare(_, context) {
 
   const packageJson = readPackageJson(cwd);
   packageJson.version = version;
-  packageJson.optionalDependencies ??= {};
-  for (const packageName of NATIVE_PACKAGE_NAMES) {
-    packageJson.optionalDependencies[packageName] = version;
-  }
   writePackageJson(cwd, packageJson);
 }
 
-export async function publish(_, context) {
+export async function publish(pluginConfig = {}, context) {
   const cwd = context.cwd ?? process.cwd();
+  const spawn = pluginConfig.spawnSync ?? spawnSync;
+  const version = context.nextRelease?.version;
 
   if (context.options?.dryRun) {
     context.logger?.log("Dry run: skipping npm publish");
     return;
   }
 
-  const result = spawnSync("npm", ["publish", "--access", "public"], {
+  if (!version) {
+    throw new Error("semantic-release did not provide nextRelease.version");
+  }
+
+  const packageJson = readPackageJson(cwd);
+  packageJson.optionalDependencies ??= {};
+  for (const packageName of NATIVE_PACKAGE_NAMES) {
+    packageJson.optionalDependencies[packageName] = version;
+  }
+  writePackageJson(cwd, packageJson);
+
+  const result = spawn("npm", ["publish", "--access", "public"], {
     cwd,
     encoding: "utf-8",
     stdio: "inherit",

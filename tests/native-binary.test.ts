@@ -62,9 +62,8 @@ describe("native binary package metadata", () => {
       .sort();
 
     expect(Object.keys(optionalDependencies).sort()).toEqual(expectedNames);
-    expect(packageJson.version).toBeString();
     for (const packageName of expectedNames) {
-      expect(optionalDependencies[packageName]).toBe(packageJson.version as string);
+      expect(optionalDependencies[packageName]).toBe("*");
     }
   });
 

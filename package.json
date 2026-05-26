@@ -62,10 +62,10 @@
     "zod": "^4.4.3"
   },
   "optionalDependencies": {
-    "@konvert7/klint-darwin-arm64": "0.19.2",
-    "@konvert7/klint-darwin-x64": "0.19.2",
-    "@konvert7/klint-linux-x64": "0.19.2",
-    "@konvert7/klint-win32-x64": "0.19.2"
+    "@konvert7/klint-darwin-arm64": "*",
+    "@konvert7/klint-darwin-x64": "*",
+    "@konvert7/klint-linux-x64": "*",
+    "@konvert7/klint-win32-x64": "*"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.7",
