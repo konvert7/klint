@@ -18,6 +18,8 @@ import type { ArchConfig, KlintConfig, KlintRule, RuleConfigValue } from "./core
 import { BUILT_IN_PLUGINS } from "./plugins/index";
 import { BUILT_IN_RULES } from "./rules/index";
 
+const RUST_SUPPORTED_TYPESCRIPT_RULES = new Set(["no-string-match"]);
+
 interface CliOptions {
   configDir?: string;
   rulesFile?: string;
@@ -366,25 +368,29 @@ function resolveRustEngineCommand(configDir: string): RustEngineCommand {
     return { bin: explicitBin, args };
   }
 
-  const nativePackageBin = resolveNativePackageBinary({ packageRoot: import.meta.dir });
-  if (nativePackageBin) {
-    return { bin: nativePackageBin, args };
-  }
-
   const localBin = join(
     import.meta.dir,
     "target",
     "debug",
     process.platform === "win32" ? "klint-rs.exe" : "klint-rs"
   );
-  if (existsSync(localBin)) {
+  if (isSourceCheckout() && existsSync(localBin)) {
     return { bin: localBin, args };
+  }
+
+  const nativePackageBin = resolveNativePackageBinary({ packageRoot: import.meta.dir });
+  if (nativePackageBin) {
+    return { bin: nativePackageBin, args };
   }
 
   return {
     bin: "cargo",
     args: ["run", "--quiet", "-p", "klint-rs", "--", ...args],
   };
+}
+
+function isSourceCheckout(): boolean {
+  return existsSync(join(import.meta.dir, "crates", "klint-rs", "Cargo.toml"));
 }
 
 function rustEngineUnsupportedReason({
@@ -405,14 +411,23 @@ function rustEngineUnsupportedReason({
   if (!json) return "KLINT_ENGINE=rust currently requires --json";
   if (fix) return "KLINT_ENGINE=rust does not support --fix";
   if (rulesFile) return "KLINT_ENGINE=rust does not support --rules";
-  if (!raw.arch) return "KLINT_ENGINE=rust requires an arch config";
   if ((raw.plugins?.length ?? 0) > 0) return "KLINT_ENGINE=rust does not support plugins";
+  const activeSupportedRules = Object.entries(raw.rules ?? {}).filter(
+    ([name, value]) =>
+      ruleConfigSeverity(value) !== "off" && RUST_SUPPORTED_TYPESCRIPT_RULES.has(name)
+  );
   const unsupportedRules = Object.entries(raw.rules ?? {})
-    .filter(([, value]) => ruleConfigSeverity(value) !== "off")
+    .filter(
+      ([name, value]) =>
+        ruleConfigSeverity(value) !== "off" && !RUST_SUPPORTED_TYPESCRIPT_RULES.has(name)
+    )
     .map(([name]) => name);
+  if (!raw.arch && activeSupportedRules.length === 0 && unsupportedRules.length === 0) {
+    return "KLINT_ENGINE=rust requires an arch config or supported TypeScript rule";
+  }
   if (unsupportedRules.length > 0) {
     return [
-      "Rust engine currently supports arch rules only",
+      "Rust engine currently supports arch rules and selected TypeScript rules only",
       "",
       "Unsupported TypeScript rules:",
       ...unsupportedRules.map((rule) => `- ${rule}`),

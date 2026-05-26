@@ -10,8 +10,24 @@ pub(crate) struct RawConfig {
     pub(crate) root: Option<String>,
     pub(crate) include: Option<Vec<String>>,
     pub(crate) plugins: Option<Vec<String>>,
-    pub(crate) rules: Option<BTreeMap<String, serde_yaml::Value>>,
+    pub(crate) rules: Option<BTreeMap<String, RuleConfig>>,
     pub(crate) arch: Option<ArchConfig>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub(crate) enum RuleConfig {
+    Severity(String),
+    Options { severity: Option<String> },
+}
+
+impl RuleConfig {
+    pub(crate) fn severity(&self) -> &str {
+        match self {
+            RuleConfig::Severity(value) => value,
+            RuleConfig::Options { severity } => severity.as_deref().unwrap_or("error"),
+        }
+    }
 }
 
 pub(crate) fn find_config(config_dir: &Path) -> Result<PathBuf, String> {

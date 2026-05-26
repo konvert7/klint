@@ -2,6 +2,7 @@ mod arch;
 mod config;
 mod files;
 mod output;
+mod rules;
 pub mod syntax;
 
 use std::path::PathBuf;
@@ -10,6 +11,7 @@ use arch::run_arch_rules;
 use config::{find_config, read_config, resolve_root};
 use files::{read_files, resolve_files};
 pub use output::{JsonOutput, Summary, Violation};
+use rules::run_supported_rules;
 
 #[derive(Debug)]
 pub struct RunOptions {
@@ -25,9 +27,10 @@ pub fn run(options: RunOptions) -> Result<JsonOutput, String> {
     let files = resolve_files(&root, &include)?;
     let file_contents = read_files(&files)?;
     let _plugins = raw.plugins.unwrap_or_default();
-    let _rules = raw.rules.unwrap_or_default();
+    let rules = raw.rules.unwrap_or_default();
 
     let mut violations = Vec::new();
+    run_supported_rules(&rules, &files, &file_contents, &root, &mut violations);
     if let Some(arch) = raw.arch {
         run_arch_rules(&arch, &files, &file_contents, &root, &mut violations);
     }

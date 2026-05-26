@@ -81,7 +81,6 @@ function rustBinPath(): string {
 
 function ensureRustBinary(): string {
   const bin = rustBinPath();
-  if (existsSync(bin)) return bin;
 
   const result = spawnSync("cargo", ["build", "-p", "klint-rs"], {
     cwd: ROOT,
@@ -171,7 +170,10 @@ rules:
       const rust = runCli(dir, { KLINT_ENGINE: "rust" });
 
       expect(rust.code).toBe(1);
-      expect(rust.stderr).toContain("KLINT_ENGINE=rust requires an arch config");
+      expect(rust.stderr).toContain(
+        "Rust engine currently supports arch rules and selected TypeScript rules only"
+      );
+      expect(rust.stderr).toContain("- no-floating-promise");
       expect(rust.stdout).toBe("");
     } finally {
       rmSync(dir, { recursive: true });
@@ -200,10 +202,12 @@ arch:
       const rust = runCli(dir, { KLINT_ENGINE: "rust" });
 
       expect(rust.code).toBe(1);
-      expect(rust.stderr).toContain("Rust engine currently supports arch rules only");
+      expect(rust.stderr).toContain(
+        "Rust engine currently supports arch rules and selected TypeScript rules only"
+      );
       expect(rust.stderr).toContain("Unsupported TypeScript rules:");
       expect(rust.stderr).toContain("- no-floating-promise");
-      expect(rust.stderr).toContain("- no-string-match");
+      expect(rust.stderr).not.toContain("- no-string-match");
       expect(rust.stderr).not.toContain("- no-nested-template-literals");
       expect(rust.stdout).toBe("");
     } finally {
@@ -301,12 +305,37 @@ arch:
     }
   });
 
-  test("--engine compare refuses configs Rust cannot verify", () => {
+  test("--engine compare supports no-string-match parity", () => {
     const dir = setupFixture(
       `
 include: ["src"]
 rules:
   no-string-match: error
+`,
+      `const hit = "abc".match(/a/);\nconst ok = "abc".match(/a/g);\n`
+    );
+
+    try {
+      const ts = runCliArgs(dir, ["--engine", "ts", "--json"]);
+      const compare = runCliArgs(dir, ["--engine", "compare", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+
+      expect(compare.code).toBe(2);
+      expect(compare.code).toBe(ts.code);
+      expect(parseJson(compare)).toEqual(parseJson(ts));
+      expect(compare.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine compare refuses configs Rust cannot verify", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules:
+  no-floating-promise: error
 arch:
   forbidden:
     - pattern: "console.log("
@@ -322,8 +351,10 @@ arch:
       });
 
       expect(compare.code).toBe(1);
-      expect(compare.stderr).toContain("Rust engine currently supports arch rules only");
-      expect(compare.stderr).toContain("- no-string-match");
+      expect(compare.stderr).toContain(
+        "Rust engine currently supports arch rules and selected TypeScript rules only"
+      );
+      expect(compare.stderr).toContain("- no-floating-promise");
       expect(compare.stdout).toBe("");
     } finally {
       rmSync(dir, { recursive: true });
