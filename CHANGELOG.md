@@ -1,3 +1,18 @@
+# [0.17.0](https://github.com/konvert7/klint/compare/v0.16.0...v0.17.0) (2026-05-26)
+
+
+### Bug Fixes
+
+* **rules:** normalize paths for no-string-match ([e267fbd](https://github.com/konvert7/klint/commit/e267fbd46bcb048d78a1156b5561c9c46a6a8551))
+
+
+### Features
+
+* **cli:** add support for engine selection in CLI and enhance error handling for unknown engines ([38cb989](https://github.com/konvert7/klint/commit/38cb989cf69025c6c7131a3c8a76648dd69d961d))
+* introduce compare mode for safe rule support introduction in rust ([e4d72d3](https://github.com/konvert7/klint/commit/e4d72d3bd3e4d6380551785ec705d374c0467cee))
+* **rust:** port no-string-match to rust ([4f118c8](https://github.com/konvert7/klint/commit/4f118c8ec4c23668ee2de4f50a6ad9ea2754b532))
+* **tests:** add golden rule test cases for no-string-match rule ([4520789](https://github.com/konvert7/klint/commit/452078973394ed4b551006f572928303cad8877e))
+
 # [0.16.0](https://github.com/konvert7/klint/compare/v0.15.2...v0.16.0) (2026-05-26)
 
 
