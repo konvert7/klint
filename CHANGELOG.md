@@ -1,3 +1,12 @@
+# [0.18.0](https://github.com/konvert7/klint/compare/v0.17.0...v0.18.0) (2026-05-26)
+
+
+### Features
+
+* **rules:** add no-consecutive-array-push rule to detect consecutive array push calls ([0bbaace](https://github.com/konvert7/klint/commit/0bbaace66fe7925a62349c0f0ad2cf9f5b74dc82))
+* **rules:** add no-nested-template-literals rule with support for nested template literal detection ([c50bf60](https://github.com/konvert7/klint/commit/c50bf60d9961266c6406d8c99e7417c35d3e07de))
+* **rules:** add no-unguarded-json-parse rule to detect unguarded JSON.parse calls ([99ca42a](https://github.com/konvert7/klint/commit/99ca42a2eaca08abfa464108e583e65252940f4a))
+
 # [0.17.0](https://github.com/konvert7/klint/compare/v0.16.0...v0.17.0) (2026-05-26)
 
 
