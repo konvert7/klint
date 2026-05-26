@@ -5,8 +5,8 @@ use crate::config::RuleConfig;
 use crate::files::{match_pattern, relative_path};
 use crate::output::Violation;
 use crate::syntax::{
-    scan_consecutive_array_push, scan_nested_template_literals, scan_single_char_classes,
-    scan_string_match, scan_sync_in_async, scan_unguarded_json_parse,
+    scan_consecutive_array_push, scan_nested_template_literals, scan_prefer_at,
+    scan_single_char_classes, scan_string_match, scan_sync_in_async, scan_unguarded_json_parse,
 };
 
 pub(crate) fn run_supported_rules(
@@ -33,6 +33,9 @@ pub(crate) fn run_supported_rules(
     }
     if let Some(config) = rules.get("sonar/no-single-char-class") {
         run_sonar_no_single_char_class(config, files, file_contents, root, violations);
+    }
+    if let Some(config) = rules.get("sonar/prefer-at") {
+        run_sonar_prefer_at(config, files, file_contents, root, violations);
     }
 }
 
@@ -269,6 +272,53 @@ fn run_sonar_no_single_char_class(
                     record.start_byte,
                     record.end_byte,
                     &record.fixed_regex,
+                ),
+            });
+        }
+    }
+}
+
+fn run_sonar_prefer_at(
+    config: &RuleConfig,
+    files: &[PathBuf],
+    file_contents: &BTreeMap<PathBuf, String>,
+    root: &Path,
+    violations: &mut Vec<Violation>,
+) {
+    let severity = config.severity();
+    if severity == "off" {
+        return;
+    }
+
+    for file in files {
+        if !rule_applies_to_file(config, root, file) {
+            continue;
+        }
+        let Some(content) = file_contents.get(file) else {
+            continue;
+        };
+        let Ok(records) = scan_prefer_at(file, content) else {
+            continue;
+        };
+
+        for record in records {
+            let replacement = format!("{}.at(-{})", record.base, record.offset);
+            violations.push(Violation {
+                file: relative_path(root, file),
+                line: record.line,
+                rule: "sonar/prefer-at".to_string(),
+                message: format!(
+                    "Prefer {} over {}[{}.length - {}] for cleaner negative indexing.",
+                    replacement, record.base, record.base, record.offset
+                ),
+                severity: severity.to_string(),
+                fix: line_fix(
+                    content,
+                    record.start_row,
+                    record.end_row,
+                    record.start_byte,
+                    record.end_byte,
+                    &replacement,
                 ),
             });
         }

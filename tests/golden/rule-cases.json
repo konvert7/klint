@@ -501,5 +501,79 @@
       "violations": [],
       "summary": { "errors": 0, "warnings": 0 }
     }
+  },
+  {
+    "name": "sonar/prefer-at flags and fixes negative index access",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "sonar/prefer-at": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const x = arr[arr.length - 1];\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "sonar/prefer-at",
+          "message": "Prefer arr.at(-1) over arr[arr.length - 1] for cleaner negative indexing.",
+          "severity": "error",
+          "fix": {
+            "startLine": 1,
+            "endLine": 1,
+            "replacement": "const x = arr.at(-1);"
+          }
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "sonar/prefer-at handles property access base",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "sonar/prefer-at": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const x = obj.items[obj.items.length - 5];\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "sonar/prefer-at",
+          "message": "Prefer obj.items.at(-5) over obj.items[obj.items.length - 5] for cleaner negative indexing.",
+          "severity": "error",
+          "fix": {
+            "startLine": 1,
+            "endLine": 1,
+            "replacement": "const x = obj.items.at(-5);"
+          }
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "sonar/prefer-at ignores non-matching index access",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "sonar/prefer-at": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a = arr[other.length - 1];\nconst b = arr[arr.length - 0];\nconst c = arr[arr.length + 1];\nconst d = arr[i];\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": { "errors": 0, "warnings": 0 }
+    }
   }
 ]

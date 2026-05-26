@@ -45,6 +45,7 @@ Plugin rules:
 | Rule | Why it is Rust-portable |
 |------|-------------------------|
 | `sonar/no-single-char-class` | Syntax-only regex literal parsing and character-class rewrite. |
+| `sonar/prefer-at` | Syntax-only negative index access rewrite matching the TypeScript rule contract. |
 
 Every Rust-supported rule should have:
 

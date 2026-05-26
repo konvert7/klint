@@ -34,6 +34,7 @@ const RUST_SUPPORTED_RULES = new Set([
   "no-sync-in-async",
   "no-unguarded-json-parse",
   "sonar/no-single-char-class",
+  "sonar/prefer-at",
 ]);
 
 interface CliOptions {
