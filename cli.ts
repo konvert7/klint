@@ -105,7 +105,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
   const root = resolve(configDir, raw.root ?? ".");
 
   if (engine === "rust") {
-    runRustEngine({ configDir, fix, json, raw, rulesFile });
+    runRustEngine({ configDir, fix, json, raw, rulesFile, startedAt });
     return;
   }
   if (
@@ -250,6 +250,7 @@ function runRustEngine({
   json,
   raw,
   rulesFile,
+  startedAt,
 }: {
   configDir: string;
   fix: boolean;
@@ -260,10 +261,10 @@ function runRustEngine({
     arch?: unknown;
   };
   rulesFile?: string;
+  startedAt: number;
 }): void {
   const unsupportedReason = rustEngineUnsupportedReason({
     fix,
-    json,
     raw,
     rulesFile,
   });
@@ -284,9 +285,18 @@ function runRustEngine({
     encoding: "utf-8",
   });
 
-  if (result.stdout) process.stdout.write(result.stdout);
   if (result.stderr) process.stderr.write(result.stderr);
-  process.exit(result.status ?? 1);
+  if (json) {
+    if (result.stdout) process.stdout.write(result.stdout);
+    process.exit(result.status ?? 1);
+  }
+
+  const payload = parseJsonPayload(result.stdout);
+  if (!isJsonPayload(payload)) {
+    process.stderr.write("klint: --engine rust failed to parse Rust JSON output\n");
+    process.exit(1);
+  }
+  writeTextOutput(payload.violations, startedAt);
 }
 
 function runCompareEngine({
@@ -308,9 +318,13 @@ function runCompareEngine({
   rulesFile?: string;
   tsViolations: ReturnType<typeof runKlint>;
 }): void {
+  if (!json) {
+    process.stderr.write("klint: --engine compare currently requires --json\n");
+    process.exit(1);
+  }
+
   const unsupportedReason = rustEngineUnsupportedReason({
     fix,
-    json,
     raw,
     rulesFile,
   });
@@ -608,12 +622,10 @@ function isSourceCheckout(): boolean {
 
 function rustEngineUnsupportedReason({
   fix,
-  json,
   raw,
   rulesFile,
 }: {
   fix: boolean;
-  json: boolean;
   raw: {
     plugins?: string[];
     rules?: Record<string, RuleConfigValue>;
@@ -621,7 +633,6 @@ function rustEngineUnsupportedReason({
   };
   rulesFile?: string;
 }): string | undefined {
-  if (!json) return "KLINT_ENGINE=rust currently requires --json";
   if (fix) return "KLINT_ENGINE=rust does not support --fix";
   if (rulesFile) return "KLINT_ENGINE=rust does not support --rules";
   if ((raw.plugins?.length ?? 0) > 0) return "KLINT_ENGINE=rust does not support plugins";

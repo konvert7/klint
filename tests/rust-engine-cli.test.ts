@@ -276,6 +276,61 @@ arch:
     }
   });
 
+  test("--engine rust supports clean text output", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules: {}
+arch:
+  forbidden:
+    - pattern: "console.log("
+      in: "src/**"
+      message: "Use logger"
+`,
+      `export const value = 1;\n`
+    );
+
+    try {
+      const result = runCliArgs(dir, ["--engine", "rust"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+
+      expect(result.code).toBe(0);
+      expect(result.stdout).toContain("klint: 0 violations");
+      expect(result.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine rust supports violation text output", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules: {}
+arch:
+  forbidden:
+    - pattern: "console.log("
+      in: "src/**"
+      message: "Use logger"
+`,
+      `console.log("x");\n`
+    );
+
+    try {
+      const result = runCliArgs(dir, ["--engine", "rust"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+
+      expect(result.code).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("klint: 1 error(s)");
+      expect(result.stderr).toContain("[arch/forbidden]");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine compare emits TypeScript JSON when Rust matches", () => {
     const dir = setupFixture(
       `
