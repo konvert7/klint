@@ -1,3 +1,11 @@
+## [0.19.2](https://github.com/konvert7/klint/compare/v0.19.1...v0.19.2) (2026-05-26)
+
+
+### Bug Fixes
+
+* **rust:** always pin native version to root version ([0ea534e](https://github.com/konvert7/klint/commit/0ea534e8c788e5b972b1f1ab9ca79d4be24de9a1))
+* **tests:** mock readPackageJson to return a staged version for native binary resolution ([54b3dc5](https://github.com/konvert7/klint/commit/54b3dc547b6ffa52790d7a4ecb8f535b7e0fec45))
+
 ## [0.19.1](https://github.com/konvert7/klint/compare/v0.19.0...v0.19.1) (2026-05-26)
 
 
