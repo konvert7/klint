@@ -191,5 +191,89 @@
       "violations": [],
       "summary": { "errors": 0, "warnings": 0 }
     }
+  },
+  {
+    "name": "no-consecutive-array-push flags two pushes",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-consecutive-array-push": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const arr: number[] = [];\narr.push(1);\narr.push(2);\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-consecutive-array-push",
+          "message": "2 consecutive .push() calls on `arr` — combine into a single .push(a, b, …) call.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "no-consecutive-array-push flags three pushes with warning severity",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-consecutive-array-push": {
+          "severity": "warn"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const arr: string[] = [];\narr.push(\"a\");\narr.push(\"b\");\narr.push(\"c\");\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-consecutive-array-push",
+          "message": "3 consecutive .push() calls on `arr` — combine into a single .push(a, b, …) call.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 0, "warnings": 1 }
+    }
+  },
+  {
+    "name": "no-consecutive-array-push ignores different arrays",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-consecutive-array-push": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a: number[] = [];\nconst b: number[] = [];\na.push(1);\nb.push(2);\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": { "errors": 0, "warnings": 0 }
+    }
+  },
+  {
+    "name": "no-consecutive-array-push ignores separated pushes",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-consecutive-array-push": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const arr: number[] = [];\narr.push(1);\nconsole.log(arr);\narr.push(2);\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": { "errors": 0, "warnings": 0 }
+    }
   }
 ]

@@ -19,6 +19,7 @@ import { BUILT_IN_PLUGINS } from "./plugins/index";
 import { BUILT_IN_RULES } from "./rules/index";
 
 const RUST_SUPPORTED_TYPESCRIPT_RULES = new Set([
+  "no-consecutive-array-push",
   "no-nested-template-literals",
   "no-string-match",
 ]);

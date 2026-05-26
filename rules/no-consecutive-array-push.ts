@@ -26,7 +26,7 @@ export const noConsecutiveArrayPush: KlintRule = {
               statements[runStart].getStart()
             );
             violations.push({
-              file: relative(root, file),
+              file: relative(root, file).replaceAll("\\", "/"),
               line: line + 1,
               message: `${upTo - runStart} consecutive .push() calls on \`${runReceiver}\` — combine into a single .push(a, b, …) call.`,
             });

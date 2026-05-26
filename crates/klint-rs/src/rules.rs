@@ -4,7 +4,9 @@ use std::path::{Path, PathBuf};
 use crate::config::RuleConfig;
 use crate::files::relative_path;
 use crate::output::Violation;
-use crate::syntax::{scan_nested_template_literals, scan_string_match};
+use crate::syntax::{
+    scan_consecutive_array_push, scan_nested_template_literals, scan_string_match,
+};
 
 pub(crate) fn run_supported_rules(
     rules: &BTreeMap<String, RuleConfig>,
@@ -18,6 +20,9 @@ pub(crate) fn run_supported_rules(
     }
     if let Some(config) = rules.get("no-nested-template-literals") {
         run_no_nested_template_literals(config, files, file_contents, root, violations);
+    }
+    if let Some(config) = rules.get("no-consecutive-array-push") {
+        run_no_consecutive_array_push(config, files, file_contents, root, violations);
     }
 }
 
@@ -85,6 +90,42 @@ fn run_no_nested_template_literals(
                 message:
                     "Nested template literal — extract the inner template to a variable to improve readability."
                         .to_string(),
+                severity: severity.to_string(),
+                fix: None,
+            });
+        }
+    }
+}
+
+fn run_no_consecutive_array_push(
+    config: &RuleConfig,
+    files: &[PathBuf],
+    file_contents: &BTreeMap<PathBuf, String>,
+    root: &Path,
+    violations: &mut Vec<Violation>,
+) {
+    let severity = config.severity();
+    if severity == "off" {
+        return;
+    }
+
+    for file in files {
+        let Some(content) = file_contents.get(file) else {
+            continue;
+        };
+        let Ok(records) = scan_consecutive_array_push(file, content) else {
+            continue;
+        };
+
+        for record in records {
+            violations.push(Violation {
+                file: relative_path(root, file),
+                line: record.line,
+                rule: "no-consecutive-array-push".to_string(),
+                message: format!(
+                    "{} consecutive .push() calls on `{}` — combine into a single .push(a, b, …) call.",
+                    record.count, record.receiver
+                ),
                 severity: severity.to_string(),
                 fix: None,
             });
