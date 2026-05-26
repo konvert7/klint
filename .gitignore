@@ -5,5 +5,6 @@ npm/native/*/bin/
 python/klint/_bin/*
 !python/klint/_bin/.gitkeep
 python/build/
+python/dist/
 python/*.egg-info/
 .DS_Store

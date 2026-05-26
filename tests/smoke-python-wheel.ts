@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const pythonRoot = join(root, "python");
+const distDir = join(pythonRoot, "dist");
 const binName = process.platform === "win32" ? "klint-rs.exe" : "klint-rs";
 const stagedBinary = join(pythonRoot, "klint", "_bin", binName);
 const workDir = mkdtempSync(join(tmpdir(), "klint-python-wheel-"));
@@ -22,9 +23,11 @@ if (!existsSync(stagedBinary)) {
 }
 
 try {
-  run("python3", ["-m", "pip", "wheel", pythonRoot, "--wheel-dir", workDir]);
-  const wheel = readdirSync(workDir).find((file) => file.endsWith(".whl"));
-  if (!wheel) fail(`No wheel built in ${workDir}`);
+  rmSync(distDir, { recursive: true, force: true });
+  mkdirSync(distDir, { recursive: true });
+  run("python3", ["-m", "pip", "wheel", pythonRoot, "--wheel-dir", distDir]);
+  const wheel = readdirSync(distDir).find((file) => file.endsWith(".whl"));
+  if (!wheel) fail(`No wheel built in ${distDir}`);
 
   const venv = join(workDir, "venv");
   run("python3", ["-m", "venv", venv]);
@@ -32,7 +35,7 @@ try {
     venv,
     process.platform === "win32" ? "Scripts/python.exe" : "bin/python"
   );
-  run(python, ["-m", "pip", "install", join(workDir, wheel)]);
+  run(python, ["-m", "pip", "install", join(distDir, wheel)]);
 
   const fixture = join(workDir, "fixture");
   mkdirSync(join(fixture, "src", "app", "jobs"), { recursive: true });
