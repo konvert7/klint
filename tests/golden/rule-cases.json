@@ -649,5 +649,79 @@
       "violations": [],
       "summary": { "errors": 0, "warnings": 0 }
     }
+  },
+  {
+    "name": "sonar/prefer-string-raw-regexp flags and fixes no-substitution template",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "sonar/prefer-string-raw-regexp": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const r = new RegExp(`\\\\.foo`);\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "sonar/prefer-string-raw-regexp",
+          "message": "Use String.raw`...` for RegExp template argument to avoid double backslashes (Sonar S7780).",
+          "severity": "error",
+          "fix": {
+            "startLine": 1,
+            "endLine": 1,
+            "replacement": "const r = new RegExp(String.raw`\\.foo`);"
+          }
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "sonar/prefer-string-raw-regexp flags and fixes template expression",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "sonar/prefer-string-raw-regexp": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "declare const n: string;\nconst r = new RegExp(`\\\\.(${n})`);\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "sonar/prefer-string-raw-regexp",
+          "message": "Use String.raw`...` for RegExp template argument to avoid double backslashes (Sonar S7780).",
+          "severity": "error",
+          "fix": {
+            "startLine": 2,
+            "endLine": 2,
+            "replacement": "const r = new RegExp(String.raw`\\.(${n})`);"
+          }
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "sonar/prefer-string-raw-regexp ignores unsupported string forms",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "sonar/prefer-string-raw-regexp": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a = new RegExp(\"\\\\.foo\");\nconst b = new RegExp(\"\\\\.\" + name);\nconst c = new RegExp(String.raw`\\.foo`);\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": { "errors": 0, "warnings": 0 }
+    }
   }
 ]

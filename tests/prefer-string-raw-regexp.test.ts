@@ -60,6 +60,16 @@ describe("sonar/prefer-string-raw-regexp", () => {
     expect(v).toHaveLength(0);
   });
 
+  test("does not flag new RegExp(string literal) — rule only supports templates today", () => {
+    const v = lint(String.raw`const r = new RegExp("\\.foo");`);
+    expect(v).toHaveLength(0);
+  });
+
+  test("does not flag new RegExp(string concatenation) — rule only supports templates today", () => {
+    const v = lint(String.raw`const r = new RegExp("\\." + name);`);
+    expect(v).toHaveLength(0);
+  });
+
   test("does not flag new RegExp(String.raw template) already using String.raw", () => {
     const v = lint("const r = new RegExp(String.raw`\\.foo`);");
     expect(v).toHaveLength(0);
