@@ -69,9 +69,7 @@ try {
 function prepareRootPackageJson(): PackageJson {
   const packageJson = readPackageJson(join(root, "package.json"));
   packageJson.version = options.version;
-  packageJson.optionalDependencies = Object.fromEntries(
-    nativePackages().map((nativePackage) => [nativePackage.packageName, options.version])
-  );
+  delete packageJson.optionalDependencies;
 
   const outPath = join(options.outDir, "package.json");
   writeJson(outPath, packageJson);
@@ -106,9 +104,9 @@ function prepareNativePackage(nativePackage: ReturnType<typeof nativePackages>[n
 function validateRootPackageJson(packageJson: PackageJson): void {
   const optionalDependencies = packageJson.optionalDependencies ?? {};
   for (const nativePackage of nativePackages()) {
-    if (optionalDependencies[nativePackage.packageName] !== options.version) {
+    if (nativePackage.packageName in optionalDependencies) {
       fail(
-        `Root optional dependency ${nativePackage.packageName} is not pinned to ${options.version}`
+        `Root package must not consume dark native package ${nativePackage.packageName}`
       );
     }
   }
