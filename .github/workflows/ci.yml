@@ -62,6 +62,9 @@ jobs:
       - name: Klint
         run: bun run klint
 
+      - name: Klint auto engine
+        run: bun run test:auto-engine
+
       - name: Rust debug build
         run: cargo build -p klint-rs
 
