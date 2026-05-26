@@ -330,6 +330,32 @@ rules:
     }
   });
 
+  test("--engine compare supports no-nested-template-literals parity", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules:
+  no-nested-template-literals: error
+`,
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: intentional — string contains TS source code
+      "declare const b: boolean;\nconst value = `${b ? `yes` : `no`}`;\n"
+    );
+
+    try {
+      const ts = runCliArgs(dir, ["--engine", "ts", "--json"]);
+      const compare = runCliArgs(dir, ["--engine", "compare", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+
+      expect(compare.code).toBe(2);
+      expect(compare.code).toBe(ts.code);
+      expect(parseJson(compare)).toEqual(parseJson(ts));
+      expect(compare.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine compare refuses configs Rust cannot verify", () => {
     const dir = setupFixture(
       `

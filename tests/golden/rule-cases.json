@@ -90,5 +90,106 @@
       "violations": [],
       "summary": { "errors": 0, "warnings": 0 }
     }
+  },
+  {
+    "name": "no-nested-template-literals flags direct nested template",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-nested-template-literals": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const value = `outer ${`inner`}`;\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-nested-template-literals",
+          "message": "Nested template literal — extract the inner template to a variable to improve readability.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "no-nested-template-literals flags ternary branches",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-nested-template-literals": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "declare const b: boolean;\nconst value = `${b ? `yes` : `no`}`;\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-nested-template-literals",
+          "message": "Nested template literal — extract the inner template to a variable to improve readability.",
+          "severity": "error",
+          "fix": null
+        },
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-nested-template-literals",
+          "message": "Nested template literal — extract the inner template to a variable to improve readability.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 2, "warnings": 0 }
+    }
+  },
+  {
+    "name": "no-nested-template-literals honors warning severity",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-nested-template-literals": {
+          "severity": "warn"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const value = `outer ${`inner`}`;\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-nested-template-literals",
+          "message": "Nested template literal — extract the inner template to a variable to improve readability.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 0, "warnings": 1 }
+    }
+  },
+  {
+    "name": "no-nested-template-literals ignores standalone and tagged templates",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-nested-template-literals": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "declare function tag(s: TemplateStringsArray): string;\nconst standalone = `hello`;\nconst value = `${tag`inner`}`;\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": { "errors": 0, "warnings": 0 }
+    }
   }
 ]

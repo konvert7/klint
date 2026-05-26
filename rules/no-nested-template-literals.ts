@@ -32,7 +32,7 @@ function findNestedTemplate(
   if (ts.isTemplateExpression(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
     const { line } = src.getLineAndCharacterOfPosition(node.getStart());
     violations.push({
-      file: relative(root, file),
+      file: relative(root, file).replaceAll("\\", "/"),
       line: line + 1,
       message:
         "Nested template literal — extract the inner template to a variable to improve readability.",

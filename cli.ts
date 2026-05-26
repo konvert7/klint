@@ -18,7 +18,10 @@ import type { ArchConfig, KlintConfig, KlintRule, RuleConfigValue } from "./core
 import { BUILT_IN_PLUGINS } from "./plugins/index";
 import { BUILT_IN_RULES } from "./rules/index";
 
-const RUST_SUPPORTED_TYPESCRIPT_RULES = new Set(["no-string-match"]);
+const RUST_SUPPORTED_TYPESCRIPT_RULES = new Set([
+  "no-nested-template-literals",
+  "no-string-match",
+]);
 
 interface CliOptions {
   configDir?: string;
