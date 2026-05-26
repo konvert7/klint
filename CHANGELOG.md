@@ -1,3 +1,10 @@
+# [0.15.0](https://github.com/konvert7/klint/compare/v0.14.0...v0.15.0) (2026-05-26)
+
+
+### Features
+
+* **publish:** enhance native npm publishing with error handling and logging for missing packages ([7498d2e](https://github.com/konvert7/klint/commit/7498d2eaf7f23f2ee10fc9a65b70fdcae0abded9))
+
 # [0.14.0](https://github.com/konvert7/klint/compare/v0.13.0...v0.14.0) (2026-05-26)
 
 
