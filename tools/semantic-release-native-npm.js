@@ -60,8 +60,9 @@ export async function prepare(_, context) {
   }
 }
 
-export async function publish(_, context) {
+export async function publish(pluginConfig = {}, context) {
   const cwd = context.cwd ?? process.cwd();
+  const spawn = pluginConfig.spawnSync ?? spawnSync;
 
   if (context.options?.dryRun) {
     context.logger?.log("Dry run: skipping native npm publishes");
@@ -69,13 +70,23 @@ export async function publish(_, context) {
   }
 
   for (const nativePackage of NATIVE_PACKAGES) {
-    const result = spawnSync("npm", ["publish", "--access", "public"], {
+    const result = spawn("npm", ["publish", "--access", "public"], {
       cwd: packageDir(cwd, nativePackage),
       encoding: "utf-8",
-      stdio: "inherit",
+      stdio: ["ignore", "pipe", "pipe"],
     });
 
+    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+
     if ((result.status ?? -1) !== 0) {
+      if (isMissingPackagePublishFailure(result)) {
+        context.logger?.log(
+          `Skipping ${nativePackage.name}: npm package is not available to this trusted publisher yet`
+        );
+        continue;
+      }
+
       throw new Error(
         `${nativePackage.name} npm publish failed with exit code ${result.status ?? -1}`
       );
@@ -95,3 +106,12 @@ function writePackageJson(dir, packageJson) {
   writeFileSync(join(dir, "package.json"), `${JSON.stringify(packageJson, null, 2)}\n`);
 }
 
+function isMissingPackagePublishFailure(result) {
+  const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+  return (
+    output.includes("npm error code E404") ||
+    output.includes("404 Not Found") ||
+    output.includes("package not found") ||
+    output.includes("could not be found or you do not have permission")
+  );
+}

@@ -70,6 +70,63 @@ describe("semantic-release native npm plugin", () => {
     }
   });
 
+  test("publish skips missing native packages during dark rollout", async () => {
+    const cwd = fixture();
+    const logs: string[] = [];
+
+    try {
+      await publish(
+        {
+          spawnSync() {
+            return {
+              status: 1,
+              stdout: "",
+              stderr:
+                "npm error code E404\nnpm error 404 Not Found - PUT https://registry.npmjs.org/@konvert7%2fklint-darwin-arm64 - Not found\n",
+            };
+          },
+        },
+        {
+          cwd,
+          options: {},
+          logger: { log: (message: string) => logs.push(message) },
+        }
+      );
+
+      expect(logs).toHaveLength(PACKAGES.length);
+      expect(logs[0]).toContain("Skipping @konvert7/klint-darwin-arm64");
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  test("publish still fails on non-404 npm errors", async () => {
+    const cwd = fixture();
+
+    try {
+      await expect(
+        publish(
+          {
+            spawnSync() {
+              return {
+                status: 1,
+                stdout: "",
+                stderr: "npm error code E500\n",
+              };
+            },
+          },
+          {
+            cwd,
+            options: {},
+            logger: { log() {} },
+          }
+        )
+      ).rejects.toThrow("@konvert7/klint-darwin-arm64 npm publish failed");
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
   test("verifyConditions rejects mismatched package names", async () => {
     const cwd = fixture({ badNameFor: "darwin-arm64" });
 
