@@ -22,6 +22,7 @@ const RUST_SUPPORTED_TYPESCRIPT_RULES = new Set([
   "no-consecutive-array-push",
   "no-nested-template-literals",
   "no-string-match",
+  "no-unguarded-json-parse",
 ]);
 
 interface CliOptions {

@@ -23,7 +23,7 @@ export const noUnguardedJsonParse: KlintRule = {
         ) {
           const { line } = src.getLineAndCharacterOfPosition(node.getStart());
           violations.push({
-            file: relative(root, file),
+            file: relative(root, file).replaceAll("\\", "/"),
             line: line + 1,
             message:
               "JSON.parse() called without a surrounding try/catch — a malformed payload will throw an unhandled exception.",

@@ -275,5 +275,89 @@
       "violations": [],
       "summary": { "errors": 0, "warnings": 0 }
     }
+  },
+  {
+    "name": "no-unguarded-json-parse flags parse outside try",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-unguarded-json-parse": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const value = JSON.parse(raw);\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-unguarded-json-parse",
+          "message": "JSON.parse() called without a surrounding try/catch — a malformed payload will throw an unhandled exception.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "no-unguarded-json-parse honors warning severity",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-unguarded-json-parse": {
+          "severity": "warn"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const value = JSON.parse(raw);\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-unguarded-json-parse",
+          "message": "JSON.parse() called without a surrounding try/catch — a malformed payload will throw an unhandled exception.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 0, "warnings": 1 }
+    }
+  },
+  {
+    "name": "no-unguarded-json-parse ignores parse inside try",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-unguarded-json-parse": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "try {\n  JSON.parse(raw);\n} catch {}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": { "errors": 0, "warnings": 0 }
+    }
+  },
+  {
+    "name": "no-unguarded-json-parse ignores nested parse inside try",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "no-unguarded-json-parse": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "try {\n  function parse() {\n    return JSON.parse(raw);\n  }\n} catch {}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": { "errors": 0, "warnings": 0 }
+    }
   }
 ]

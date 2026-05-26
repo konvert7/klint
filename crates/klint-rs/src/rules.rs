@@ -6,6 +6,7 @@ use crate::files::relative_path;
 use crate::output::Violation;
 use crate::syntax::{
     scan_consecutive_array_push, scan_nested_template_literals, scan_string_match,
+    scan_unguarded_json_parse,
 };
 
 pub(crate) fn run_supported_rules(
@@ -23,6 +24,9 @@ pub(crate) fn run_supported_rules(
     }
     if let Some(config) = rules.get("no-consecutive-array-push") {
         run_no_consecutive_array_push(config, files, file_contents, root, violations);
+    }
+    if let Some(config) = rules.get("no-unguarded-json-parse") {
+        run_no_unguarded_json_parse(config, files, file_contents, root, violations);
     }
 }
 
@@ -126,6 +130,41 @@ fn run_no_consecutive_array_push(
                     "{} consecutive .push() calls on `{}` — combine into a single .push(a, b, …) call.",
                     record.count, record.receiver
                 ),
+                severity: severity.to_string(),
+                fix: None,
+            });
+        }
+    }
+}
+
+fn run_no_unguarded_json_parse(
+    config: &RuleConfig,
+    files: &[PathBuf],
+    file_contents: &BTreeMap<PathBuf, String>,
+    root: &Path,
+    violations: &mut Vec<Violation>,
+) {
+    let severity = config.severity();
+    if severity == "off" {
+        return;
+    }
+
+    for file in files {
+        let Some(content) = file_contents.get(file) else {
+            continue;
+        };
+        let Ok(records) = scan_unguarded_json_parse(file, content) else {
+            continue;
+        };
+
+        for record in records {
+            violations.push(Violation {
+                file: relative_path(root, file),
+                line: record.line,
+                rule: "no-unguarded-json-parse".to_string(),
+                message:
+                    "JSON.parse() called without a surrounding try/catch — a malformed payload will throw an unhandled exception."
+                        .to_string(),
                 severity: severity.to_string(),
                 fix: None,
             });
