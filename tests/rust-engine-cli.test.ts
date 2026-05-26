@@ -536,6 +536,31 @@ rules:
     }
   });
 
+  test("--engine compare supports sonar/prefer-string-replaceall parity", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+rules:
+  sonar/prefer-string-replaceall: error
+`,
+      `const r = text.replace(/foo/g, repl);\n`
+    );
+
+    try {
+      const ts = runCliArgs(dir, ["--engine", "ts", "--json"]);
+      const compare = runCliArgs(dir, ["--engine", "compare", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+
+      expect(compare.code).toBe(2);
+      expect(compare.code).toBe(ts.code);
+      expect(parseJson(compare)).toEqual(parseJson(ts));
+      expect(compare.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine compare refuses configs Rust cannot verify", () => {
     const dir = setupFixture(
       `
@@ -607,12 +632,11 @@ rules:
 include: ["src"]
 plugins: ["sonar"]
 rules:
-  sonar/prefer-string-replaceall: off
   sonar/prefer-string-raw-regexp: off
   sonar/prefer-string-raw: off
   sonar/prefer-nullish-coalescing-assign: off
 `,
-      `const r = /a[b]c/;\nconst last = items[items.length - 1];\n`
+      `const r = /a[b]c/;\nconst last = items[items.length - 1];\nconst next = text.replace(/foo/g, repl);\n`
     );
 
     try {
@@ -627,10 +651,11 @@ rules:
 
       expect(auto.code).toBe(2);
       expect(auto.code).toBe(ts.code);
-      expect(payload.summary).toEqual({ errors: 2, warnings: 0 });
+      expect(payload.summary).toEqual({ errors: 3, warnings: 0 });
       expect(payload.violations.map((violation) => violation.rule).sort()).toEqual([
         "sonar/no-single-char-class",
         "sonar/prefer-at",
+        "sonar/prefer-string-replaceall",
       ]);
       expect(auto.stderr).toBe("");
     } finally {

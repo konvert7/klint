@@ -35,6 +35,7 @@ const RUST_SUPPORTED_RULES = new Set([
   "no-unguarded-json-parse",
   "sonar/no-single-char-class",
   "sonar/prefer-at",
+  "sonar/prefer-string-replaceall",
 ]);
 
 interface CliOptions {

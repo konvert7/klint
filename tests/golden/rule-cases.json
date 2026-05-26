@@ -575,5 +575,79 @@
       "violations": [],
       "summary": { "errors": 0, "warnings": 0 }
     }
+  },
+  {
+    "name": "sonar/prefer-string-replaceall flags and fixes plain global regex",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "sonar/prefer-string-replaceall": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const r = text.replace(/foo/g, repl);\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "sonar/prefer-string-replaceall",
+          "message": "Prefer `text.replaceAll(\"foo\", ...)` over `.replace(/foo/g, ...)` — replaceAll() with a string is clearer and avoids regex escaping pitfalls.",
+          "severity": "error",
+          "fix": {
+            "startLine": 1,
+            "endLine": 1,
+            "replacement": "const r = text.replaceAll(\"foo\", repl);"
+          }
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "sonar/prefer-string-replaceall handles escaped backslash literal",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "sonar/prefer-string-replaceall": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "const r = path.replace(/\\\\/g, \"/\");\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "sonar/prefer-string-replaceall",
+          "message": "Prefer `path.replaceAll(\"\\\\\", ...)` over `.replace(/\\\\/g, ...)` — replaceAll() with a string is clearer and avoids regex escaping pitfalls.",
+          "severity": "error",
+          "fix": {
+            "startLine": 1,
+            "endLine": 1,
+            "replacement": "const r = path.replaceAll(\"\\\\\", \"/\");"
+          }
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "sonar/prefer-string-replaceall ignores non-plain regex patterns",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "sonar/prefer-string-replaceall": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "a.replace(/foo/gi, x);\nb.replace(/./g, x);\nc.replace(/\\./g, x);\nd.replace(/foo/, x);\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": { "errors": 0, "warnings": 0 }
+    }
   }
 ]

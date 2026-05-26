@@ -147,6 +147,7 @@ Rust currently supports:
 - `no-string-match`
 - `sonar/no-single-char-class`
 - `sonar/prefer-at`
+- `sonar/prefer-string-replaceall`
 
 These rules remain TypeScript-owned because they need TypeScript semantic information:
 

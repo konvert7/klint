@@ -46,6 +46,7 @@ Plugin rules:
 |------|-------------------------|
 | `sonar/no-single-char-class` | Syntax-only regex literal parsing and character-class rewrite. |
 | `sonar/prefer-at` | Syntax-only negative index access rewrite matching the TypeScript rule contract. |
+| `sonar/prefer-string-replaceall` | Syntax-only `.replace(/literal/g, value)` rewrite with plain-regex filtering. |
 
 Every Rust-supported rule should have:
 
