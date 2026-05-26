@@ -1,3 +1,10 @@
+## [0.15.2](https://github.com/konvert7/klint/compare/v0.15.1...v0.15.2) (2026-05-26)
+
+
+### Bug Fixes
+
+* **npm:** add package metadata ([1df7908](https://github.com/konvert7/klint/commit/1df79087137182a85e9992afeebbe6fa5f0fdcb0))
+
 ## [0.15.1](https://github.com/konvert7/klint/compare/v0.15.0...v0.15.1) (2026-05-26)
 
 
