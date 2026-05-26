@@ -6,25 +6,20 @@ import type { KlintRule } from "../core/types";
 export const preferNullishCoalescingAssign: KlintRule = {
   meta: {
     description:
-      "Flags `x = x ?? y` patterns — `x ??= y` is the dedicated nullish assignment operator.",
+      "Flags explicit nullish assignment guards — `x ??= y` is the dedicated nullish assignment operator.",
     examples: ["sonar/prefer-nullish-coalescing-assign: warn"],
   },
   check({ files, root, fileContents }, violations) {
     for (const file of files) {
       const content = fileContents.get(file) ?? "";
       walkAst(file, content, (node, src) => {
-        if (
-          !ts.isIfStatement(node) ||
-          node.elseStatement !== undefined ||
-          !ts.isPrefixUnaryExpression(node.expression) ||
-          node.expression.operator !== ts.SyntaxKind.ExclamationToken
-        )
-          return;
+        if (!ts.isIfStatement(node) || node.elseStatement !== undefined) return;
 
         const assignExpr = extractAssignment(node.thenStatement);
         if (!assignExpr) return;
 
-        const xText = node.expression.operand.getText(src);
+        const xText = nullishGuardTarget(node.expression, src);
+        if (!xText) return;
         if (assignExpr.left.getText(src) !== xText) return;
 
         const yText = assignExpr.right.getText(src);
@@ -35,7 +30,7 @@ export const preferNullishCoalescingAssign: KlintRule = {
         violations.push({
           file: relativeSlashPath(root, file),
           line: s + 1,
-          message: `Prefer \`${xText} ??= ${yText}\` over \`if (!${xText}) ${xText} = ${yText}\` — ??= only assigns when null or undefined.`,
+          message: `Prefer \`${xText} ??= ${yText}\` over explicit nullish guard assignment — ??= only assigns when null or undefined.`,
           fix: {
             startLine: s + 1,
             endLine: e + 1,
@@ -64,6 +59,49 @@ function isAssign(node: ts.Expression): node is ts.BinaryExpression {
   return (
     ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken
   );
+}
+
+function nullishGuardTarget(
+  expression: ts.Expression,
+  src: ts.SourceFile
+): string | undefined {
+  if (!ts.isBinaryExpression(expression)) return undefined;
+
+  const direct = equalityNullishTarget(expression, src);
+  if (direct) return direct.target;
+
+  if (expression.operatorToken.kind !== ts.SyntaxKind.BarBarToken) return undefined;
+
+  const left = equalityNullishTarget(expression.left, src);
+  const right = equalityNullishTarget(expression.right, src);
+  if (!left || !right || left.target !== right.target) return undefined;
+
+  const values = new Set([left.value, right.value]);
+  if (values.has("null") && values.has("undefined")) return left.target;
+  return undefined;
+}
+
+function equalityNullishTarget(
+  expression: ts.Expression,
+  src: ts.SourceFile
+): { target: string; value: "null" | "undefined" } | undefined {
+  if (!ts.isBinaryExpression(expression)) return undefined;
+
+  const operator = expression.operatorToken.kind;
+  if (
+    operator !== ts.SyntaxKind.EqualsEqualsToken &&
+    operator !== ts.SyntaxKind.EqualsEqualsEqualsToken
+  )
+    return undefined;
+
+  const left = expression.left.getText(src);
+  const right = expression.right.getText(src);
+
+  if (right === "null") return { target: left, value: "null" };
+  if (right === "undefined") return { target: left, value: "undefined" };
+  if (left === "null") return { target: right, value: "null" };
+  if (left === "undefined") return { target: right, value: "undefined" };
+  return undefined;
 }
 
 function getIndent(src: ts.SourceFile, node: ts.Node): string {

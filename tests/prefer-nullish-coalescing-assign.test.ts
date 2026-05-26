@@ -33,33 +33,50 @@ function lintAndFix(code: string): string {
 }
 
 describe("sonar/prefer-nullish-coalescing-assign", () => {
-  test("flags if (!x) x = value (single-statement form)", () => {
-    const v = lint("let x: object | undefined; if (!x) x = {};");
+  test("flags if (x == null) x = value", () => {
+    const v = lint("let x: object | undefined; if (x == null) x = {};");
     expect(v).toHaveLength(1);
     expect(v[0].rule).toBe("sonar/prefer-nullish-coalescing-assign");
   });
 
-  test("flags if (!obj.prop) obj.prop = value", () => {
+  test("flags if (obj.prop == null) obj.prop = value", () => {
     const v = lint(
-      "declare const result: { hooks?: object }; if (!result.hooks) result.hooks = {};"
+      "declare const result: { hooks?: object }; if (result.hooks == null) result.hooks = {};"
     );
     expect(v).toHaveLength(1);
   });
 
-  test("flags block form: if (!x) { x = value; }", () => {
-    const v = lint("let x: object | undefined; if (!x) { x = {}; }");
+  test("flags block form: if (x == null) { x = value; }", () => {
+    const v = lint("let x: object | undefined; if (x == null) { x = {}; }");
+    expect(v).toHaveLength(1);
+  });
+
+  test("flags strict nullish pair", () => {
+    const v = lint(
+      "let x: object | undefined; if (x === null || x === undefined) x = {};"
+    );
     expect(v).toHaveLength(1);
   });
 
   test("does not flag when else branch is present", () => {
     const v = lint(
-      "let x: object | undefined; if (!x) { x = {}; } else { console.log(x); }"
+      "let x: object | undefined; if (x == null) { x = {}; } else { console.log(x); }"
     );
     expect(v).toHaveLength(0);
   });
 
   test("does not flag when condition operand differs from assignment target", () => {
-    const v = lint("let x: object | undefined; let y: object; if (!x) y = {};");
+    const v = lint("let x: object | undefined; let y: object; if (x == null) y = {};");
+    expect(v).toHaveLength(0);
+  });
+
+  test("does not flag boolean negation because falsy is not nullish", () => {
+    const v = lint("let x: object | undefined; if (!x) x = {};");
+    expect(v).toHaveLength(0);
+  });
+
+  test("does not flag non-nullish strict pair", () => {
+    const v = lint("let x: object | undefined; if (x === null || x === false) x = {};");
     expect(v).toHaveLength(0);
   });
 
@@ -68,14 +85,14 @@ describe("sonar/prefer-nullish-coalescing-assign", () => {
     expect(v).toHaveLength(0);
   });
 
-  test("fix rewrites if (!x) x = value to x ??= value", () => {
-    const result = lintAndFix("let x: object | undefined;\nif (!x) x = {};\n");
+  test("fix rewrites if (x == null) x = value to x ??= value", () => {
+    const result = lintAndFix("let x: object | undefined;\nif (x == null) x = {};\n");
     expect(result).toBe("let x: object | undefined;\nx ??= {};\n");
   });
 
   test("fix preserves indentation", () => {
     const result = lintAndFix(
-      "function f() {\n  let x: object | undefined;\n  if (!x) x = {};\n}\n"
+      "function f() {\n  let x: object | undefined;\n  if (x == null) x = {};\n}\n"
     );
     expect(result).toContain("  x ??= {};");
   });
@@ -84,7 +101,7 @@ describe("sonar/prefer-nullish-coalescing-assign", () => {
     const root = mkdtempSync(join(tmpdir(), "klint-test-"));
     writeFileSync(
       join(root, "subject.ts"),
-      "let x: object | undefined;\nif (!x) x = {};\n"
+      "let x: object | undefined;\nif (x == null) x = {};\n"
     );
     const violations = runKlint({
       root,

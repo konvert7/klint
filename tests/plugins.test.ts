@@ -22,7 +22,7 @@ describe("plugin system", () => {
       [
         `const a = s.replace(/x/g, "y");`,
         "const b = new RegExp(`\\\\\\\\d+`);",
-        `if (!foo) foo = bar;`,
+        `if (foo == null) foo = bar;`,
       ].join("\n"),
       (root) => {
         const violations = runKlint({
@@ -71,7 +71,7 @@ describe("plugin system", () => {
     const input = [
       `const a = s.replace(/x/g, "y");`,
       "const b = new RegExp(`\\\\\\\\d+`);",
-      `if (!foo) foo = bar;`,
+      `if (foo == null) foo = bar;`,
       "",
     ].join("\n");
 
