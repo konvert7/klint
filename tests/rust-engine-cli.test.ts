@@ -70,6 +70,21 @@ function parseJson(result: CliResult): unknown {
   return JSON.parse(result.stdout);
 }
 
+function sonarPluginSource(): string {
+  return 'const r = /a[b]c/;\nconst last = items[items.length - 1];\nconst next = text.replace(/foo/g, repl);\nconst rx = new RegExp(`\\\\.foo`);\nconst path = "C:\\\\Users";\nif (value == null) value = fallback;\n';
+}
+
+function sonarPluginRules(): string[] {
+  return [
+    "sonar/no-single-char-class",
+    "sonar/prefer-at",
+    "sonar/prefer-nullish-coalescing-assign",
+    "sonar/prefer-string-raw",
+    "sonar/prefer-string-raw-regexp",
+    "sonar/prefer-string-replaceall",
+  ];
+}
+
 function rustBinPath(): string {
   return join(
     ROOT,
@@ -326,6 +341,57 @@ arch:
       expect(result.stdout).toBe("");
       expect(result.stderr).toContain("klint: 1 error(s)");
       expect(result.stderr).toContain("[arch/forbidden]");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine rust supports built-in sonar plugin defaults", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+plugins: ["sonar"]
+`,
+      sonarPluginSource()
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{ rule: string }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(rust.code).toBe(2);
+      expect(payload.summary).toEqual({ errors: 6, warnings: 0 });
+      expect(payload.violations.map((violation) => violation.rule).sort()).toEqual(
+        sonarPluginRules()
+      );
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine rust rejects unknown plugins", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+plugins: ["unknown"]
+`,
+      `export const value = 1;\n`
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+
+      expect(rust.code).toBe(1);
+      expect(rust.stderr).toContain('Unknown klint plugin: "unknown"');
+      expect(rust.stdout).toBe("");
     } finally {
       rmSync(dir, { recursive: true });
     }
@@ -636,6 +702,52 @@ rules:
     }
   });
 
+  test("--engine compare supports built-in sonar plugin defaults", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+plugins: ["sonar"]
+`,
+      sonarPluginSource()
+    );
+
+    try {
+      const ts = runCliArgs(dir, ["--engine", "ts", "--json"]);
+      const compare = runCliArgs(dir, ["--engine", "compare", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+
+      expect(compare.code).toBe(2);
+      expect(compare.code).toBe(ts.code);
+      expect(parseJson(compare)).toEqual(parseJson(ts));
+      expect(compare.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine compare rejects unknown plugins", () => {
+    const dir = setupFixture(
+      `
+include: ["src"]
+plugins: ["unknown"]
+`,
+      `export const value = 1;\n`
+    );
+
+    try {
+      const compare = runCliArgs(dir, ["--engine", "compare", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+
+      expect(compare.code).toBe(1);
+      expect(compare.stderr).toContain('Unknown klint plugin: "unknown"');
+      expect(compare.stdout).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine compare refuses configs Rust cannot verify", () => {
     const dir = setupFixture(
       `
@@ -707,7 +819,7 @@ rules:
 include: ["src"]
 plugins: ["sonar"]
 `,
-      'const r = /a[b]c/;\nconst last = items[items.length - 1];\nconst next = text.replace(/foo/g, repl);\nconst rx = new RegExp(`\\\\.foo`);\nconst path = "C:\\\\Users";\nif (value == null) value = fallback;\n'
+      sonarPluginSource()
     );
 
     try {
@@ -723,14 +835,9 @@ plugins: ["sonar"]
       expect(auto.code).toBe(2);
       expect(auto.code).toBe(ts.code);
       expect(payload.summary).toEqual({ errors: 6, warnings: 0 });
-      expect(payload.violations.map((violation) => violation.rule).sort()).toEqual([
-        "sonar/no-single-char-class",
-        "sonar/prefer-at",
-        "sonar/prefer-nullish-coalescing-assign",
-        "sonar/prefer-string-raw",
-        "sonar/prefer-string-raw-regexp",
-        "sonar/prefer-string-replaceall",
-      ]);
+      expect(payload.violations.map((violation) => violation.rule).sort()).toEqual(
+        sonarPluginRules()
+      );
       expect(auto.stderr).toBe("");
     } finally {
       rmSync(dir, { recursive: true });

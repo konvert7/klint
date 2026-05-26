@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { spawnSync } from "node:child_process";
+import { type SpawnSyncReturns, spawnSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
@@ -112,7 +112,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
   const root = resolve(configDir, raw.root ?? ".");
 
   if (engine === "rust") {
-    runRustEngine({ configDir, fix, json, raw, rulesFile, startedAt });
+    runRustEngine({ fix, json, raw, root, rulesFile, startedAt });
     return;
   }
   if (
@@ -169,7 +169,14 @@ export async function main(opts: CliOptions = {}): Promise<void> {
   );
 
   if (engine === "compare") {
-    runCompareEngine({ configDir, fix, json, raw, rulesFile, tsViolations: violations });
+    runCompareEngine({
+      fix,
+      json,
+      raw,
+      root,
+      rulesFile,
+      tsViolations: violations,
+    });
     return;
   }
 
@@ -252,14 +259,13 @@ function writeTextOutput(
 }
 
 function runRustEngine({
-  configDir,
   fix,
   json,
   raw,
+  root,
   rulesFile,
   startedAt,
 }: {
-  configDir: string;
   fix: boolean;
   json: boolean;
   raw: {
@@ -267,6 +273,7 @@ function runRustEngine({
     rules?: Record<string, RuleConfigValue>;
     arch?: unknown;
   };
+  root: string;
   rulesFile?: string;
   startedAt: number;
 }): void {
@@ -281,16 +288,22 @@ function runRustEngine({
     process.exit(1);
   }
 
-  const command = resolveRustEngineCommand(configDir);
-  if (process.argv.includes("--debug") || process.argv.includes("-debug")) {
-    process.stderr.write(
-      `[klint:debug] rust engine: ${command.bin} ${command.args.join(" ")}\n`
-    );
+  const { configDir: rustConfigDir, cleanup } = writeRustEngineConfig({ raw, root });
+  const command = resolveRustEngineCommand(rustConfigDir);
+  let result: SpawnSyncReturns<string>;
+  try {
+    if (process.argv.includes("--debug") || process.argv.includes("-debug")) {
+      process.stderr.write(
+        `[klint:debug] rust engine: ${command.bin} ${command.args.join(" ")}\n`
+      );
+    }
+    result = spawnSync(command.bin, command.args, {
+      cwd: import.meta.dir,
+      encoding: "utf-8",
+    });
+  } finally {
+    cleanup();
   }
-  const result = spawnSync(command.bin, command.args, {
-    cwd: import.meta.dir,
-    encoding: "utf-8",
-  });
 
   if (result.stderr) process.stderr.write(result.stderr);
   if (json) {
@@ -307,14 +320,13 @@ function runRustEngine({
 }
 
 function runCompareEngine({
-  configDir,
   fix,
   json,
   raw,
+  root,
   rulesFile,
   tsViolations,
 }: {
-  configDir: string;
   fix: boolean;
   json: boolean;
   raw: {
@@ -322,6 +334,7 @@ function runCompareEngine({
     rules?: Record<string, RuleConfigValue>;
     arch?: unknown;
   };
+  root: string;
   rulesFile?: string;
   tsViolations: ReturnType<typeof runKlint>;
 }): void {
@@ -342,11 +355,17 @@ function runCompareEngine({
   }
 
   const tsResult = toJsonCliResult(tsViolations);
-  const rustCommand = resolveRustEngineCommand(configDir);
-  const rustResult = spawnSync(rustCommand.bin, rustCommand.args, {
-    cwd: import.meta.dir,
-    encoding: "utf-8",
-  });
+  const { configDir: rustConfigDir, cleanup } = writeRustEngineConfig({ raw, root });
+  const rustCommand = resolveRustEngineCommand(rustConfigDir);
+  let rustResult: SpawnSyncReturns<string>;
+  try {
+    rustResult = spawnSync(rustCommand.bin, rustCommand.args, {
+      cwd: import.meta.dir,
+      encoding: "utf-8",
+    });
+  } finally {
+    cleanup();
+  }
 
   const rustStatus = rustResult.status ?? 1;
   if (rustResult.stderr) process.stderr.write(rustResult.stderr);
@@ -371,6 +390,35 @@ function runCompareEngine({
 
   process.stdout.write(tsResult.stdout);
   process.exit(tsResult.status);
+}
+
+function writeRustEngineConfig({
+  raw,
+  root,
+}: {
+  raw: {
+    include?: string[];
+    plugins?: string[];
+    rules?: Record<string, RuleConfigValue>;
+    arch?: unknown;
+  };
+  root: string;
+}): { configDir: string; cleanup: () => void } {
+  const tempDir = mkdtempSync(join(tmpdir(), "klint-rust-engine-"));
+  writeFileSync(
+    join(tempDir, "klint.config.json"),
+    JSON.stringify({
+      root,
+      include: raw.include ?? ["."],
+      plugins: [],
+      rules: resolveEffectiveRules(raw.plugins, raw.rules ?? {}),
+      arch: raw.arch,
+    })
+  );
+  return {
+    configDir: tempDir,
+    cleanup: () => rmSync(tempDir, { recursive: true, force: true }),
+  };
 }
 
 function runAutoEngine({
@@ -713,7 +761,11 @@ function jsonPayloadEquals(a: unknown, b: unknown): boolean {
 }
 
 function canonicalJson(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonicalJson);
+  if (Array.isArray(value)) {
+    return value
+      .map(canonicalJson)
+      .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+  }
   if (!value || typeof value !== "object") return value;
   return Object.fromEntries(
     Object.entries(value)

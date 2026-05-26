@@ -7,7 +7,8 @@ This document tracks the Rust engine migration for maintainers. The README expla
 klint has two implementations behind one CLI:
 
 - TypeScript engine: full compatibility, type-aware rules, plugins, custom rules, and fixes.
-- Rust engine: portable architecture checks and syntax-local built-in rules.
+- Rust engine: portable architecture checks and syntax-local built-in rules,
+  including supported bundled plugin defaults.
 
 The package entrypoint is still `cli.ts`. It resolves the native Rust binary, validates engine support, and renders consistent text or JSON output.
 
@@ -77,7 +78,11 @@ Do not port these as tree-sitter approximations. A false Rust port would make `c
 
 Custom rules are TypeScript-owned in `auto` mode. The Rust engine does not load `klint.rules.ts`.
 
-Plugin defaults are expanded by the TypeScript CLI wrapper before `auto` splits work between engines. Strict `rust` and `compare` modes reject unsupported active plugin rules so they cannot silently skip behavior.
+Plugin defaults are expanded by the TypeScript CLI wrapper before Rust receives a
+config. The bundled `sonar` plugin is supported in `rust`, `compare`, and `auto`
+because every current Sonar rule is native-backed. Unknown plugins and
+unsupported active plugin rules still fail before Rust runs, so they cannot
+silently skip behavior.
 
 ## Next Decisions
 
