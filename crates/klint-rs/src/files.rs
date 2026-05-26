@@ -67,8 +67,7 @@ fn collect_source_files(
 }
 
 fn is_supported_source(path: &Path) -> bool {
-    is_javascript_like_source(path)
-        || matches!(path.extension().and_then(|ext| ext.to_str()), Some("py"))
+    is_javascript_like_source(path) || is_python_source(path)
 }
 
 pub(crate) fn is_javascript_like_source(path: &Path) -> bool {
@@ -76,6 +75,10 @@ pub(crate) fn is_javascript_like_source(path: &Path) -> bool {
         path.extension().and_then(|ext| ext.to_str()),
         Some("ts" | "tsx" | "js" | "jsx" | "mts" | "cts")
     )
+}
+
+pub(crate) fn is_python_source(path: &Path) -> bool {
+    matches!(path.extension().and_then(|ext| ext.to_str()), Some("py"))
 }
 
 pub(crate) fn normalize_path(path: &Path) -> PathBuf {

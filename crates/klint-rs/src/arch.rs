@@ -1,4 +1,4 @@
-use crate::files::{normalize_path, relative_path};
+use crate::files::{is_python_source, normalize_path, relative_path};
 use crate::output::Violation;
 use crate::syntax::{scan_imports, scan_jsx_elements};
 use serde::Deserialize;
@@ -111,6 +111,7 @@ fn run_arch_import_rules(
         return;
     };
     let aliases = load_path_aliases(root);
+    let python_roots = infer_python_source_roots(root, files);
 
     for rule in rules {
         if rule.deny.is_none() && rule.allow.is_none() {
@@ -141,7 +142,8 @@ fn run_arch_import_rules(
                 if allow_type_only && import.is_type_only {
                     continue;
                 }
-                let Some(resolved) = resolve_import(&file, root, &import.specifier, &aliases)
+                let Some(resolved) =
+                    resolve_import(&file, root, &import.specifier, &aliases, &python_roots)
                 else {
                     continue;
                 };
@@ -219,6 +221,7 @@ fn resolve_import(
     root: &Path,
     specifier: &str,
     aliases: &[AliasEntry],
+    python_roots: &[PathBuf],
 ) -> Option<PathBuf> {
     if !is_bare_specifier(specifier) {
         return Some(normalize_path(
@@ -226,7 +229,7 @@ fn resolve_import(
         ));
     }
 
-    resolve_alias(specifier, aliases)
+    resolve_alias(specifier, aliases).or_else(|| resolve_python_module(specifier, python_roots))
 }
 
 fn resolve_alias(specifier: &str, aliases: &[AliasEntry]) -> Option<PathBuf> {
@@ -238,6 +241,43 @@ fn resolve_alias(specifier: &str, aliases: &[AliasEntry]) -> Option<PathBuf> {
                 .map(|rest| normalize_path(&alias.base.join(rest)))
         } else if specifier == alias.prefix {
             Some(alias.base.clone())
+        } else {
+            None
+        }
+    })
+}
+
+fn infer_python_source_roots(root: &Path, files: &[PathBuf]) -> Vec<PathBuf> {
+    let mut roots = vec![normalize_path(root)];
+    for file in files.iter().filter(|file| is_python_source(file)) {
+        let Ok(rel) = file.strip_prefix(root) else {
+            continue;
+        };
+        let mut components = rel.components();
+        let Some(first) = components.next() else {
+            continue;
+        };
+        if components.next().is_none() {
+            continue;
+        }
+        roots.push(normalize_path(&root.join(first.as_os_str())));
+    }
+    roots.sort();
+    roots.dedup();
+    roots
+}
+
+fn resolve_python_module(specifier: &str, python_roots: &[PathBuf]) -> Option<PathBuf> {
+    let module_path = specifier.replace('.', "/");
+    python_roots.iter().find_map(|source_root| {
+        let file = normalize_path(&source_root.join(format!("{module_path}.py")));
+        if file.exists() {
+            return Some(file);
+        }
+
+        let package = normalize_path(&source_root.join(&module_path).join("__init__.py"));
+        if package.exists() {
+            Some(package)
         } else {
             None
         }

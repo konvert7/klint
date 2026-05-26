@@ -27,7 +27,7 @@ Architecture rules:
 
 | Area | Notes |
 |------|-------|
-| `arch.imports` | Supports TypeScript/JavaScript static imports, dynamic imports, TS path aliases, allow/deny mode, and type-only allowance. Supports Python relative imports for local architecture boundaries; unresolved Python package imports are ignored. |
+| `arch.imports` | Supports TypeScript/JavaScript static imports, dynamic imports, TS path aliases, allow/deny mode, and type-only allowance. Supports Python relative imports and resolvable absolute project imports; unresolved Python package imports are ignored. |
 | `arch.forbidden` | Supports literal pattern checks for TypeScript/JavaScript and Python files. JSX element checks are TypeScript/JavaScript only. |
 | `arch.singleton` | Supports literal pattern checks for TypeScript/JavaScript and Python files. JSX element checks are TypeScript/JavaScript only. |
 
@@ -79,10 +79,15 @@ Do not port these as tree-sitter approximations. A false Rust port would make `c
 Python support starts at the architecture layer. The Rust engine discovers `.py`
 files and applies language-neutral `arch.forbidden` and `arch.singleton` pattern
 rules to them. `arch.imports` supports Python relative imports such as
-`from ..lib.auth import load_key` for local architecture boundaries. Absolute
-package imports such as `import requests` stay unresolved and are ignored for
-now. TypeScript/Sonar syntax rules are still restricted to
-TypeScript/JavaScript-like files.
+`from ..lib.auth import load_key` and absolute project imports such as
+`from app.lib.auth import load_key`. Absolute imports resolve against the
+project root and direct child directories containing Python files, checking
+`<module>.py` and `<module>/__init__.py`. Unresolved package imports such as
+`import requests` are ignored. TypeScript/Sonar syntax rules are still
+restricted to TypeScript/JavaScript-like files.
+
+PyPI packaging is a later distribution step. Land it after the Rust engine has
+the Python behavior worth shipping and the package shape is decided.
 
 ## Custom Rules And Plugins
 

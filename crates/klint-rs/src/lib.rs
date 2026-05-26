@@ -465,6 +465,139 @@ arch:
     }
 
     #[test]
+    fn imports_deny_mode_flags_python_absolute_imports_under_source_root() {
+        let root = temp_root("imports-python-absolute-src");
+        create_dir_all(root.join("src/app/jobs")).expect("create jobs dirs");
+        create_dir_all(root.join("src/app/lib")).expect("create lib dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["src"]
+rules: {}
+arch:
+  layers:
+    jobs: ["src/app/jobs/**"]
+    lib: ["src/app/lib/**"]
+  imports:
+    - from: jobs
+      deny: lib
+      message: "Jobs must not import lib directly"
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("src/app/jobs/worker.py"),
+            "from app.lib.auth import load_key\n",
+        )
+        .expect("write importing source");
+        write(
+            root.join("src/app/lib/auth.py"),
+            "def load_key():\n    return 'x'\n",
+        )
+        .expect("write lib source");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(
+            output.violations,
+            vec![Violation {
+                file: "src/app/jobs/worker.py".to_string(),
+                line: 1,
+                rule: "arch/imports".to_string(),
+                message: "Jobs must not import lib directly".to_string(),
+                severity: "error".to_string(),
+                fix: None,
+            }]
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn imports_deny_mode_flags_python_absolute_imports_under_project_root() {
+        let root = temp_root("imports-python-absolute-root");
+        create_dir_all(root.join("app/jobs")).expect("create jobs dirs");
+        create_dir_all(root.join("app/lib")).expect("create lib dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["."]
+rules: {}
+arch:
+  layers:
+    jobs: ["app/jobs/**"]
+    lib: ["app/lib/**"]
+  imports:
+    - from: jobs
+      deny: lib
+      message: "Jobs must not import lib directly"
+"#,
+        )
+        .expect("write config");
+        write(root.join("app/jobs/worker.py"), "import app.lib.auth\n")
+            .expect("write importing source");
+        write(
+            root.join("app/lib/auth.py"),
+            "def load_key():\n    return 'x'\n",
+        )
+        .expect("write lib source");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(output.summary.errors, 1);
+        assert_eq!(output.violations[0].line, 1);
+        assert_eq!(output.violations[0].file, "app/jobs/worker.py");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn imports_deny_mode_flags_python_package_init_imports() {
+        let root = temp_root("imports-python-package-init");
+        create_dir_all(root.join("src/app/jobs")).expect("create jobs dirs");
+        create_dir_all(root.join("src/app/lib/auth")).expect("create lib package dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["src"]
+rules: {}
+arch:
+  layers:
+    jobs: ["src/app/jobs/**"]
+    lib: ["src/app/lib/**"]
+  imports:
+    - from: jobs
+      deny: lib
+      message: "Jobs must not import lib directly"
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("src/app/jobs/worker.py"),
+            "from app.lib.auth import load_key\n",
+        )
+        .expect("write importing source");
+        write(
+            root.join("src/app/lib/auth/__init__.py"),
+            "def load_key():\n    return 'x'\n",
+        )
+        .expect("write lib package");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(output.summary.errors, 1);
+        assert_eq!(output.violations[0].file, "src/app/jobs/worker.py");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn imports_deny_mode_ignores_unresolved_python_packages() {
         let root = temp_root("imports-python-package");
         create_dir_all(root.join("src/jobs")).expect("create jobs dirs");
