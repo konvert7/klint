@@ -1,4 +1,6 @@
-use crate::files::{is_python_source, normalize_path, relative_path, supports_import_scan};
+use crate::files::{
+    is_python_source, is_swift_source, normalize_path, relative_path, supports_import_scan,
+};
 use crate::output::Violation;
 use crate::syntax::{scan_imports, scan_jsx_elements};
 use serde::Deserialize;
@@ -112,6 +114,7 @@ fn run_arch_import_rules(
     };
     let aliases = load_path_aliases(root);
     let python_roots = infer_python_source_roots(root, files);
+    let swift_modules = index_swift_modules(root, files);
 
     for rule in rules {
         if rule.deny.is_none() && rule.allow.is_none() {
@@ -145,9 +148,14 @@ fn run_arch_import_rules(
                 if allow_type_only && import.is_type_only {
                     continue;
                 }
-                let Some(resolved) =
-                    resolve_import(&file, root, &import.specifier, &aliases, &python_roots)
-                else {
+                let Some(resolved) = resolve_import(
+                    &file,
+                    root,
+                    &import.specifier,
+                    &aliases,
+                    &python_roots,
+                    &swift_modules,
+                ) else {
                     continue;
                 };
 
@@ -225,6 +233,7 @@ fn resolve_import(
     specifier: &str,
     aliases: &[AliasEntry],
     python_roots: &[PathBuf],
+    swift_modules: &BTreeMap<String, PathBuf>,
 ) -> Option<PathBuf> {
     if !is_bare_specifier(specifier) {
         return Some(normalize_path(
@@ -232,7 +241,9 @@ fn resolve_import(
         ));
     }
 
-    resolve_alias(specifier, aliases).or_else(|| resolve_python_module(specifier, python_roots))
+    resolve_alias(specifier, aliases)
+        .or_else(|| resolve_python_module(specifier, python_roots))
+        .or_else(|| resolve_swift_module(specifier, swift_modules))
 }
 
 fn resolve_alias(specifier: &str, aliases: &[AliasEntry]) -> Option<PathBuf> {
@@ -285,6 +296,40 @@ fn resolve_python_module(specifier: &str, python_roots: &[PathBuf]) -> Option<Pa
             None
         }
     })
+}
+
+fn index_swift_modules(root: &Path, files: &[PathBuf]) -> BTreeMap<String, PathBuf> {
+    let mut modules = BTreeMap::new();
+    for file in files.iter().filter(|file| is_swift_source(file)) {
+        if let Some(stem) = file.file_stem().and_then(|stem| stem.to_str()) {
+            modules
+                .entry(stem.to_string())
+                .or_insert_with(|| normalize_path(file));
+        }
+
+        let Ok(rel) = file.strip_prefix(root) else {
+            continue;
+        };
+        let mut current = normalize_path(root);
+        let components = rel.components().collect::<Vec<_>>();
+        for component in components.iter().take(components.len().saturating_sub(1)) {
+            current = normalize_path(&current.join(component.as_os_str()));
+            let Some(name) = component.as_os_str().to_str() else {
+                continue;
+            };
+            modules
+                .entry(name.to_string())
+                .or_insert_with(|| current.clone());
+        }
+    }
+    modules
+}
+
+fn resolve_swift_module(
+    specifier: &str,
+    swift_modules: &BTreeMap<String, PathBuf>,
+) -> Option<PathBuf> {
+    swift_modules.get(specifier).cloned()
 }
 
 fn run_arch_forbidden_rules(

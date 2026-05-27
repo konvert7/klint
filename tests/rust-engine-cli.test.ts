@@ -516,6 +516,60 @@ arch:
     }
   });
 
+  test("--engine rust applies architecture import rules to Swift module imports", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["Sources"]
+rules: {}
+arch:
+  layers:
+    ui: ["Sources/App/UI/**"]
+    core: ["Sources/App/Core/**"]
+  imports:
+    - from: ui
+      deny: core
+      message: "UI must not import core directly"
+`,
+      {
+        "Sources/App/UI/ViewModel.swift": "import Foundation\nimport Core\n",
+        "Sources/App/Core/Auth.swift": "public struct Auth {}\n",
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{
+          file: string;
+          line: number;
+          rule: string;
+          message: string;
+          severity: string;
+          fix: unknown;
+        }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(rust.code).toBe(2);
+      expect(payload.summary).toEqual({ errors: 1, warnings: 0 });
+      expect(payload.violations).toEqual([
+        {
+          file: "Sources/App/UI/ViewModel.swift",
+          line: 2,
+          rule: "arch/imports",
+          message: "UI must not import core directly",
+          severity: "error",
+          fix: null,
+        },
+      ]);
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine rust applies architecture import rules to Python relative imports", () => {
     const dir = setupNamedFixture(
       `

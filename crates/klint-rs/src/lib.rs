@@ -505,8 +505,8 @@ arch:
     }
 
     #[test]
-    fn imports_deny_mode_skips_swift_sources_until_import_support_lands() {
-        let root = temp_root("imports-skip-swift");
+    fn imports_deny_mode_flags_swift_module_imports() {
+        let root = temp_root("imports-swift-module");
         create_dir_all(root.join("Sources/App/UI")).expect("create ui dirs");
         create_dir_all(root.join("Sources/App/Core")).expect("create core dirs");
         write(
@@ -532,6 +532,57 @@ arch:
         .expect("write swift source");
         write(root.join("Sources/App/Core/Auth.swift"), "struct Auth {}\n")
             .expect("write core source");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(
+            output.violations,
+            vec![Violation {
+                file: "Sources/App/UI/ViewModel.swift".to_string(),
+                line: 2,
+                rule: "arch/imports".to_string(),
+                message: "UI must not import core directly".to_string(),
+                severity: "error".to_string(),
+                fix: None,
+            }]
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn imports_allow_mode_accepts_swift_modules_in_allowlist() {
+        let root = temp_root("imports-swift-allow");
+        create_dir_all(root.join("Sources/App/UI")).expect("create ui dirs");
+        create_dir_all(root.join("Sources/App/DesignSystem")).expect("create design dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["Sources"]
+rules: {}
+arch:
+  layers:
+    ui: ["Sources/App/UI/**"]
+    design: ["Sources/App/DesignSystem/**"]
+  imports:
+    - from: ui
+      allow: [ui, design]
+      message: "UI may only import UI and DesignSystem"
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("Sources/App/UI/View.swift"),
+            "import Foundation\nimport DesignSystem\n",
+        )
+        .expect("write swift source");
+        write(
+            root.join("Sources/App/DesignSystem/Button.swift"),
+            "public struct Button {}\n",
+        )
+        .expect("write design source");
 
         let output = run(RunOptions {
             config_dir: root.clone(),

@@ -27,7 +27,7 @@ Architecture rules:
 
 | Area | Notes |
 |------|-------|
-| `arch.imports` | Supports TypeScript/JavaScript static imports, dynamic imports, TS path aliases, allow/deny mode, and type-only allowance. Supports Python relative imports and resolvable absolute project imports; unresolved Python package imports are ignored. Swift imports are not parsed yet. |
+| `arch.imports` | Supports TypeScript/JavaScript static imports, dynamic imports, TS path aliases, allow/deny mode, and type-only allowance. Supports Python relative imports and resolvable absolute project imports; unresolved Python package imports are ignored. Supports Swift `import Module` declarations when the module resolves to discovered project Swift files; unresolved system/package imports are ignored. |
 | `arch.forbidden` | Supports literal pattern checks for TypeScript/JavaScript, Python, and Swift files. JSX element checks are TypeScript/JavaScript only. |
 | `arch.singleton` | Supports literal pattern checks for TypeScript/JavaScript, Python, and Swift files. JSX element checks are TypeScript/JavaScript only. |
 
@@ -94,8 +94,11 @@ the Python behavior worth shipping and the package shape is decided.
 Swift support starts at the same architecture-pattern layer as Python did. The
 Rust engine discovers `.swift` files and applies language-neutral
 `arch.forbidden` and `arch.singleton` literal pattern rules to them.
-`arch.imports` deliberately skips Swift files until Swift import parsing and
-module resolution have a real implementation.
+`arch.imports` parses Swift `import Module` declarations, including forms such
+as `@_exported import Module` and `import struct Module.Type`. Imported modules
+resolve against discovered project Swift directories and file stems. This is
+intended for architecture boundaries, not complete SwiftPM or Xcode build graph
+analysis. Unresolved system or package modules such as `Foundation` are ignored.
 
 ## Custom Rules And Plugins
 

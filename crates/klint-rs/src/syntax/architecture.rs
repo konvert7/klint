@@ -17,6 +17,10 @@ pub struct JsxElementRecord {
     pub line: usize,
 }
 pub fn scan_imports(path: &Path, content: &str) -> Result<Vec<ImportRecord>, String> {
+    if source_language_for_path(path) == SourceLanguage::Swift {
+        return Ok(swift_imports(content));
+    }
+
     let mut parser = Parser::new();
     parser
         .set_language(&language_for_path(path))
@@ -29,9 +33,57 @@ pub fn scan_imports(path: &Path, content: &str) -> Result<Vec<ImportRecord>, Str
     let mut imports = Vec::new();
     match source_language_for_path(path) {
         SourceLanguage::Python => walk_python_imports(root, content.as_bytes(), &mut imports),
+        SourceLanguage::Swift => imports.extend(swift_imports(content)),
         SourceLanguage::JavaScriptLike => walk_imports(root, content.as_bytes(), &mut imports),
     }
     Ok(imports)
+}
+
+fn swift_imports(content: &str) -> Vec<ImportRecord> {
+    content
+        .lines()
+        .enumerate()
+        .filter_map(|(index, line)| {
+            swift_import_specifier(line).map(|specifier| ImportRecord {
+                specifier,
+                line: index + 1,
+                is_type_only: false,
+                is_dynamic: false,
+            })
+        })
+        .collect()
+}
+
+fn swift_import_specifier(line: &str) -> Option<String> {
+    let mut text = line.trim();
+    if text.starts_with("//") {
+        return None;
+    }
+
+    while let Some(rest) = text.strip_prefix('@') {
+        let attr_end = rest.find(char::is_whitespace)?;
+        text = rest[attr_end..].trim_start();
+    }
+
+    let rest = text.strip_prefix("import ")?;
+    let mut parts = rest.split_whitespace();
+    let mut target = parts.next()?;
+    if matches!(
+        target,
+        "class" | "struct" | "enum" | "protocol" | "func" | "typealias" | "var" | "let"
+    ) {
+        target = parts.next()?;
+    }
+
+    let module = target
+        .split('.')
+        .next()?
+        .trim_matches(|char: char| !char.is_alphanumeric() && char != '_');
+    if module.is_empty() {
+        None
+    } else {
+        Some(module.to_string())
+    }
 }
 
 pub fn scan_jsx_elements(path: &Path, content: &str) -> Result<Vec<JsxElementRecord>, String> {
@@ -310,6 +362,39 @@ mod tests {
                 },
                 ImportRecord {
                     specifier: "./local".to_string(),
+                    line: 3,
+                    is_type_only: false,
+                    is_dynamic: false,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn extracts_swift_imports_with_line_numbers() {
+        let records = scan_imports(
+            &PathBuf::from("Sources/App/UI/ViewModel.swift"),
+            "import Foundation\n@_exported import Core\nimport struct Models.User\n// import Ignored\n",
+        )
+        .expect("swift imports should scan");
+
+        assert_eq!(
+            records,
+            vec![
+                ImportRecord {
+                    specifier: "Foundation".to_string(),
+                    line: 1,
+                    is_type_only: false,
+                    is_dynamic: false,
+                },
+                ImportRecord {
+                    specifier: "Core".to_string(),
+                    line: 2,
+                    is_type_only: false,
+                    is_dynamic: false,
+                },
+                ImportRecord {
+                    specifier: "Models".to_string(),
                     line: 3,
                     is_type_only: false,
                     is_dynamic: false,

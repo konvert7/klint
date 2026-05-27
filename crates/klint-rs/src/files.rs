@@ -86,7 +86,7 @@ pub(crate) fn is_swift_source(path: &Path) -> bool {
 }
 
 pub(crate) fn supports_import_scan(path: &Path) -> bool {
-    is_javascript_like_source(path) || is_python_source(path)
+    is_javascript_like_source(path) || is_python_source(path) || is_swift_source(path)
 }
 
 pub(crate) fn normalize_path(path: &Path) -> PathBuf {

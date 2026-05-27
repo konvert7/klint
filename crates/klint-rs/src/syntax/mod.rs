@@ -19,11 +19,13 @@ use tree_sitter::{Language, Node};
 enum SourceLanguage {
     JavaScriptLike,
     Python,
+    Swift,
 }
 
 fn language_for_path(path: &Path) -> Language {
     match source_language_for_path(path) {
         SourceLanguage::Python => tree_sitter_python::LANGUAGE.into(),
+        SourceLanguage::Swift => tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
         SourceLanguage::JavaScriptLike => {
             if is_jsx_path(path) {
                 tree_sitter_typescript::LANGUAGE_TSX.into()
@@ -37,6 +39,7 @@ fn language_for_path(path: &Path) -> Language {
 fn source_language_for_path(path: &Path) -> SourceLanguage {
     match path.extension().and_then(|ext| ext.to_str()) {
         Some("py") => SourceLanguage::Python,
+        Some("swift") => SourceLanguage::Swift,
         _ => SourceLanguage::JavaScriptLike,
     }
 }
