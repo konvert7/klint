@@ -67,6 +67,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - os: ubuntu-latest
+            package: linux-x64
+            rust-target: x86_64-unknown-linux-gnu
+            binary: klint-rs
+            archive: tar.gz
           - os: macos-latest
             package: darwin-arm64
             rust-target: aarch64-apple-darwin
@@ -77,6 +82,11 @@ jobs:
             rust-target: x86_64-apple-darwin
             binary: klint-rs
             archive: tar.gz
+          - os: windows-latest
+            package: win32-x64
+            rust-target: x86_64-pc-windows-msvc
+            binary: klint-rs.exe
+            archive: zip
 
     steps:
       - name: Checkout
@@ -111,7 +121,7 @@ jobs:
         run: |
           artifact="klint-${{ needs.metadata.outputs.version }}-${{ matrix.package }}"
           mkdir -p "dist/$artifact"
-          cp "target/${{ matrix.rust-target }}/release/${{ matrix.binary }}" "dist/$artifact/klint"
+          cp "target/${{ matrix.rust-target }}/release/${{ matrix.binary }}" "dist/$artifact/klint${{ runner.os == 'Windows' && '.exe' || '' }}"
           cp README.md "dist/$artifact/README.md"
 
       - name: Smoke artifact binary
@@ -119,6 +129,9 @@ jobs:
         run: |
           artifact="klint-${{ needs.metadata.outputs.version }}-${{ matrix.package }}"
           binary="dist/$artifact/klint"
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            binary="dist/$artifact/klint.exe"
+          fi
 
           "$binary" --version
 
@@ -148,6 +161,15 @@ jobs:
             shasum -a 256 "$artifact.tar.gz" > "$artifact.tar.gz.sha256"
           )
 
+      - name: Package zip archive
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          $artifact = "klint-${{ needs.metadata.outputs.version }}-${{ matrix.package }}"
+          Compress-Archive -Path "dist/$artifact" -DestinationPath "dist/$artifact.zip"
+          $hash = (Get-FileHash "dist/$artifact.zip" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $artifact.zip" | Out-File -Encoding ascii "dist/$artifact.zip.sha256"
+
       - name: Upload native artifact
         uses: actions/upload-artifact@v7
         with:
@@ -172,7 +194,7 @@ jobs:
       - name: Download native artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: klint-${{ needs.metadata.outputs.version }}-darwin-*
+          pattern: klint-${{ needs.metadata.outputs.version }}-*
           path: dist
           merge-multiple: true
 
