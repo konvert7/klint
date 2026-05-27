@@ -168,7 +168,7 @@ jobs:
           $artifact = "klint-${{ needs.metadata.outputs.version }}-${{ matrix.package }}"
           Compress-Archive -Path "dist/$artifact" -DestinationPath "dist/$artifact.zip"
           $hash = (Get-FileHash "dist/$artifact.zip" -Algorithm SHA256).Hash.ToLower()
-          "$hash  $artifact.zip" | Out-File -Encoding ascii "dist/$artifact.zip.sha256"
+          [System.IO.File]::WriteAllText("dist/$artifact.zip.sha256", "$hash  $artifact.zip`n", [System.Text.Encoding]::ASCII)
 
       - name: Upload native artifact
         uses: actions/upload-artifact@v7
