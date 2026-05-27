@@ -7,15 +7,22 @@ on:
         description: "Artifact version, without leading v"
         required: true
         type: string
+      publish-release:
+        description: "Create or update a GitHub Release with the native artifacts"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   metadata:
     name: metadata
     runs-on: ubuntu-latest
     outputs:
+      publish-release: ${{ steps.release.outputs.publish-release }}
+      tag: ${{ steps.release.outputs.tag }}
       version: ${{ steps.release.outputs.version }}
 
     steps:
@@ -25,21 +32,30 @@ jobs:
         run: |
           version="${{ inputs.version }}"
           version="${version#v}"
+          publish_release="${{ inputs.publish-release }}"
 
           if [[ -z "$version" ]]; then
             echo "Native artifact version is required" >&2
             exit 1
           fi
 
+          tag="native-v$version"
+
+          echo "publish-release=$publish_release" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
           echo "Native artifact metadata:"
           echo "  version: $version"
+          echo "  tag: $tag"
+          echo "  publish release: $publish_release"
 
           {
             echo "## Native artifact metadata"
             echo ""
             echo "- Version: \`$version\`"
+            echo "- Tag: \`$tag\`"
+            echo "- Publish release: \`$publish_release\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
   build:
@@ -140,3 +156,41 @@ jobs:
             dist/klint-${{ needs.metadata.outputs.version }}-${{ matrix.package }}.${{ matrix.archive }}
             dist/klint-${{ needs.metadata.outputs.version }}-${{ matrix.package }}.${{ matrix.archive }}.sha256
           if-no-files-found: error
+
+  release:
+    name: release assets
+    needs: [metadata, build]
+    if: needs.metadata.outputs.publish-release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download native artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: klint-${{ needs.metadata.outputs.version }}-darwin-*
+          path: dist
+          merge-multiple: true
+
+      - name: Verify downloaded checksums
+        shell: bash
+        run: |
+          cd dist
+          shasum -a 256 -c *.sha256
+
+      - name: Publish GitHub Release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          tag="${{ needs.metadata.outputs.tag }}"
+          version="${{ needs.metadata.outputs.version }}"
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/* --clobber
+          else
+            gh release create "$tag" dist/* \
+              --title "klint native artifacts $version" \
+              --notes "Manual macOS native artifacts for klint $version."
+          fi
