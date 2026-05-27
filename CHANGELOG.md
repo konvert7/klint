@@ -1,3 +1,10 @@
+# [0.22.0](https://github.com/konvert7/klint/compare/v0.21.0...v0.22.0) (2026-05-27)
+
+
+### Features
+
+* **python:** make wheels version-agnostic ([65406de](https://github.com/konvert7/klint/commit/65406de24b288357dbad310c51c06e9bccc241d2))
+
 # [0.21.0](https://github.com/konvert7/klint/compare/v0.20.0...v0.21.0) (2026-05-26)
 
 
