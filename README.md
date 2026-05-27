@@ -1,8 +1,8 @@
 # klint
 
-Architecture and type-aware linting for TypeScript projects.
+Architecture-as-Code linting for TypeScript, Python, and Swift projects.
 
-Biome and oxlint are excellent at syntax, style, and fast local correctness. klint handles the rules that need project context: layer boundaries, singleton ownership, forbidden patterns, custom repository policies, and type-aware checks that should block an AI agent or CI run before code lands.
+Biome, oxlint, Ruff, and SwiftLint are excellent at syntax, style, and fast local correctness. klint handles the rules that need project context: layer boundaries, singleton ownership, forbidden patterns, custom repository policies, and type-aware TypeScript checks that should block an AI agent or CI run before code lands.
 
 Use klint when "please follow AGENTS.md" is not strong enough. Put the rule in `klint.yaml`, run `klint`, and make the constraint executable.
 
@@ -278,6 +278,44 @@ arch:
       in: ["src/**"]
       message: "Use the auth module"
 ```
+
+### Python Architecture Checks
+
+The Rust engine can apply architecture rules to Python projects:
+
+```yaml
+include: ["src"]
+
+rules: {}
+
+arch:
+  layers:
+    jobs: ["src/app/jobs/**"]
+    lib: ["src/app/lib/**"]
+    config: ["src/app/config.py"]
+
+  imports:
+    - from: jobs
+      deny: lib
+      message: "Jobs must use service APIs, not import lib directly"
+
+  forbidden:
+    - pattern: "print("
+      in: jobs
+      message: "Use the logger"
+
+  singleton:
+    - pattern: "os.environ[\"API_KEY\"]"
+      only: "src/app/config.py"
+      in: ["src/**"]
+      message: "Use app config"
+```
+
+Python import checks support relative imports such as
+`from ..lib.auth import load_key` and project-resolvable absolute imports such
+as `from app.lib.auth import load_key`. External packages that do not resolve to
+project files, such as `requests`, are ignored. This is architecture
+enforcement, not full packaging or virtual-environment analysis.
 
 ### Swift Architecture Checks
 
