@@ -235,8 +235,8 @@ jobs:
             gh release upload "$tag" dist/* --clobber
           else
             gh release create "$tag" dist/* \
-              --title "klint native artifacts $version" \
-              --notes "Manual native artifacts for klint $version."
+              --title "native artifacts $version" \
+              --notes "Manual native artifacts for version $version."
           fi
 
       - name: Generate GitHub App Token for Homebrew tap
@@ -278,6 +278,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "Homebrew formula already up to date"
           else
-            git commit -m "Update klint native $version"
+            git commit -m "chore(homebrew): update klint native $version"
             git push
           fi
