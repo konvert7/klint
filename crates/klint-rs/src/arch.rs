@@ -1,4 +1,4 @@
-use crate::files::{is_python_source, normalize_path, relative_path};
+use crate::files::{is_python_source, normalize_path, relative_path, supports_import_scan};
 use crate::output::Violation;
 use crate::syntax::{scan_imports, scan_jsx_elements};
 use serde::Deserialize;
@@ -131,6 +131,9 @@ fn run_arch_import_rules(
             .map(|allow| resolve_layer_prefixes(allow, arch.layers.as_ref(), root));
 
         for file in from_files {
+            if !supports_import_scan(&file) {
+                continue;
+            }
             let Some(content) = file_contents.get(&file) else {
                 continue;
             };

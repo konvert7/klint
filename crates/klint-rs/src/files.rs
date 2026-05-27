@@ -67,7 +67,7 @@ fn collect_source_files(
 }
 
 fn is_supported_source(path: &Path) -> bool {
-    is_javascript_like_source(path) || is_python_source(path)
+    supports_import_scan(path) || is_swift_source(path)
 }
 
 pub(crate) fn is_javascript_like_source(path: &Path) -> bool {
@@ -79,6 +79,14 @@ pub(crate) fn is_javascript_like_source(path: &Path) -> bool {
 
 pub(crate) fn is_python_source(path: &Path) -> bool {
     matches!(path.extension().and_then(|ext| ext.to_str()), Some("py"))
+}
+
+pub(crate) fn is_swift_source(path: &Path) -> bool {
+    matches!(path.extension().and_then(|ext| ext.to_str()), Some("swift"))
+}
+
+pub(crate) fn supports_import_scan(path: &Path) -> bool {
+    is_javascript_like_source(path) || is_python_source(path)
 }
 
 pub(crate) fn normalize_path(path: &Path) -> PathBuf {
@@ -227,10 +235,11 @@ mod tests {
     }
 
     #[test]
-    fn resolve_files_includes_python_sources_for_architecture_rules() {
-        let root = temp_root("python-source");
+    fn resolve_files_includes_multilanguage_sources_for_architecture_rules() {
+        let root = temp_root("multilanguage-source");
         create_dir_all(root.join("src/app")).expect("create src dirs");
         write(root.join("src/app/main.py"), "print('x')\n").expect("write python source");
+        write(root.join("src/app/main.swift"), "print(\"x\")\n").expect("write swift source");
         write(root.join("src/app/main.ts"), "console.log('x');\n").expect("write ts source");
         write(root.join("src/app/readme.md"), "# ignored\n").expect("write markdown");
 
@@ -240,7 +249,10 @@ mod tests {
             .iter()
             .map(|file| relative_path(&root, file))
             .collect::<Vec<_>>();
-        assert_eq!(rel_files, vec!["src/app/main.py", "src/app/main.ts"]);
+        assert_eq!(
+            rel_files,
+            vec!["src/app/main.py", "src/app/main.swift", "src/app/main.ts"]
+        );
 
         let _ = fs::remove_dir_all(root);
     }

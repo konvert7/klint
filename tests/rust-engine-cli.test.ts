@@ -450,6 +450,72 @@ arch:
     }
   });
 
+  test("--engine rust applies architecture pattern rules to Swift files", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["Sources"]
+rules: {}
+arch:
+  forbidden:
+    - pattern: "URLSession.shared"
+      in: "Sources/App/UI/**"
+      message: "Use networking client"
+  singleton:
+    - pattern: "ProcessInfo.processInfo.environment[\\"API_KEY\\"]"
+      only: "Sources/App/Config/AppConfig.swift"
+      in: "Sources/**"
+      message: "Use AppConfig"
+`,
+      {
+        "Sources/App/Config/AppConfig.swift":
+          'let key = ProcessInfo.processInfo.environment["API_KEY"]\n',
+        "Sources/App/UI/ViewModel.swift":
+          'let session = URLSession.shared\nlet key = ProcessInfo.processInfo.environment["API_KEY"]\n',
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{
+          file: string;
+          line: number;
+          rule: string;
+          message: string;
+          severity: string;
+          fix: unknown;
+        }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(rust.code).toBe(2);
+      expect(payload.summary).toEqual({ errors: 2, warnings: 0 });
+      expect(payload.violations).toEqual([
+        {
+          file: "Sources/App/UI/ViewModel.swift",
+          line: 1,
+          rule: "arch/forbidden",
+          message: "Use networking client",
+          severity: "error",
+          fix: null,
+        },
+        {
+          file: "Sources/App/UI/ViewModel.swift",
+          line: 2,
+          rule: "arch/singleton",
+          message: "Use AppConfig",
+          severity: "error",
+          fix: null,
+        },
+      ]);
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine rust applies architecture import rules to Python relative imports", () => {
     const dir = setupNamedFixture(
       `

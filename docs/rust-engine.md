@@ -27,9 +27,9 @@ Architecture rules:
 
 | Area | Notes |
 |------|-------|
-| `arch.imports` | Supports TypeScript/JavaScript static imports, dynamic imports, TS path aliases, allow/deny mode, and type-only allowance. Supports Python relative imports and resolvable absolute project imports; unresolved Python package imports are ignored. |
-| `arch.forbidden` | Supports literal pattern checks for TypeScript/JavaScript and Python files. JSX element checks are TypeScript/JavaScript only. |
-| `arch.singleton` | Supports literal pattern checks for TypeScript/JavaScript and Python files. JSX element checks are TypeScript/JavaScript only. |
+| `arch.imports` | Supports TypeScript/JavaScript static imports, dynamic imports, TS path aliases, allow/deny mode, and type-only allowance. Supports Python relative imports and resolvable absolute project imports; unresolved Python package imports are ignored. Swift imports are not parsed yet. |
+| `arch.forbidden` | Supports literal pattern checks for TypeScript/JavaScript, Python, and Swift files. JSX element checks are TypeScript/JavaScript only. |
+| `arch.singleton` | Supports literal pattern checks for TypeScript/JavaScript, Python, and Swift files. JSX element checks are TypeScript/JavaScript only. |
 
 Top-level rules:
 
@@ -88,6 +88,14 @@ restricted to TypeScript/JavaScript-like files.
 
 PyPI packaging is a later distribution step. Land it after the Rust engine has
 the Python behavior worth shipping and the package shape is decided.
+
+## Swift Support
+
+Swift support starts at the same architecture-pattern layer as Python did. The
+Rust engine discovers `.swift` files and applies language-neutral
+`arch.forbidden` and `arch.singleton` literal pattern rules to them.
+`arch.imports` deliberately skips Swift files until Swift import parsing and
+module resolution have a real implementation.
 
 ## Custom Rules And Plugins
 

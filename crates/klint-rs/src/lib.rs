@@ -229,6 +229,48 @@ arch:
     }
 
     #[test]
+    fn forbidden_pattern_reports_swift_source_matches() {
+        let root = temp_root("forbidden-swift-pattern");
+        create_dir_all(root.join("Sources/App/UI")).expect("create fixture dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["Sources"]
+rules: {}
+arch:
+  forbidden:
+    - pattern: "URLSession.shared"
+      in: "Sources/App/UI/**"
+      message: "Use networking client"
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("Sources/App/UI/ViewModel.swift"),
+            "final class ViewModel {\n    let session = URLSession.shared\n}\n",
+        )
+        .expect("write swift source");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(
+            output.violations,
+            vec![Violation {
+                file: "Sources/App/UI/ViewModel.swift".to_string(),
+                line: 2,
+                rule: "arch/forbidden".to_string(),
+                message: "Use networking client".to_string(),
+                severity: "error".to_string(),
+                fix: None,
+            }]
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn singleton_pattern_ignores_only_file_and_reports_other_matches() {
         let root = temp_root("singleton-pattern");
         create_dir_all(root.join("src/lib")).expect("create lib dirs");
@@ -364,6 +406,55 @@ arch:
     }
 
     #[test]
+    fn singleton_pattern_reports_swift_source_matches() {
+        let root = temp_root("singleton-swift-pattern");
+        create_dir_all(root.join("Sources/App/Config")).expect("create config dirs");
+        create_dir_all(root.join("Sources/App/Jobs")).expect("create job dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["Sources"]
+rules: {}
+arch:
+  singleton:
+    - pattern: "ProcessInfo.processInfo.environment[\"API_KEY\"]"
+      only: "Sources/App/Config/AppConfig.swift"
+      in: ["Sources/**"]
+      message: "Use AppConfig"
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("Sources/App/Config/AppConfig.swift"),
+            "let key = ProcessInfo.processInfo.environment[\"API_KEY\"]\n",
+        )
+        .expect("write allowed source");
+        write(
+            root.join("Sources/App/Jobs/Worker.swift"),
+            "let key = ProcessInfo.processInfo.environment[\"API_KEY\"]\n",
+        )
+        .expect("write violating source");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(
+            output.violations,
+            vec![Violation {
+                file: "Sources/App/Jobs/Worker.swift".to_string(),
+                line: 1,
+                rule: "arch/singleton".to_string(),
+                message: "Use AppConfig".to_string(),
+                severity: "error".to_string(),
+                fix: None,
+            }]
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn imports_deny_mode_flags_static_and_dynamic_relative_imports() {
         let root = temp_root("imports-deny-relative");
         create_dir_all(root.join("assets/skills/demo")).expect("create skill dirs");
@@ -410,6 +501,44 @@ arch:
                 .collect::<Vec<_>>(),
             vec![1, 3]
         );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn imports_deny_mode_skips_swift_sources_until_import_support_lands() {
+        let root = temp_root("imports-skip-swift");
+        create_dir_all(root.join("Sources/App/UI")).expect("create ui dirs");
+        create_dir_all(root.join("Sources/App/Core")).expect("create core dirs");
+        write(
+            root.join("klint.yaml"),
+            r#"
+include: ["Sources"]
+rules: {}
+arch:
+  layers:
+    ui: ["Sources/App/UI/**"]
+    core: ["Sources/App/Core/**"]
+  imports:
+    - from: ui
+      deny: core
+      message: "UI must not import core directly"
+"#,
+        )
+        .expect("write config");
+        write(
+            root.join("Sources/App/UI/ViewModel.swift"),
+            "import Foundation\nimport Core\n",
+        )
+        .expect("write swift source");
+        write(root.join("Sources/App/Core/Auth.swift"), "struct Auth {}\n")
+            .expect("write core source");
+
+        let output = run(RunOptions {
+            config_dir: root.clone(),
+        })
+        .expect("valid config should run");
+
+        assert_eq!(output, empty_output());
         let _ = fs::remove_dir_all(root);
     }
 
