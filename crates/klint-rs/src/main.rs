@@ -57,6 +57,10 @@ fn parse_args(args: &[String]) -> Result<CliOptions, String> {
                 print_help();
                 std::process::exit(0);
             }
+            "--version" | "-V" | "version" => {
+                println!("klint-rs {}", env!("CARGO_PKG_VERSION"));
+                std::process::exit(0);
+            }
             _ => {
                 i += 1;
             }
@@ -68,6 +72,6 @@ fn parse_args(args: &[String]) -> Result<CliOptions, String> {
 
 fn print_help() {
     println!(
-        "klint-rs — shadow Rust architecture engine\n\nUsage: klint-rs [--config <dir>] [--json]"
+        "klint-rs — shadow Rust architecture engine\n\nUsage: klint-rs [--config <dir>] [--json] [--version]"
     );
 }

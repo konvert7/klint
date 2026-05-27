@@ -30,6 +30,45 @@ fn parse_json(stdout: &str) -> Value {
 }
 
 #[test]
+fn cli_version_exits_zero() {
+    let output = Command::new(env!("CARGO_BIN_EXE_klint-rs"))
+        .arg("--version")
+        .output()
+        .expect("klint-rs binary should execute");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert_eq!(
+        String::from_utf8(output.stdout).expect("stdout should be utf8"),
+        format!("klint-rs {}\n", env!("CARGO_PKG_VERSION"))
+    );
+    assert!(
+        String::from_utf8(output.stderr)
+            .expect("stderr should be utf8")
+            .is_empty()
+    );
+}
+
+#[test]
+fn cli_help_mentions_version_flag() {
+    let output = Command::new(env!("CARGO_BIN_EXE_klint-rs"))
+        .arg("--help")
+        .output()
+        .expect("klint-rs binary should execute");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        String::from_utf8(output.stdout)
+            .expect("stdout should be utf8")
+            .contains("--version")
+    );
+    assert!(
+        String::from_utf8(output.stderr)
+            .expect("stderr should be utf8")
+            .is_empty()
+    );
+}
+
+#[test]
 fn cli_json_clean_run_exits_zero() {
     let root = temp_root("clean");
     create_dir_all(root.join("src")).expect("create fixture dirs");
