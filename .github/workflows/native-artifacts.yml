@@ -127,7 +127,10 @@ jobs:
         run: |
           artifact="klint-${{ needs.metadata.outputs.version }}-${{ matrix.package }}"
           tar -czf "dist/$artifact.tar.gz" -C dist "$artifact"
-          shasum -a 256 "dist/$artifact.tar.gz" > "dist/$artifact.tar.gz.sha256"
+          (
+            cd dist
+            shasum -a 256 "$artifact.tar.gz" > "$artifact.tar.gz.sha256"
+          )
 
       - name: Upload native artifact
         uses: actions/upload-artifact@v7
