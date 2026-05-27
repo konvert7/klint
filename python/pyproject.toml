@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "klint"
 version = "0.0.0"
-description = "Architecture-as-Code linter for TypeScript and Python projects."
+description = "Architecture-as-Code checks for Python projects."
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
@@ -14,8 +14,8 @@ authors = [
 ]
 keywords = [
   "architecture",
+  "architecture-as-code",
   "linter",
-  "typescript",
   "python",
   "rust"
 ]
