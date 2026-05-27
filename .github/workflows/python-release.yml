@@ -59,6 +59,21 @@ jobs:
           echo "package-name=$package_name" >> "$GITHUB_OUTPUT"
           echo "environment=$environment" >> "$GITHUB_OUTPUT"
 
+          echo "Python release metadata:"
+          echo "  version: $version"
+          echo "  repository: $repository"
+          echo "  package: $package_name"
+          echo "  environment: $environment"
+
+          {
+            echo "## Python release metadata"
+            echo ""
+            echo "- Version: \`$version\`"
+            echo "- Repository: \`$repository\`"
+            echo "- Package: \`$package_name\`"
+            echo "- Environment: \`$environment\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   build:
     name: build (${{ matrix.package }})
     needs: metadata
