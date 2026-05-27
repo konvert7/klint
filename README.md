@@ -190,7 +190,7 @@ arch:
       message: "Client code must not import server-only modules"
 ```
 
-`include` selects `.ts` files to lint. Patterns support `**` globs and `!` negation.
+`include` selects source files to lint. Patterns support `**` globs and `!` negation.
 
 `plugins` enables bundled rule groups. Today, `sonar` provides focused code-quality rules.
 
@@ -278,6 +278,45 @@ arch:
       in: ["src/**"]
       message: "Use the auth module"
 ```
+
+### Swift Architecture Checks
+
+The Rust engine can apply architecture rules to Swift projects:
+
+```yaml
+include: ["Sources"]
+
+rules: {}
+
+arch:
+  layers:
+    ui: ["Sources/App/UI/**"]
+    core: ["Sources/App/Core/**"]
+    config: ["Sources/App/Config/**"]
+
+  imports:
+    - from: ui
+      deny: core
+      message: "UI must use app services, not import Core directly"
+
+  forbidden:
+    - pattern: "URLSession.shared"
+      in: ui
+      message: "Use the networking client"
+
+  singleton:
+    - pattern: "ProcessInfo.processInfo.environment[\"API_KEY\"]"
+      only: "Sources/App/Config/AppConfig.swift"
+      in: ["Sources/**"]
+      message: "Use AppConfig"
+```
+
+Swift import checks parse declarations such as `import Core`,
+`@_exported import Core`, and `import struct Models.User`. Imported modules
+resolve against discovered project Swift directories and file stems. System or
+package modules that are not present in the project, such as `Foundation`, are
+ignored. This is architecture enforcement, not full SwiftPM or Xcode build graph
+analysis.
 
 ## Built-in Rules
 
