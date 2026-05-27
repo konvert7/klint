@@ -1,3 +1,12 @@
+# [0.23.0](https://github.com/konvert7/klint/compare/v0.22.0...v0.23.0) (2026-05-27)
+
+
+### Features
+
+* **package:** add --version flag and swift artifact creation in CI ([64b31d4](https://github.com/konvert7/klint/commit/64b31d49436b57fd27339d5c4993fb22acdd300d))
+* **swift:** add support for Swift files in architecture rules ([6573193](https://github.com/konvert7/klint/commit/657319380260aa4fb6a151376d12dc6625af23c1))
+* **swift:** enhance architecture rules to support Swift imports and module resolution ([fe058a7](https://github.com/konvert7/klint/commit/fe058a77a8d6ab00fa843e0a7b1509c566f389d3))
+
 # [0.22.0](https://github.com/konvert7/klint/compare/v0.21.0...v0.22.0) (2026-05-27)
 
 
