@@ -19,16 +19,12 @@ class Klint < Formula
   version "${version}"
   license "MIT"
 
-  on_macos do
-    on_arm do
-      url "https://github.com/konvert7/klint/releases/download/native-v${version}/klint-${version}-darwin-arm64.tar.gz"
-      sha256 "${options.darwinArm64Sha}"
-    end
-
-    on_intel do
-      url "https://github.com/konvert7/klint/releases/download/native-v${version}/klint-${version}-darwin-x64.tar.gz"
-      sha256 "${options.darwinX64Sha}"
-    end
+  if Hardware::CPU.arm?
+    url "https://github.com/konvert7/klint/releases/download/native-v${version}/klint-${version}-darwin-arm64.tar.gz"
+    sha256 "${options.darwinArm64Sha}"
+  else
+    url "https://github.com/konvert7/klint/releases/download/native-v${version}/klint-${version}-darwin-x64.tar.gz"
+    sha256 "${options.darwinX64Sha}"
   end
 
   def install

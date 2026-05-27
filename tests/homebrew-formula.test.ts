@@ -11,6 +11,10 @@ describe("Homebrew formula generation", () => {
 
     expect(formula).toContain("class Klint < Formula");
     expect(formula).toContain('version "0.1.2"');
+    expect(formula).toContain("if Hardware::CPU.arm?");
+    expect(formula).not.toContain("on_macos do");
+    expect(formula).not.toContain("on_arm do");
+    expect(formula).not.toContain("on_intel do");
     expect(formula).toContain(
       "https://github.com/konvert7/klint/releases/download/native-v0.1.2/klint-0.1.2-darwin-arm64.tar.gz"
     );
