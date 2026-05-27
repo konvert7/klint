@@ -8,7 +8,14 @@ Use klint when "please follow AGENTS.md" is not strong enough. Put the rule in `
 
 ## Install
 
-klint currently runs on Bun.
+For macOS native CLI usage:
+
+```sh
+brew tap konvert7/tap
+brew install klint
+```
+
+For TypeScript projects using Bun:
 
 ```sh
 bun add -d @konvert7/klint
