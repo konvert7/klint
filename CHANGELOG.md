@@ -1,3 +1,10 @@
+# [0.24.0](https://github.com/konvert7/klint/compare/v0.23.0...v0.24.0) (2026-05-27)
+
+
+### Features
+
+* add homebrew deployment ([c7aeee3](https://github.com/konvert7/klint/commit/c7aeee38c4480e3e606d9f3fc12da0a1afe62141))
+
 # [0.23.0](https://github.com/konvert7/klint/compare/v0.22.0...v0.23.0) (2026-05-27)
 
 
