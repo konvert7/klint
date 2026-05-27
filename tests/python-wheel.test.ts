@@ -43,11 +43,15 @@ describe("Python wheel package scaffold", () => {
     expect(workflow).not.toContain("linux_x86_64");
   });
 
-  test("wheel setup honors explicit platform tag override", () => {
+  test("wheel setup emits Python-version-agnostic platform wheels", () => {
     const setup = readFileSync(new URL("python/setup.py", root), "utf-8");
 
     expect(setup).toContain('os.environ.get("KLINT_PYTHON_PLAT_NAME")');
     expect(setup).toContain("self.plat_name = plat_name");
+    expect(setup).toContain("def get_tag(self)");
+    expect(setup).toContain("if not plat_name:");
+    expect(setup).toContain('return "py3", "none", plat_name');
+    expect(setup).not.toContain("cp313");
   });
 
   test("release prep stages TestPyPI package name and release version", () => {
