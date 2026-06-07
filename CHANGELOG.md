@@ -1,3 +1,10 @@
+## [0.24.1](https://github.com/konvert7/klint/compare/v0.24.0...v0.24.1) (2026-06-07)
+
+
+### Bug Fixes
+
+* **skill:** extend with jsx-element docs ([54e0faa](https://github.com/konvert7/klint/commit/54e0faa12ab2887d3de4601073189796286ac4e0))
+
 # [0.24.0](https://github.com/konvert7/klint/compare/v0.23.0...v0.24.0) (2026-05-27)
 
 
