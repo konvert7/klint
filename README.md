@@ -97,6 +97,7 @@ klint is for rules that are too project-specific or context-heavy for a formatte
 | Layer boundaries | `src/components/**` must not import from `src/data/**` |
 | Singleton ownership | `process.env.API_KEY` may only appear in `src/lib/auth.ts` |
 | Forbidden patterns | `console.log(` is blocked inside hook libraries |
+| Raw JSX elements | `<button>` is blocked outside `src/components/ui/**` |
 | Type-aware mistakes | Promise-returning calls cannot be silently discarded |
 | Repository policy | Custom `klint.rules.ts` rules run with the same severity/config system |
 
@@ -273,6 +274,18 @@ arch:
       message: "Libraries should return or throw, not terminate the process"
 ```
 
+Block raw JSX/HTML elements with `jsx-element` to push consumers onto design-system primitives. It is AST-matched on intrinsic (lowercase) tag names, so it is robust to whitespace, attributes, and lookalikes like `<buttonGroup>`:
+
+```yaml
+arch:
+  forbidden:
+    - jsx-element: ["button", "input", "label"]
+      in: ["src/app/**/*.tsx", "src/components/**/*.tsx", "!src/components/ui/**"]
+      message: "Use the design-system primitives in @/components/ui/* instead of raw HTML elements"
+```
+
+`jsx-element` matches intrinsic HTML elements only — not custom components like `<Button>`. Use `arch.imports` to restrict those.
+
 ### Singleton Locations
 
 Enforce that a pattern appears only in one designated file:
@@ -284,6 +297,17 @@ arch:
       only: "src/lib/auth.ts"
       in: ["src/**"]
       message: "Use the auth module"
+```
+
+`singleton` accepts `jsx-element` too — pin a raw element to the one primitive file that is allowed to render it:
+
+```yaml
+arch:
+  singleton:
+    - jsx-element: "button"
+      only: "src/components/ui/button.tsx"
+      in: ["src/**/*.tsx"]
+      message: "Raw <button> belongs only to the Button primitive"
 ```
 
 ### Python Architecture Checks
