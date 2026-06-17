@@ -10,7 +10,7 @@ pub(crate) fn resolve_files(root: &Path, include: &[String]) -> Result<Vec<PathB
         .collect();
     for pattern in include.iter().filter(|pattern| !pattern.starts_with('!')) {
         let base = include_base(root, pattern);
-        collect_source_files(&base, root, &excludes, &mut files)?;
+        collect_source_files(&base, root, pattern, &excludes, &mut files)?;
     }
     files.sort();
     files.dedup();
@@ -28,19 +28,20 @@ pub(crate) fn read_files(files: &[PathBuf]) -> Result<BTreeMap<PathBuf, String>,
 }
 
 fn include_base(root: &Path, pattern: &str) -> PathBuf {
-    let prefix = pattern
-        .split("/**")
-        .next()
-        .unwrap_or(pattern)
-        .split("/*")
-        .next()
-        .unwrap_or(pattern);
-    normalize_path(&root.join(prefix))
+    let mut base = PathBuf::new();
+    for segment in pattern.split('/') {
+        if segment.contains('*') {
+            break;
+        }
+        base.push(segment);
+    }
+    normalize_path(&root.join(base))
 }
 
 fn collect_source_files(
     dir: &Path,
     root: &Path,
+    include_pattern: &str,
     excludes: &[&str],
     files: &mut Vec<PathBuf>,
 ) -> Result<(), String> {
@@ -58,9 +59,12 @@ fn collect_source_files(
             }) {
                 continue;
             }
-            collect_source_files(&path, root, excludes, files)?;
+            collect_source_files(&path, root, include_pattern, excludes, files)?;
         } else if is_supported_source(&path) {
-            files.push(normalize_path(&path));
+            let rel = relative_path(root, &path);
+            if match_pattern(&rel, include_pattern) {
+                files.push(normalize_path(&path));
+            }
         }
     }
     Ok(())
@@ -253,6 +257,48 @@ mod tests {
             rel_files,
             vec!["src/app/main.py", "src/app/main.swift", "src/app/main.ts"]
         );
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn resolve_files_matches_root_level_files_under_double_star_glob() {
+        // `**/*.ts` must match a root-level file (e.g. cli.ts), not only nested ones —
+        // `**` means zero-or-more path segments. Regression test for include_base
+        // collapsing the base to a literal "**" directory.
+        let root = temp_root("double-star-root");
+        create_dir_all(root.join("src")).expect("create src");
+        write(root.join("cli.ts"), "export const x = 1;\n").expect("write root source");
+        write(root.join("src/app.ts"), "export const y = 2;\n").expect("write nested source");
+
+        let files = resolve_files(&root, &["**/*.ts".to_string()]).expect("resolve files");
+
+        let rel_files = files
+            .iter()
+            .map(|file| relative_path(&root, file))
+            .collect::<Vec<_>>();
+        assert_eq!(rel_files, vec!["cli.ts", "src/app.ts"]);
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn resolve_files_honors_glob_extension_not_just_base_dir() {
+        // `**/*.ts` selects .ts only — the walker must match each file against the
+        // glob, not collect every supported source type under the base directory.
+        let root = temp_root("glob-extension");
+        create_dir_all(root.join("src")).expect("create src");
+        write(root.join("src/a.ts"), "export const x = 1;\n").expect("write ts");
+        write(root.join("src/a.js"), "export const y = 2;\n").expect("write js");
+        write(root.join("src/a.py"), "y = 2\n").expect("write py");
+
+        let files = resolve_files(&root, &["**/*.ts".to_string()]).expect("resolve files");
+
+        let rel_files = files
+            .iter()
+            .map(|file| relative_path(&root, file))
+            .collect::<Vec<_>>();
+        assert_eq!(rel_files, vec!["src/a.ts"]);
 
         let _ = fs::remove_dir_all(root);
     }

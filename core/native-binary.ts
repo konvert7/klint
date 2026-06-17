@@ -100,7 +100,11 @@ function nativePackageVersionMatches(
 }
 
 function readJsonFile(path: string): { version?: string } {
-  return JSON.parse(readFileSync(path, "utf-8")) as { version?: string };
+  try {
+    return JSON.parse(readFileSync(path, "utf-8")) as { version?: string };
+  } catch {
+    return {};
+  }
 }
 
 function resolveOptionalPackageJson(

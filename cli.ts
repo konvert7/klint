@@ -1,15 +1,7 @@
 #!/usr/bin/env bun
 import { type SpawnSyncReturns, spawnSync } from "node:child_process";
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { cp, mkdir, readFile, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import * as clack from "@clack/prompts";
@@ -103,7 +95,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
   }
   let raw: RawConfig;
   try {
-    const text = readFileSync(configPath, "utf-8");
+    const text = await readFile(configPath, "utf-8");
     raw = (usingYaml ? parseYaml(text) : JSON.parse(text)) as RawConfig;
   } catch {
     process.stderr.write(`klint: failed to parse ${configPath}\n`);
@@ -853,16 +845,16 @@ async function installSkill(args: string[]): Promise<void> {
   const linkType = process.platform === "win32" ? "junction" : "dir";
   for (const key of selectedAgents) {
     const dest = resolve(cwd, AGENT_DIRS[key], "klint-rules");
-    mkdirSync(dirname(dest), { recursive: true });
+    await mkdir(dirname(dest), { recursive: true });
     try {
-      rmSync(dest, { recursive: true, force: true });
+      await rm(dest, { recursive: true, force: true });
     } catch {
       /* already gone */
     }
     if (useSymlink) {
-      symlinkSync(relative(dirname(dest), skillSrc), dest, linkType);
+      await symlink(relative(dirname(dest), skillSrc), dest, linkType);
     } else {
-      cpSync(skillSrc, dest, { recursive: true });
+      await cp(skillSrc, dest, { recursive: true });
     }
   }
 
