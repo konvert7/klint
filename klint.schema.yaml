@@ -436,7 +436,7 @@ properties:
             additionalProperties: false
             description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
       sonar/prefer-nullish-coalescing-assign:
-        description: Flags `x = x ?? y` patterns — `x ??= y` is the dedicated nullish assignment operator.
+        description: Flags explicit nullish assignment guards — `x ??= y` is the dedicated nullish assignment operator.
         examples:
           - "sonar/prefer-nullish-coalescing-assign: warn"
         anyOf:
@@ -635,7 +635,11 @@ properties:
               properties:
                 pattern:
                   type: string
-                  description: Literal substring to search for in source. No regex — exact substring match (e.g. `console.log(`).
+                  description: "Pattern to search for, scanned per line. A literal substring by default (e.g. a console logging call).
+                    Prefix with `re:` to match a regular expression instead (e.g. `re:\\bp-\\[\\d+px\\]`). Regexes must
+                    use the common JS/RE2 subset — no lookaround or backreferences — so the TS and Rust engines agree.
+                    Note: a literal pattern that itself begins with `re:` cannot be expressed; such a value is always
+                    read as a regex."
                 in:
                   anyOf:
                     - type: string
@@ -699,7 +703,7 @@ properties:
             - |-
               arch:
                 forbidden:
-                  - pattern: "console.log("
+                  - pattern: "debugLog("
                     in: core
                     message: "Leaks into the agent event stream"
             - |-
@@ -717,8 +721,11 @@ properties:
               properties:
                 pattern:
                   type: string
-                  description: Literal substring whose appearance is allowed only at one location. Exact substring match (e.g.
-                    `process.env.API_KEY`).
+                  description: "Pattern whose appearance is allowed only at one location, scanned per line. A literal substring by default
+                    (e.g. `process.env.API_KEY`). Prefix with `re:` to match a regular expression instead. Regexes must
+                    use the common JS/RE2 subset — no lookaround or backreferences — so the TS and Rust engines agree.
+                    Note: a literal pattern that itself begins with `re:` cannot be expressed; such a value is always
+                    read as a regex."
                 only:
                   type: string
                   description: The single file path where this pattern is allowed. Every other occurrence becomes a violation.
@@ -793,6 +800,56 @@ properties:
                     only: "src/components/ui/button.tsx"
                     in: ["src/**/*.tsx"]
                     message: "Raw <button> belongs only to the Button primitive."
+      maxLines:
+        description: Per-file line-count limits. Cap how long files in a layer may grow, with different ceilings per scope.
+        type: array
+        items:
+          type: object
+          properties:
+            limit:
+              type: integer
+              exclusiveMinimum: 0
+              maximum: 9007199254740991
+              description: Maximum number of physical lines a file may contain. Counts every line including blanks and comments. A
+                file with more lines than this is a violation.
+            in:
+              anyOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+              description: Layer name(s) or glob(s) the limit applies to. Files outside the scope are not checked.
+            message:
+              description: Optional error message. Defaults to a message naming the limit (e.g. 'File exceeds the maximum of 300
+                lines').
+              type: string
+            severity:
+              type: string
+              enum:
+                - error
+                - warn
+              description: Severity for the arch rule. "error" exits with code 2; "warn" reports but exits 0. (arch rules cannot be
+                "off" — remove the entry instead.)
+          required:
+            - limit
+            - in
+          additionalProperties: false
+          description: A per-file line-count limit. Caps how long any file in scope may grow — the honest way to keep modules
+            small without a formatter dependency.
+          examples:
+            - |-
+              arch:
+                maxLines:
+                  - limit: 300
+                    in: src/**
+                    message: "Split this module"
+            - |-
+              arch:
+                maxLines:
+                  - limit: 300
+                    in: src/**
+                  - limit: 600
+                    in: tests/**
     additionalProperties: false
     description: Architecture-as-Code constraints — layers, import boundaries, forbidden patterns, singleton locations.
       Enforced by the arch engine alongside the rule set.

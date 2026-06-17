@@ -98,6 +98,7 @@ klint is for rules that are too project-specific or context-heavy for a formatte
 | Singleton ownership | `process.env.API_KEY` may only appear in `src/lib/auth.ts` |
 | Forbidden patterns | `console.log(` is blocked inside hook libraries |
 | Raw JSX elements | `<button>` is blocked outside `src/components/ui/**` |
+| File length | No file in `src/**` may exceed 300 lines |
 | Type-aware mistakes | Promise-returning calls cannot be silently discarded |
 | Repository policy | Custom `klint.rules.ts` rules run with the same severity/config system |
 
@@ -147,7 +148,7 @@ klint --engine compare --json  # parity check; rejects unsupported rules
 
 Rust currently supports:
 
-- `arch` rules: imports, forbidden patterns, singleton locations
+- `arch` rules: imports, forbidden patterns (literal + `re:` regex), singleton locations, `maxLines` file limits
 - `no-unguarded-json-parse`
 - `no-sync-in-async`
 - `no-nested-template-literals`
@@ -274,6 +275,18 @@ arch:
       message: "Libraries should return or throw, not terminate the process"
 ```
 
+Match a **regular expression** instead of a literal by prefixing the pattern with `re:` — useful for value-shaped policies such as off-system utility classes. Regexes use the common JS/RE2 subset (no lookaround or backreferences) so the TS and Rust engines agree:
+
+```yaml
+arch:
+  forbidden:
+    - pattern: 're:\b(?:p|gap)-\[' # reject Tailwind arbitrary values like p-[18px]
+      in: ["src/**/*.tsx"]
+      message: "Use the spacing scale, not arbitrary bracket values"
+```
+
+A literal pattern that itself begins with `re:` cannot be expressed — such a value is always read as a regex.
+
 Block raw JSX/HTML elements with `jsx-element` to push consumers onto design-system primitives. It is AST-matched on intrinsic (lowercase) tag names, so it is robust to whitespace, attributes, and lookalikes like `<buttonGroup>`:
 
 ```yaml
@@ -299,6 +312,8 @@ arch:
       message: "Use the auth module"
 ```
 
+Like `forbidden`, a singleton `pattern` may use the `re:` regex prefix for value-shaped matches.
+
 `singleton` accepts `jsx-element` too — pin a raw element to the one primitive file that is allowed to render it:
 
 ```yaml
@@ -309,6 +324,23 @@ arch:
       in: ["src/**/*.tsx"]
       message: "Raw <button> belongs only to the Button primitive"
 ```
+
+### Max File Length
+
+Cap how long any file in a layer may grow. The limit counts every physical line — blanks and comments included — and a file over it is flagged at the first line past the limit:
+
+```yaml
+arch:
+  maxLines:
+    - limit: 300
+      in: ["src/**"]
+      message: "Split this module"   # optional — defaults to a message naming the limit
+
+    - limit: 600                      # different ceilings per scope
+      in: ["tests/**"]
+```
+
+`maxLines` is enforced in both the TS and Rust engines and applies to every language klint scans, with no formatter dependency.
 
 ### Python Architecture Checks
 

@@ -36,6 +36,8 @@ Wire it into `klint.yaml` for editor autocomplete and validation:
    | Pattern P must never appear inside a scoped layer | `arch.forbidden` + `pattern` |
    | Raw HTML/JSX element must never appear in a scoped layer | `arch.forbidden` + `jsx-element` |
    | Raw HTML/JSX element may only appear in one primitive file | `arch.singleton` + `jsx-element` |
+   | A value-shaped pattern (regex) must never appear in a scoped layer | `arch.forbidden` + `pattern: "re:…"` |
+   | No file in a layer may exceed N lines | `arch.maxLines` + `limit` |
 
 4. **Read `klint.yaml`** — check existing `arch.layers` and rules before adding anything. Add a new named layer to `arch.layers` if the file group doesn't exist yet.
 
@@ -113,11 +115,16 @@ Block a `pattern` (literal string) **or** a `jsx-element` (AST-matched tag) insi
 ```yaml
 arch:
   forbidden:
-    # pattern: literal substring — no regex
+    # pattern: literal substring by default; prefix with `re:` for a regex
     - pattern: "console.log("
       in: ["src/lib/**"]       # string OR array; supports ! negation
       message: "Use the logger — console.log leaks into the agent event stream"
       severity: error          # optional — default error; use warn to record without blocking
+
+    # re: prefix — match a regular expression (common JS/RE2 subset; no lookaround/backrefs)
+    - pattern: 're:\b(?:p|gap)-\['
+      in: ["src/**/*.tsx"]
+      message: "Use the spacing scale, not arbitrary bracket values like p-[18px]"
 
     # jsx-element: forbid raw HTML elements outside the design system
     - jsx-element: ["button", "input", "label"]
@@ -125,13 +132,32 @@ arch:
       message: "Use the design-system primitives in @/components/ui/* instead of raw HTML elements"
 ```
 
-Required: `in` + `message`, plus one of `pattern` / `jsx-element` (not both in the same stanza).
+Required: `in` + `message`, plus one of `pattern` / `jsx-element` (not both in the same stanza). A `pattern` may be a literal substring or, with the `re:` prefix, a regex; `singleton` patterns accept `re:` too.
 
 `jsx-element` matches intrinsic element names on the AST (opening and self-closing tags), so it is robust to whitespace, attributes, and naming collisions like `<buttonGroup>` — unlike a literal `pattern: "<button"` scan. It works on `.tsx`/`.jsx` files in both the TS and Rust engines.
 
+### Max lines — cap file length
+
+Limit how many physical lines a file in scope may have. Use a separate stanza per scope to give different ceilings to source and tests.
+
+```yaml
+arch:
+  maxLines:
+    - limit: 300               # positive integer; required
+      in: ["src/**"]           # string OR array; supports ! negation
+      message: "Split this module"   # optional — defaults to "File exceeds the maximum of N lines"
+      severity: error          # optional — default error; use warn to record without blocking
+
+    - limit: 600               # tests may run longer
+      in: ["tests/**"]
+```
+
+Required: `limit` + `in`. The count is **total physical lines** — blanks and comments included, not code lines — and a file over the limit is flagged at line `limit + 1`. Enforced identically in the TS and Rust engines, across every language klint scans.
+
 ## Pitfalls
 
-- `pattern` in `singleton` and `forbidden` is a **literal string** — will not catch `process.env["KEY"]` (bracket notation). Grep for both forms if both are possible.
+- `pattern` in `singleton` and `forbidden` is a **literal substring** by default — it will not catch `process.env["KEY"]` (bracket notation). Either grep for both forms, or use a `re:` regex prefix to match them in one rule. Caveat: a literal pattern that itself begins with `re:` cannot be expressed (it is always read as a regex), and regexes must stay in the common JS/RE2 subset (no lookaround or backreferences) so both engines agree.
+- `maxLines.limit` counts **total physical lines** (blanks and comments included), not code lines; a trailing newline does not add a line, and both engines count identically.
 - `jsx-element` matches **intrinsic** (lowercase HTML) tags only — `button`, `input`, `label`. It does not match custom React components like `<Button>`; to restrict those, use `arch.imports` against the component's module instead.
 - A `forbidden`/`singleton` stanza takes either `pattern` or `jsx-element`, never both — split into two stanzas if you need both.
 - `only` in `singleton` is relative to the project root — use forward slashes on all platforms.
