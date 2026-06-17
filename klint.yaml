@@ -21,7 +21,7 @@ arch:
     core:    ["core/**"]
     rules:   ["rules/**"]
     plugins: ["plugins/**"]
-    cli:     ["cli.ts"]
+    cli:     ["cli.ts", "cli/**"]
 
   imports:
     - from: [core, rules, plugins]
@@ -41,3 +41,8 @@ arch:
       only: "cli.ts"
       in: [core, rules, plugins]
       message: "process.exit() in a library layer terminates the host — only the CLI may exit."
+
+  maxLines:
+    - limit: 500
+      in: [core, rules, plugins, cli]
+      message: "This file is too long — split it into focused modules."

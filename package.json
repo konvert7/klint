@@ -8,6 +8,7 @@
   },
   "files": [
     "cli.ts",
+    "cli",
     "core",
     "rules",
     "plugins",
