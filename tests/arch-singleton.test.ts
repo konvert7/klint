@@ -244,3 +244,31 @@ describe("arch/singleton — jsx-element", () => {
     expect(v[0].file).toBe("src/app/page.tsx");
   });
 });
+
+describe("arch/singleton — regex (re: prefix)", () => {
+  test("pins a regex match to the only file", () => {
+    const v = lint(
+      {
+        singleton: [
+          {
+            pattern: "re:process\\.env\\.[A-Z_]+",
+            only: "src/lib/env.ts",
+            message: "Read env only through the env module",
+          },
+        ],
+      },
+      [
+        {
+          path: ["src", "lib", "env.ts"],
+          content: `export const key = process.env.API_KEY;`,
+        },
+        {
+          path: ["src", "tools", "deploy.ts"],
+          content: `const k = process.env.API_KEY;`,
+        },
+      ]
+    );
+    expect(v).toHaveLength(1);
+    expect(v[0].file).toBe("src/tools/deploy.ts");
+  });
+});

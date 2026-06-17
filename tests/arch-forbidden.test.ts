@@ -284,3 +284,75 @@ describe("arch/forbidden — jsx-element", () => {
     expect(v[0].severity).toBe("warn");
   });
 });
+
+describe("arch/forbidden — regex (re: prefix)", () => {
+  test("flags lines matching the regex, skips non-matching lines", () => {
+    const v = lint(
+      {
+        forbidden: [
+          {
+            pattern: "re:\\b(?:p|gap)-\\[",
+            in: "src/**",
+            message: "Use the spacing scale, not arbitrary values",
+          },
+        ],
+      },
+      [
+        {
+          path: ["src", "ui", "card.tsx"],
+          content: `const a = <div className="p-[18px]" />;\nconst b = <div className="gap-4" />;\nconst c = <div className="gap-[3px]" />;`,
+        },
+      ]
+    );
+    expect(v).toHaveLength(2);
+    expect(v.map((x) => x.line)).toEqual([1, 3]);
+  });
+
+  test("off-scale step regex flags gap-5 / p-7 but not gap-4", () => {
+    const v = lint(
+      {
+        forbidden: [
+          {
+            pattern: "re:\\b(?:p|gap)-[3567]\\b",
+            in: "src/**",
+            message: "Off-scale spacing step",
+          },
+        ],
+      },
+      [
+        {
+          path: ["src", "ui", "row.tsx"],
+          content: `const a = "gap-5";\nconst b = "gap-4";\nconst c = "p-7";`,
+        },
+      ]
+    );
+    expect(v.map((x) => x.line)).toEqual([1, 3]);
+  });
+
+  test("literal pattern is unaffected — 're' without colon is not a regex", () => {
+    const v = lint(
+      {
+        forbidden: [{ pattern: "console.log(", in: "src/**", message: "no log" }],
+      },
+      [
+        {
+          path: ["src", "lib", "a.ts"],
+          // a literal regex-special string must match literally, not as a pattern
+          content: `console.log("x");`,
+        },
+      ]
+    );
+    expect(v).toHaveLength(1);
+  });
+
+  test("invalid regex fails loudly rather than silently passing", () => {
+    expect(() =>
+      lint(
+        {
+          forbidden: [{ pattern: "re:p-[", in: "src/**", message: "bad" }],
+        },
+        [{ path: ["src", "ui", "x.tsx"], content: `const a = "p-[1px]";` }]
+      )
+    ).toThrow(/invalid regex/);
+  });
+});

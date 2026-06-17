@@ -297,5 +297,45 @@
       ],
       "summary": { "errors": 0, "warnings": 1 }
     }
+  },
+  {
+    "name": "arch forbidden regex rejects off-system tailwind spacing",
+    "config": {
+      "include": ["."],
+      "rules": {},
+      "arch": {
+        "forbidden": [
+          {
+            "pattern": "re:\\b(?:p|gap)-\\[",
+            "in": "src/**",
+            "message": "Use the spacing scale, not arbitrary values"
+          }
+        ]
+      }
+    },
+    "files": {
+      "src/ui/card.tsx": "const a = <div className=\"p-[18px]\" />;\nconst b = <div className=\"gap-4\" />;\nconst c = <div className=\"gap-[3px]\" />;\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/ui/card.tsx",
+          "line": 1,
+          "rule": "arch/forbidden",
+          "message": "Use the spacing scale, not arbitrary values",
+          "severity": "error",
+          "fix": null
+        },
+        {
+          "file": "src/ui/card.tsx",
+          "line": 3,
+          "rule": "arch/forbidden",
+          "message": "Use the spacing scale, not arbitrary values",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 2, "warnings": 0 }
+    }
   }
 ]

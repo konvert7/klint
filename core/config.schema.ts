@@ -115,7 +115,7 @@ const ArchForbiddenPatternRuleSchema = z
     pattern: z
       .string()
       .describe(
-        "Literal substring to search for in source. No regex — exact substring match (for example, a console logging call)."
+        "Pattern to search for, scanned per line. A literal substring by default (e.g. a console logging call). Prefix with `re:` to match a regular expression instead (e.g. `re:\\bp-\\[\\d+px\\]`). Regexes must use the common JS/RE2 subset — no lookaround or backreferences — so the TS and Rust engines agree. Note: a literal pattern that itself begins with `re:` cannot be expressed; such a value is always read as a regex."
       ),
     in: StringOrStringArray.describe(
       "Layer name(s) or glob(s) the pattern is forbidden in. Files outside the scope are not checked."
@@ -163,7 +163,7 @@ const ArchSingletonPatternRuleSchema = z
     pattern: z
       .string()
       .describe(
-        "Literal substring whose appearance is allowed only at one location. Exact substring match (e.g. `process.env.API_KEY`)."
+        "Pattern whose appearance is allowed only at one location, scanned per line. A literal substring by default (e.g. `process.env.API_KEY`). Prefix with `re:` to match a regular expression instead. Regexes must use the common JS/RE2 subset — no lookaround or backreferences — so the TS and Rust engines agree. Note: a literal pattern that itself begins with `re:` cannot be expressed; such a value is always read as a regex."
       ),
     only: z
       .string()

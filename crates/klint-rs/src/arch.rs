@@ -581,6 +581,35 @@ fn scan_jsx_elements_for_targets(
     }
 }
 
+const REGEX_PREFIX: &str = "re:";
+
+enum LineMatcher {
+    Literal(String),
+    Regex(regex::Regex),
+}
+
+impl LineMatcher {
+    fn build(pattern: &str) -> Self {
+        let Some(source) = pattern.strip_prefix(REGEX_PREFIX) else {
+            return Self::Literal(pattern.to_string());
+        };
+        match regex::Regex::new(source) {
+            Ok(regex) => Self::Regex(regex),
+            Err(error) => {
+                eprintln!("klint: invalid regex in arch pattern {pattern:?}: {error}");
+                Self::Regex(regex::Regex::new("[^\\s\\S]").expect("never-matching regex is valid"))
+            }
+        }
+    }
+
+    fn is_match(&self, line: &str) -> bool {
+        match self {
+            Self::Literal(pattern) => line.contains(pattern.as_str()),
+            Self::Regex(regex) => regex.is_match(line),
+        }
+    }
+}
+
 fn scan_lines_for_pattern(
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
@@ -588,13 +617,14 @@ fn scan_lines_for_pattern(
     scan: PatternScan<'_>,
     violations: &mut Vec<Violation>,
 ) {
+    let matcher = LineMatcher::build(scan.pattern);
     for file in files {
         let Some(content) = file_contents.get(file) else {
             continue;
         };
 
         for (index, line) in content.lines().enumerate() {
-            if line.contains(scan.pattern) {
+            if matcher.is_match(line) {
                 violations.push(Violation {
                     file: relative_path(root, file),
                     line: index + 1,

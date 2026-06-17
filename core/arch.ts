@@ -303,6 +303,24 @@ function scanJsxElements(
   }
 }
 
+const REGEX_PREFIX = "re:";
+
+function buildLineMatcher(pattern: string): (line: string) => boolean {
+  if (!pattern.startsWith(REGEX_PREFIX)) {
+    return (line) => line.includes(pattern);
+  }
+  const source = pattern.slice(REGEX_PREFIX.length);
+  let regex: RegExp;
+  try {
+    regex = new RegExp(source);
+  } catch (cause) {
+    throw new Error(
+      `klint: invalid regex in arch pattern "${pattern}": ${(cause as Error).message}`
+    );
+  }
+  return (line) => regex.test(line);
+}
+
 function scanLinesForPattern(
   files: string[],
   pattern: string,
@@ -313,12 +331,13 @@ function scanLinesForPattern(
   severity: Severity,
   violations: Violation[]
 ): void {
+  const matchesLine = buildLineMatcher(pattern);
   for (const file of files) {
     const content = fileContents.get(file);
     if (!content) continue;
     const lines = content.split("\n");
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].includes(pattern)) {
+      if (matchesLine(lines[i])) {
         violations.push({
           file: relativeSlashPath(root, file),
           line: i + 1,
