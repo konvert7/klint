@@ -14,6 +14,8 @@ pub(crate) struct ArchConfig {
     imports: Option<Vec<ArchImportRule>>,
     forbidden: Option<Vec<ArchForbiddenRule>>,
     singleton: Option<Vec<ArchSingletonRule>>,
+    #[serde(rename = "maxLines")]
+    max_lines: Option<Vec<ArchMaxLinesRule>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -47,6 +49,15 @@ struct ArchSingletonRule {
     #[serde(rename = "in")]
     in_scope: Option<StringOrVec>,
     message: String,
+    severity: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ArchMaxLinesRule {
+    limit: usize,
+    #[serde(rename = "in")]
+    in_scope: StringOrVec,
+    message: Option<String>,
     severity: Option<String>,
 }
 
@@ -100,6 +111,43 @@ pub(crate) fn run_arch_rules(
     run_arch_import_rules(arch, files, file_contents, root, violations);
     run_arch_forbidden_rules(arch, files, file_contents, root, violations);
     run_arch_singleton_rules(arch, files, file_contents, root, violations);
+    run_arch_max_lines_rules(arch, files, file_contents, root, violations);
+}
+
+fn run_arch_max_lines_rules(
+    arch: &ArchConfig,
+    files: &[PathBuf],
+    file_contents: &BTreeMap<PathBuf, String>,
+    root: &Path,
+    violations: &mut Vec<Violation>,
+) {
+    let Some(rules) = &arch.max_lines else {
+        return;
+    };
+
+    for rule in rules {
+        let severity = rule.severity.as_deref().unwrap_or("error");
+        let scoped_files = resolve_layer_files(&rule.in_scope, arch.layers.as_ref(), root, files);
+        for file in scoped_files {
+            let Some(content) = file_contents.get(&file) else {
+                continue;
+            };
+            if content.lines().count() > rule.limit {
+                let message = rule
+                    .message
+                    .clone()
+                    .unwrap_or_else(|| format!("File exceeds the maximum of {} lines", rule.limit));
+                violations.push(Violation {
+                    file: relative_path(root, &file),
+                    line: rule.limit + 1,
+                    rule: "arch/max-lines".to_string(),
+                    message,
+                    severity: severity.to_string(),
+                    fix: None,
+                });
+            }
+        }
+    }
 }
 
 fn run_arch_import_rules(

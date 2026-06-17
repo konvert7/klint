@@ -337,5 +337,33 @@
       ],
       "summary": { "errors": 2, "warnings": 0 }
     }
+  },
+  {
+    "name": "arch maxLines flags files over the limit within scope",
+    "config": {
+      "include": ["."],
+      "rules": {},
+      "arch": {
+        "maxLines": [{ "limit": 2, "in": "src/**" }]
+      }
+    },
+    "files": {
+      "src/big.ts": "a\nb\nc\n",
+      "src/small.ts": "x\ny\n",
+      "lib/huge.ts": "1\n2\n3\n4\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/big.ts",
+          "line": 3,
+          "rule": "arch/max-lines",
+          "message": "File exceeds the maximum of 2 lines",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
   }
 ]

@@ -97,11 +97,19 @@ interface ArchSingletonJsxRule extends ArchSingletonRuleBase {
 
 type ArchSingletonRule = ArchSingletonPatternRule | ArchSingletonJsxRule;
 
+interface ArchMaxLinesRule {
+  limit: number;
+  in: string | string[];
+  message?: string;
+  severity?: Exclude<Severity, "off">;
+}
+
 export interface ArchConfig {
   layers?: Record<string, string[]>;
   imports?: ArchImportRule[];
   forbidden?: ArchForbiddenRule[];
   singleton?: ArchSingletonRule[];
+  maxLines?: ArchMaxLinesRule[];
 }
 
 export interface KlintConfig {

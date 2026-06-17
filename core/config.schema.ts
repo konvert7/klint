@@ -206,6 +206,37 @@ const ArchSingletonRuleSchema = z
     ],
   });
 
+const ArchMaxLinesRuleSchema = z
+  .object({
+    limit: z
+      .number()
+      .int()
+      .positive()
+      .describe(
+        "Maximum number of physical lines a file may contain. Counts every line including blanks and comments. A file with more lines than this is a violation."
+      ),
+    in: StringOrStringArray.describe(
+      "Layer name(s) or glob(s) the limit applies to. Files outside the scope are not checked."
+    ),
+    message: z
+      .string()
+      .optional()
+      .describe(
+        "Optional error message. Defaults to a message naming the limit (e.g. 'File exceeds the maximum of 300 lines')."
+      ),
+    severity: ArchSeveritySchema.optional(),
+  })
+  .strict()
+  .describe(
+    "A per-file line-count limit. Caps how long any file in scope may grow — the honest way to keep modules small without a formatter dependency."
+  )
+  .meta({
+    examples: [
+      'arch:\n  maxLines:\n    - limit: 300\n      in: src/**\n      message: "Split this module"',
+      "arch:\n  maxLines:\n    - limit: 300\n      in: src/**\n    - limit: 600\n      in: tests/**",
+    ],
+  });
+
 const ArchSchema = z
   .object({
     layers: ArchLayersSchema.optional(),
@@ -224,6 +255,12 @@ const ArchSchema = z
       .optional()
       .describe(
         "Singleton-location rules. Pin a pattern to one file; every other touch is a violation."
+      ),
+    maxLines: z
+      .array(ArchMaxLinesRuleSchema)
+      .optional()
+      .describe(
+        "Per-file line-count limits. Cap how long files in a layer may grow, with different ceilings per scope."
       ),
   })
   .strict()

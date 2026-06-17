@@ -264,7 +264,31 @@ export function runArchRules(
     }
   }
 
+  for (const rule of arch.maxLines ?? []) {
+    const severity: Severity = rule.severity ?? "error";
+    const inFiles = resolveLayerFiles(rule.in, layers, root, allFiles);
+    for (const file of inFiles) {
+      const content = fileContents.get(file);
+      if (content === undefined) continue;
+      if (countLines(content) > rule.limit) {
+        violations.push({
+          file: relativeSlashPath(root, file),
+          line: rule.limit + 1,
+          message: rule.message ?? `File exceeds the maximum of ${rule.limit} lines`,
+          rule: "arch/max-lines",
+          severity,
+        });
+      }
+    }
+  }
+
   return violations;
+}
+
+/** Counts physical lines the same way Rust's `str::lines()` does — a trailing newline does not add a line. */
+function countLines(content: string): number {
+  if (content.length === 0) return 0;
+  return content.split("\n").length - (content.endsWith("\n") ? 1 : 0);
 }
 
 function toArray<T>(v: T | T[]): T[] {
