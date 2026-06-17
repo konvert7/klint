@@ -1,3 +1,17 @@
+# [0.25.0](https://github.com/konvert7/klint/compare/v0.24.1...v0.25.0) (2026-06-17)
+
+
+### Bug Fixes
+
+* **rust:** handle ** the same way as ts does ([76b242e](https://github.com/konvert7/klint/commit/76b242e0a9b2d7e35cd4365599061c4ee5f55773))
+
+
+### Features
+
+* add regex support for pattern matching in linting rules ([ca72209](https://github.com/konvert7/klint/commit/ca722092052f73f42f86757ff34aacaa892b4ed5))
+* **cli:** restructure CLI to satisfy line count limit ([715cb3a](https://github.com/konvert7/klint/commit/715cb3ad81ee0320c5a3835f1071cb5a95f77b48))
+* implement maxLines rule for file line count enforcement ([b2331fb](https://github.com/konvert7/klint/commit/b2331fb8691941bea4a0c0c9b708b89e7b53fbaf))
+
 ## [0.24.1](https://github.com/konvert7/klint/compare/v0.24.0...v0.24.1) (2026-06-07)
 
 
