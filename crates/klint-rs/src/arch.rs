@@ -103,18 +103,33 @@ struct TsCompilerOptions {
     paths: Option<BTreeMap<String, Vec<String>>>,
 }
 
+/// Runs the four arch checks (imports, forbidden, singleton, max-lines) as
+/// scoped threads — each already walks the full file list independently, so
+/// this lets those walks happen concurrently. Results are joined back in
+/// this fixed order regardless of thread completion order, so output
+/// ordering is unaffected.
 pub(crate) fn run_arch_rules(
     arch: &ArchConfig,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
     tree_cache: &TreeCache,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
-    run_arch_import_rules(arch, files, file_contents, tree_cache, root, violations);
-    run_arch_forbidden_rules(arch, files, file_contents, tree_cache, root, violations);
-    run_arch_singleton_rules(arch, files, file_contents, tree_cache, root, violations);
-    run_arch_max_lines_rules(arch, files, file_contents, root, violations);
+) -> Vec<Violation> {
+    std::thread::scope(|scope| {
+        let imports =
+            scope.spawn(|| run_arch_import_rules(arch, files, file_contents, tree_cache, root));
+        let forbidden =
+            scope.spawn(|| run_arch_forbidden_rules(arch, files, file_contents, tree_cache, root));
+        let singleton =
+            scope.spawn(|| run_arch_singleton_rules(arch, files, file_contents, tree_cache, root));
+        let max_lines = scope.spawn(|| run_arch_max_lines_rules(arch, files, file_contents, root));
+
+        let mut violations = imports.join().expect("arch imports thread panicked");
+        violations.extend(forbidden.join().expect("arch forbidden thread panicked"));
+        violations.extend(singleton.join().expect("arch singleton thread panicked"));
+        violations.extend(max_lines.join().expect("arch max-lines thread panicked"));
+        violations
+    })
 }
 
 fn run_arch_max_lines_rules(
@@ -122,10 +137,10 @@ fn run_arch_max_lines_rules(
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let Some(rules) = &arch.max_lines else {
-        return;
+        return violations;
     };
 
     for rule in rules {
@@ -151,6 +166,7 @@ fn run_arch_max_lines_rules(
             }
         }
     }
+    violations
 }
 
 fn run_arch_import_rules(
@@ -159,10 +175,10 @@ fn run_arch_import_rules(
     file_contents: &BTreeMap<PathBuf, String>,
     tree_cache: &TreeCache,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let Some(rules) = &arch.imports else {
-        return;
+        return violations;
     };
     let aliases = load_path_aliases(root);
     let python_roots = infer_python_source_roots(root, files);
@@ -251,6 +267,7 @@ fn run_arch_import_rules(
             }
         }
     }
+    violations
 }
 
 fn load_path_aliases(root: &Path) -> Vec<AliasEntry> {
@@ -401,10 +418,10 @@ fn run_arch_forbidden_rules(
     file_contents: &BTreeMap<PathBuf, String>,
     tree_cache: &TreeCache,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let Some(rules) = &arch.forbidden else {
-        return;
+        return violations;
     };
 
     for rule in rules {
@@ -421,7 +438,7 @@ fn run_arch_forbidden_rules(
                     message: &rule.message,
                     severity: rule.severity.as_deref().unwrap_or("error"),
                 },
-                violations,
+                &mut violations,
             );
             continue;
         }
@@ -439,9 +456,10 @@ fn run_arch_forbidden_rules(
                 message: &rule.message,
                 severity: rule.severity.as_deref().unwrap_or("error"),
             },
-            violations,
+            &mut violations,
         );
     }
+    violations
 }
 
 fn resolve_layer_prefixes(
@@ -462,10 +480,10 @@ fn run_arch_singleton_rules(
     file_contents: &BTreeMap<PathBuf, String>,
     tree_cache: &TreeCache,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let Some(rules) = &arch.singleton else {
-        return;
+        return violations;
     };
 
     for rule in rules {
@@ -491,7 +509,7 @@ fn run_arch_singleton_rules(
                     message: &rule.message,
                     severity: rule.severity.as_deref().unwrap_or("error"),
                 },
-                violations,
+                &mut violations,
             );
             continue;
         }
@@ -509,9 +527,10 @@ fn run_arch_singleton_rules(
                 message: &rule.message,
                 severity: rule.severity.as_deref().unwrap_or("error"),
             },
-            violations,
+            &mut violations,
         );
     }
+    violations
 }
 
 fn resolve_layer_files(

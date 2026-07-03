@@ -20,19 +20,21 @@ pub(crate) use rules::{
     scan_string_match_from_tree, scan_sync_in_async_from_tree, scan_unguarded_json_parse_from_tree,
 };
 
-use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use tree_sitter::{Language, Node, Parser, Tree};
 
 /// Parses each file at most once per run and lets every rule/arch scan that
 /// needs an AST for that file reuse the same parse instead of independently
 /// re-parsing the same source. `Tree` clones are cheap (tree-sitter
 /// refcounts the underlying tree), so misses are memoized and hits just
-/// clone out of the cache.
+/// clone out of the cache. Backed by a `Mutex` (rather than `RefCell`) so
+/// the same cache can be shared across the threads that run rule/arch
+/// checks concurrently — `Tree` is `Send + Sync`, so this is sound.
 #[derive(Default)]
 pub(crate) struct TreeCache {
-    cache: RefCell<BTreeMap<PathBuf, Tree>>,
+    cache: Mutex<BTreeMap<PathBuf, Tree>>,
 }
 
 impl TreeCache {
@@ -41,12 +43,18 @@ impl TreeCache {
     }
 
     pub(crate) fn get_or_parse(&self, file: &Path, content: &str) -> Option<Tree> {
-        if let Some(tree) = self.cache.borrow().get(file) {
+        if let Some(tree) = self
+            .cache
+            .lock()
+            .expect("tree cache lock poisoned")
+            .get(file)
+        {
             return Some(tree.clone());
         }
         let tree = parse_tree(file, content)?;
         self.cache
-            .borrow_mut()
+            .lock()
+            .expect("tree cache lock poisoned")
             .insert(file.to_path_buf(), tree.clone());
         Some(tree)
     }

@@ -34,24 +34,15 @@ pub fn run(options: RunOptions) -> Result<JsonOutput, String> {
     // or arch scan actually needs its AST — see `TreeCache`.
     let tree_cache = TreeCache::new();
 
-    let mut violations = Vec::new();
-    run_supported_rules(
-        &rules,
-        &files,
-        &file_contents,
-        &tree_cache,
-        &root,
-        &mut violations,
-    );
+    let mut violations = run_supported_rules(&rules, &files, &file_contents, &tree_cache, &root);
     if let Some(arch) = raw.arch {
-        run_arch_rules(
+        violations.extend(run_arch_rules(
             &arch,
             &files,
             &file_contents,
             &tree_cache,
             &root,
-            &mut violations,
-        );
+        ));
     }
 
     Ok(output::output_from_violations(violations))

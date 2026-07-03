@@ -12,68 +12,89 @@ use crate::syntax::{
     scan_string_match_from_tree, scan_sync_in_async_from_tree, scan_unguarded_json_parse_from_tree,
 };
 
+/// Runs every configured rule as its own scoped thread — each rule already
+/// walks the full file list independently, so this just lets those
+/// independent walks happen concurrently instead of one after another.
+/// Results are joined back in the same fixed order the rules are checked
+/// in below, so output ordering is unaffected by thread completion order.
 pub(crate) fn run_supported_rules(
     rules: &BTreeMap<String, RuleConfig>,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
     tree_cache: &TreeCache,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
-    if let Some(config) = rules.get("no-string-match") {
-        run_no_string_match(config, files, file_contents, tree_cache, root, violations);
-    }
-    if let Some(config) = rules.get("no-nested-template-literals") {
-        run_no_nested_template_literals(config, files, file_contents, tree_cache, root, violations);
-    }
-    if let Some(config) = rules.get("no-consecutive-array-push") {
-        run_no_consecutive_array_push(config, files, file_contents, tree_cache, root, violations);
-    }
-    if let Some(config) = rules.get("no-unguarded-json-parse") {
-        run_no_unguarded_json_parse(config, files, file_contents, tree_cache, root, violations);
-    }
-    if let Some(config) = rules.get("no-sync-in-async") {
-        run_no_sync_in_async(config, files, file_contents, tree_cache, root, violations);
-    }
-    if let Some(config) = rules.get("sonar/no-single-char-class") {
-        run_sonar_no_single_char_class(config, files, file_contents, tree_cache, root, violations);
-    }
-    if let Some(config) = rules.get("sonar/prefer-at") {
-        run_sonar_prefer_at(config, files, file_contents, tree_cache, root, violations);
-    }
-    if let Some(config) = rules.get("sonar/prefer-string-replaceall") {
-        run_sonar_prefer_string_replaceall(
-            config,
-            files,
-            file_contents,
-            tree_cache,
-            root,
-            violations,
-        );
-    }
-    if let Some(config) = rules.get("sonar/prefer-string-raw") {
-        run_sonar_prefer_string_raw(config, files, file_contents, tree_cache, root, violations);
-    }
-    if let Some(config) = rules.get("sonar/prefer-string-raw-regexp") {
-        run_sonar_prefer_string_raw_regexp(
-            config,
-            files,
-            file_contents,
-            tree_cache,
-            root,
-            violations,
-        );
-    }
-    if let Some(config) = rules.get("sonar/prefer-nullish-coalescing-assign") {
-        run_sonar_prefer_nullish_coalescing_assign(
-            config,
-            files,
-            file_contents,
-            tree_cache,
-            root,
-            violations,
-        );
-    }
+) -> Vec<Violation> {
+    std::thread::scope(|scope| {
+        let mut handles = Vec::new();
+
+        if let Some(config) = rules.get("no-string-match") {
+            handles.push(
+                scope.spawn(|| run_no_string_match(config, files, file_contents, tree_cache, root)),
+            );
+        }
+        if let Some(config) = rules.get("no-nested-template-literals") {
+            handles.push(scope.spawn(|| {
+                run_no_nested_template_literals(config, files, file_contents, tree_cache, root)
+            }));
+        }
+        if let Some(config) = rules.get("no-consecutive-array-push") {
+            handles.push(scope.spawn(|| {
+                run_no_consecutive_array_push(config, files, file_contents, tree_cache, root)
+            }));
+        }
+        if let Some(config) = rules.get("no-unguarded-json-parse") {
+            handles.push(scope.spawn(|| {
+                run_no_unguarded_json_parse(config, files, file_contents, tree_cache, root)
+            }));
+        }
+        if let Some(config) = rules.get("no-sync-in-async") {
+            handles
+                .push(scope.spawn(|| {
+                    run_no_sync_in_async(config, files, file_contents, tree_cache, root)
+                }));
+        }
+        if let Some(config) = rules.get("sonar/no-single-char-class") {
+            handles.push(scope.spawn(|| {
+                run_sonar_no_single_char_class(config, files, file_contents, tree_cache, root)
+            }));
+        }
+        if let Some(config) = rules.get("sonar/prefer-at") {
+            handles.push(
+                scope.spawn(|| run_sonar_prefer_at(config, files, file_contents, tree_cache, root)),
+            );
+        }
+        if let Some(config) = rules.get("sonar/prefer-string-replaceall") {
+            handles.push(scope.spawn(|| {
+                run_sonar_prefer_string_replaceall(config, files, file_contents, tree_cache, root)
+            }));
+        }
+        if let Some(config) = rules.get("sonar/prefer-string-raw") {
+            handles.push(scope.spawn(|| {
+                run_sonar_prefer_string_raw(config, files, file_contents, tree_cache, root)
+            }));
+        }
+        if let Some(config) = rules.get("sonar/prefer-string-raw-regexp") {
+            handles.push(scope.spawn(|| {
+                run_sonar_prefer_string_raw_regexp(config, files, file_contents, tree_cache, root)
+            }));
+        }
+        if let Some(config) = rules.get("sonar/prefer-nullish-coalescing-assign") {
+            handles.push(scope.spawn(|| {
+                run_sonar_prefer_nullish_coalescing_assign(
+                    config,
+                    files,
+                    file_contents,
+                    tree_cache,
+                    root,
+                )
+            }));
+        }
+
+        handles
+            .into_iter()
+            .flat_map(|handle| handle.join().expect("rule check thread panicked"))
+            .collect()
+    })
 }
 
 fn run_no_string_match(
@@ -82,11 +103,11 @@ fn run_no_string_match(
     file_contents: &BTreeMap<PathBuf, String>,
     tree_cache: &TreeCache,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let severity = config.severity();
     if severity == "off" {
-        return;
+        return violations;
     }
 
     for file in files {
@@ -115,6 +136,7 @@ fn run_no_string_match(
             });
         }
     }
+    violations
 }
 
 fn run_no_nested_template_literals(
@@ -123,11 +145,11 @@ fn run_no_nested_template_literals(
     file_contents: &BTreeMap<PathBuf, String>,
     tree_cache: &TreeCache,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let severity = config.severity();
     if severity == "off" {
-        return;
+        return violations;
     }
 
     for file in files {
@@ -155,6 +177,7 @@ fn run_no_nested_template_literals(
             });
         }
     }
+    violations
 }
 
 fn run_no_consecutive_array_push(
@@ -163,11 +186,11 @@ fn run_no_consecutive_array_push(
     file_contents: &BTreeMap<PathBuf, String>,
     tree_cache: &TreeCache,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let severity = config.severity();
     if severity == "off" {
-        return;
+        return violations;
     }
 
     for file in files {
@@ -196,6 +219,7 @@ fn run_no_consecutive_array_push(
             });
         }
     }
+    violations
 }
 
 fn run_no_unguarded_json_parse(
@@ -204,11 +228,11 @@ fn run_no_unguarded_json_parse(
     file_contents: &BTreeMap<PathBuf, String>,
     tree_cache: &TreeCache,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let severity = config.severity();
     if severity == "off" {
-        return;
+        return violations;
     }
 
     for file in files {
@@ -236,6 +260,7 @@ fn run_no_unguarded_json_parse(
             });
         }
     }
+    violations
 }
 
 fn run_no_sync_in_async(
@@ -244,11 +269,11 @@ fn run_no_sync_in_async(
     file_contents: &BTreeMap<PathBuf, String>,
     tree_cache: &TreeCache,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let severity = config.severity();
     if severity == "off" {
-        return;
+        return violations;
     }
 
     for file in files {
@@ -277,6 +302,7 @@ fn run_no_sync_in_async(
             });
         }
     }
+    violations
 }
 
 fn run_sonar_no_single_char_class(
@@ -285,11 +311,11 @@ fn run_sonar_no_single_char_class(
     file_contents: &BTreeMap<PathBuf, String>,
     tree_cache: &TreeCache,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let severity = config.severity();
     if severity == "off" {
-        return;
+        return violations;
     }
 
     for file in files {
@@ -325,6 +351,7 @@ fn run_sonar_no_single_char_class(
             });
         }
     }
+    violations
 }
 
 fn run_sonar_prefer_at(
@@ -333,11 +360,11 @@ fn run_sonar_prefer_at(
     file_contents: &BTreeMap<PathBuf, String>,
     tree_cache: &TreeCache,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let severity = config.severity();
     if severity == "off" {
-        return;
+        return violations;
     }
 
     for file in files {
@@ -374,6 +401,7 @@ fn run_sonar_prefer_at(
             });
         }
     }
+    violations
 }
 
 fn run_sonar_prefer_string_replaceall(
@@ -382,11 +410,11 @@ fn run_sonar_prefer_string_replaceall(
     file_contents: &BTreeMap<PathBuf, String>,
     tree_cache: &TreeCache,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let severity = config.severity();
     if severity == "off" {
-        return;
+        return violations;
     }
 
     for file in files {
@@ -426,6 +454,7 @@ fn run_sonar_prefer_string_replaceall(
             });
         }
     }
+    violations
 }
 
 fn run_sonar_prefer_string_raw_regexp(
@@ -434,11 +463,11 @@ fn run_sonar_prefer_string_raw_regexp(
     file_contents: &BTreeMap<PathBuf, String>,
     tree_cache: &TreeCache,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let severity = config.severity();
     if severity == "off" {
-        return;
+        return violations;
     }
 
     for file in files {
@@ -473,6 +502,7 @@ fn run_sonar_prefer_string_raw_regexp(
             });
         }
     }
+    violations
 }
 
 fn run_sonar_prefer_string_raw(
@@ -481,11 +511,11 @@ fn run_sonar_prefer_string_raw(
     file_contents: &BTreeMap<PathBuf, String>,
     tree_cache: &TreeCache,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let severity = config.severity();
     if severity == "off" {
-        return;
+        return violations;
     }
 
     for file in files {
@@ -520,6 +550,7 @@ fn run_sonar_prefer_string_raw(
             });
         }
     }
+    violations
 }
 
 fn run_sonar_prefer_nullish_coalescing_assign(
@@ -528,11 +559,11 @@ fn run_sonar_prefer_nullish_coalescing_assign(
     file_contents: &BTreeMap<PathBuf, String>,
     tree_cache: &TreeCache,
     root: &Path,
-    violations: &mut Vec<Violation>,
-) {
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let severity = config.severity();
     if severity == "off" {
-        return;
+        return violations;
     }
 
     for file in files {
@@ -570,6 +601,7 @@ fn run_sonar_prefer_nullish_coalescing_assign(
             });
         }
     }
+    violations
 }
 
 fn rule_applies_to_file(config: &RuleConfig, root: &Path, file: &Path) -> bool {
