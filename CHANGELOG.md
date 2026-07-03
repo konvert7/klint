@@ -1,3 +1,11 @@
+# [0.26.0](https://github.com/konvert7/klint/compare/v0.25.0...v0.26.0) (2026-07-03)
+
+
+### Features
+
+* enhance syntax tree parsing with TreeCache for improved performance ([a0262e0](https://github.com/konvert7/klint/commit/a0262e047940f9cb9e7669ce529b6e389748991c))
+* run arch and supported rules concurrently ([89b59d4](https://github.com/konvert7/klint/commit/89b59d4a5953bc9a39d2753a6c924be1063eed89))
+
 # [0.25.0](https://github.com/konvert7/klint/compare/v0.24.1...v0.25.0) (2026-06-17)
 
 
