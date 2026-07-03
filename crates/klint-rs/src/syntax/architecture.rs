@@ -39,6 +39,25 @@ pub fn scan_imports(path: &Path, content: &str) -> Result<Vec<ImportRecord>, Str
     Ok(imports)
 }
 
+/// Same scan as [`scan_imports`] but reuses an already-parsed tree. The
+/// caller is responsible for only passing trees for non-Swift paths (Swift
+/// import scanning never parses with tree-sitter — see [`scan_imports`]).
+pub(crate) fn scan_imports_from_tree(
+    path: &Path,
+    root: Node<'_>,
+    source: &[u8],
+) -> Vec<ImportRecord> {
+    let mut imports = Vec::new();
+    match source_language_for_path(path) {
+        SourceLanguage::Python => walk_python_imports(root, source, &mut imports),
+        SourceLanguage::Swift => {
+            imports.extend(swift_imports(&String::from_utf8_lossy(source)));
+        }
+        SourceLanguage::JavaScriptLike => walk_imports(root, source, &mut imports),
+    }
+    imports
+}
+
 fn swift_imports(content: &str) -> Vec<ImportRecord> {
     content
         .lines()
@@ -99,10 +118,19 @@ pub fn scan_jsx_elements(path: &Path, content: &str) -> Result<Vec<JsxElementRec
         .parse(content, None)
         .ok_or_else(|| "klint-rs: failed to parse source".to_string())?;
 
-    let root = tree.root_node();
+    Ok(scan_jsx_elements_from_tree(
+        tree.root_node(),
+        content.as_bytes(),
+    ))
+}
+
+/// Same scan as [`scan_jsx_elements`] but reuses an already-parsed tree. The
+/// caller is expected to only pass jsx-path files (non-jsx grammars never
+/// produce jsx node kinds, so this is a no-op for them either way).
+pub(crate) fn scan_jsx_elements_from_tree(root: Node<'_>, source: &[u8]) -> Vec<JsxElementRecord> {
     let mut elements = Vec::new();
-    walk_jsx_elements(root, content.as_bytes(), &mut elements);
-    Ok(elements)
+    walk_jsx_elements(root, source, &mut elements);
+    elements
 }
 fn walk_imports(node: Node<'_>, source: &[u8], imports: &mut Vec<ImportRecord>) {
     if node.kind() == "import_statement" {

@@ -12,10 +12,19 @@ pub fn scan_string_match(path: &Path, content: &str) -> Result<Vec<StringMatchRe
         .parse(content, None)
         .ok_or_else(|| "klint-rs: failed to parse source".to_string())?;
 
-    let root = tree.root_node();
+    Ok(scan_string_match_from_tree(
+        tree.root_node(),
+        content.as_bytes(),
+    ))
+}
+
+/// Same scan as [`scan_string_match`] but reuses an already-parsed tree,
+/// avoiding a redundant tree-sitter parse when the caller already parsed the
+/// file for another rule.
+pub(crate) fn scan_string_match_from_tree(root: Node<'_>, source: &[u8]) -> Vec<StringMatchRecord> {
     let mut records = Vec::new();
-    walk_string_match(root, content.as_bytes(), &mut records);
-    Ok(records)
+    walk_string_match(root, source, &mut records);
+    records
 }
 fn walk_string_match(node: Node<'_>, source: &[u8], records: &mut Vec<StringMatchRecord>) {
     if node.kind() == "call_expression"

@@ -22,6 +22,18 @@ pub use string_match::scan_string_match;
 pub use sync_in_async::scan_sync_in_async;
 pub use unguarded_json_parse::scan_unguarded_json_parse;
 
+pub(crate) use consecutive_array_push::scan_consecutive_array_push_from_tree;
+pub(crate) use nested_template_literals::scan_nested_template_literals_from_tree;
+pub(crate) use prefer_at::scan_prefer_at_from_tree;
+pub(crate) use prefer_nullish_coalescing_assign::scan_prefer_nullish_coalescing_assign_from_tree;
+pub(crate) use prefer_string_raw::scan_prefer_string_raw_from_tree;
+pub(crate) use prefer_string_raw_regexp::scan_prefer_string_raw_regexp_from_tree;
+pub(crate) use prefer_string_replaceall::scan_prefer_string_replaceall_from_tree;
+pub(crate) use single_char_class::scan_single_char_classes_from_tree;
+pub(crate) use string_match::scan_string_match_from_tree;
+pub(crate) use sync_in_async::scan_sync_in_async_from_tree;
+pub(crate) use unguarded_json_parse::scan_unguarded_json_parse_from_tree;
+
 use super::{language_for_path, raw_node_text};
 
 #[derive(Debug, PartialEq, Eq)]

@@ -15,10 +15,19 @@ pub fn scan_consecutive_array_push(
         .parse(content, None)
         .ok_or_else(|| "klint-rs: failed to parse source".to_string())?;
 
-    let root = tree.root_node();
+    Ok(scan_consecutive_array_push_from_tree(
+        tree.root_node(),
+        content.as_bytes(),
+    ))
+}
+
+pub(crate) fn scan_consecutive_array_push_from_tree(
+    root: Node<'_>,
+    source: &[u8],
+) -> Vec<ConsecutiveArrayPushRecord> {
     let mut records = Vec::new();
-    walk_statement_containers(root, content.as_bytes(), &mut records);
-    Ok(records)
+    walk_statement_containers(root, source, &mut records);
+    records
 }
 fn walk_statement_containers(
     node: Node<'_>,

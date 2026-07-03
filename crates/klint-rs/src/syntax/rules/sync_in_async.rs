@@ -12,10 +12,19 @@ pub fn scan_sync_in_async(path: &Path, content: &str) -> Result<Vec<SyncInAsyncR
         .parse(content, None)
         .ok_or_else(|| "klint-rs: failed to parse source".to_string())?;
 
-    let root = tree.root_node();
+    Ok(scan_sync_in_async_from_tree(
+        tree.root_node(),
+        content.as_bytes(),
+    ))
+}
+
+pub(crate) fn scan_sync_in_async_from_tree(
+    root: Node<'_>,
+    source: &[u8],
+) -> Vec<SyncInAsyncRecord> {
     let mut records = Vec::new();
-    walk_sync_calls(root, false, content.as_bytes(), &mut records);
-    Ok(records)
+    walk_sync_calls(root, false, source, &mut records);
+    records
 }
 fn walk_sync_calls(
     node: Node<'_>,

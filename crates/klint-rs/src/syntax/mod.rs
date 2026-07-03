@@ -2,6 +2,7 @@ mod architecture;
 mod rules;
 
 pub use architecture::{ImportRecord, JsxElementRecord, scan_imports, scan_jsx_elements};
+pub(crate) use architecture::{scan_imports_from_tree, scan_jsx_elements_from_tree};
 pub use rules::{
     ConsecutiveArrayPushRecord, NestedTemplateLiteralRecord, PreferAtRecord,
     PreferNullishCoalescingAssignRecord, PreferStringRawRecord, PreferStringRawRegexpRecord,
@@ -11,9 +12,51 @@ pub use rules::{
     scan_prefer_string_raw_regexp, scan_prefer_string_replaceall, scan_single_char_classes,
     scan_string_match, scan_sync_in_async, scan_unguarded_json_parse,
 };
+pub(crate) use rules::{
+    scan_consecutive_array_push_from_tree, scan_nested_template_literals_from_tree,
+    scan_prefer_at_from_tree, scan_prefer_nullish_coalescing_assign_from_tree,
+    scan_prefer_string_raw_from_tree, scan_prefer_string_raw_regexp_from_tree,
+    scan_prefer_string_replaceall_from_tree, scan_single_char_classes_from_tree,
+    scan_string_match_from_tree, scan_sync_in_async_from_tree, scan_unguarded_json_parse_from_tree,
+};
 
-use std::path::Path;
-use tree_sitter::{Language, Node};
+use std::cell::RefCell;
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+use tree_sitter::{Language, Node, Parser, Tree};
+
+/// Parses each file at most once per run and lets every rule/arch scan that
+/// needs an AST for that file reuse the same parse instead of independently
+/// re-parsing the same source. `Tree` clones are cheap (tree-sitter
+/// refcounts the underlying tree), so misses are memoized and hits just
+/// clone out of the cache.
+#[derive(Default)]
+pub(crate) struct TreeCache {
+    cache: RefCell<BTreeMap<PathBuf, Tree>>,
+}
+
+impl TreeCache {
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
+
+    pub(crate) fn get_or_parse(&self, file: &Path, content: &str) -> Option<Tree> {
+        if let Some(tree) = self.cache.borrow().get(file) {
+            return Some(tree.clone());
+        }
+        let tree = parse_tree(file, content)?;
+        self.cache
+            .borrow_mut()
+            .insert(file.to_path_buf(), tree.clone());
+        Some(tree)
+    }
+}
+
+fn parse_tree(path: &Path, content: &str) -> Option<Tree> {
+    let mut parser = Parser::new();
+    parser.set_language(&language_for_path(path)).ok()?;
+    parser.parse(content, None)
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum SourceLanguage {
@@ -44,7 +87,7 @@ fn source_language_for_path(path: &Path) -> SourceLanguage {
     }
 }
 
-fn is_jsx_path(path: &Path) -> bool {
+pub(crate) fn is_jsx_path(path: &Path) -> bool {
     matches!(
         path.extension().and_then(|ext| ext.to_str()),
         Some("tsx" | "jsx")

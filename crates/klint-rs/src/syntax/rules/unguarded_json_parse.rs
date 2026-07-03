@@ -15,10 +15,19 @@ pub fn scan_unguarded_json_parse(
         .parse(content, None)
         .ok_or_else(|| "klint-rs: failed to parse source".to_string())?;
 
-    let root = tree.root_node();
+    Ok(scan_unguarded_json_parse_from_tree(
+        tree.root_node(),
+        content.as_bytes(),
+    ))
+}
+
+pub(crate) fn scan_unguarded_json_parse_from_tree(
+    root: Node<'_>,
+    source: &[u8],
+) -> Vec<UnguardedJsonParseRecord> {
     let mut records = Vec::new();
-    walk_json_parse_calls(root, false, content.as_bytes(), &mut records);
-    Ok(records)
+    walk_json_parse_calls(root, false, source, &mut records);
+    records
 }
 fn walk_json_parse_calls(
     node: Node<'_>,

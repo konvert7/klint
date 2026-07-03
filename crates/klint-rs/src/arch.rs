@@ -2,7 +2,9 @@ use crate::files::{
     is_python_source, is_swift_source, normalize_path, relative_path, supports_import_scan,
 };
 use crate::output::Violation;
-use crate::syntax::{scan_imports, scan_jsx_elements};
+use crate::syntax::{
+    TreeCache, is_jsx_path, scan_imports, scan_imports_from_tree, scan_jsx_elements_from_tree,
+};
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fs;
@@ -105,12 +107,13 @@ pub(crate) fn run_arch_rules(
     arch: &ArchConfig,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
-    run_arch_import_rules(arch, files, file_contents, root, violations);
-    run_arch_forbidden_rules(arch, files, file_contents, root, violations);
-    run_arch_singleton_rules(arch, files, file_contents, root, violations);
+    run_arch_import_rules(arch, files, file_contents, tree_cache, root, violations);
+    run_arch_forbidden_rules(arch, files, file_contents, tree_cache, root, violations);
+    run_arch_singleton_rules(arch, files, file_contents, tree_cache, root, violations);
     run_arch_max_lines_rules(arch, files, file_contents, root, violations);
 }
 
@@ -154,6 +157,7 @@ fn run_arch_import_rules(
     arch: &ArchConfig,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
@@ -188,8 +192,19 @@ fn run_arch_import_rules(
             let Some(content) = file_contents.get(&file) else {
                 continue;
             };
-            let Ok(imports) = scan_imports(&file, content) else {
-                continue;
+            // Swift import scanning never parses with tree-sitter (see
+            // `scan_imports`), so route it straight to the fallback rather
+            // than asking the cache to parse Swift source as TypeScript.
+            let imports = if is_swift_source(&file) {
+                let Ok(imports) = scan_imports(&file, content) else {
+                    continue;
+                };
+                imports
+            } else {
+                let Some(tree) = tree_cache.get_or_parse(&file, content) else {
+                    continue;
+                };
+                scan_imports_from_tree(&file, tree.root_node(), content.as_bytes())
             };
 
             for import in imports {
@@ -384,6 +399,7 @@ fn run_arch_forbidden_rules(
     arch: &ArchConfig,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
@@ -398,6 +414,7 @@ fn run_arch_forbidden_rules(
                 &scoped_files,
                 tags,
                 file_contents,
+                tree_cache,
                 root,
                 ElementScan {
                     rule_name: "arch/forbidden",
@@ -443,6 +460,7 @@ fn run_arch_singleton_rules(
     arch: &ArchConfig,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
@@ -466,6 +484,7 @@ fn run_arch_singleton_rules(
                 &checked_files,
                 tags,
                 file_contents,
+                tree_cache,
                 root,
                 ElementScan {
                     rule_name: "arch/singleton",
@@ -600,18 +619,26 @@ fn scan_jsx_elements_for_targets(
     files: &[PathBuf],
     targets: &StringOrVec,
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     scan: ElementScan<'_>,
     violations: &mut Vec<Violation>,
 ) {
     let target_names = targets.items();
     for file in files {
+        // Only jsx-path files can ever contain a jsx node (mirrors the
+        // early-return in `scan_jsx_elements`) — skip everything else rather
+        // than asking the cache to parse it for nothing.
+        if !is_jsx_path(file) {
+            continue;
+        }
         let Some(content) = file_contents.get(file) else {
             continue;
         };
-        let Ok(elements) = scan_jsx_elements(file, content) else {
+        let Some(tree) = tree_cache.get_or_parse(file, content) else {
             continue;
         };
+        let elements = scan_jsx_elements_from_tree(tree.root_node(), content.as_bytes());
 
         for element in elements {
             if !target_names.contains(&element.tag_name) {

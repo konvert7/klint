@@ -12,6 +12,7 @@ use config::{find_config, read_config, resolve_root};
 use files::{read_files, resolve_files};
 pub use output::{JsonOutput, Summary, Violation};
 use rules::run_supported_rules;
+use syntax::TreeCache;
 
 #[derive(Debug)]
 pub struct RunOptions {
@@ -29,10 +30,28 @@ pub fn run(options: RunOptions) -> Result<JsonOutput, String> {
     let _plugins = raw.plugins.unwrap_or_default();
     let rules = raw.rules.unwrap_or_default();
 
+    // Each file is parsed at most once, on demand, the first time some rule
+    // or arch scan actually needs its AST — see `TreeCache`.
+    let tree_cache = TreeCache::new();
+
     let mut violations = Vec::new();
-    run_supported_rules(&rules, &files, &file_contents, &root, &mut violations);
+    run_supported_rules(
+        &rules,
+        &files,
+        &file_contents,
+        &tree_cache,
+        &root,
+        &mut violations,
+    );
     if let Some(arch) = raw.arch {
-        run_arch_rules(&arch, &files, &file_contents, &root, &mut violations);
+        run_arch_rules(
+            &arch,
+            &files,
+            &file_contents,
+            &tree_cache,
+            &root,
+            &mut violations,
+        );
     }
 
     Ok(output::output_from_violations(violations))

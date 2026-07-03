@@ -12,10 +12,16 @@ pub fn scan_prefer_at(path: &Path, content: &str) -> Result<Vec<PreferAtRecord>,
         .parse(content, None)
         .ok_or_else(|| "klint-rs: failed to parse source".to_string())?;
 
-    let root = tree.root_node();
+    Ok(scan_prefer_at_from_tree(
+        tree.root_node(),
+        content.as_bytes(),
+    ))
+}
+
+pub(crate) fn scan_prefer_at_from_tree(root: Node<'_>, source: &[u8]) -> Vec<PreferAtRecord> {
     let mut records = Vec::new();
-    walk_prefer_at(root, content.as_bytes(), &mut records);
-    Ok(records)
+    walk_prefer_at(root, source, &mut records);
+    records
 }
 fn walk_prefer_at(node: Node<'_>, source: &[u8], records: &mut Vec<PreferAtRecord>) {
     if node.kind() == "subscript_expression"

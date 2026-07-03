@@ -15,10 +15,15 @@ pub fn scan_nested_template_literals(
         .parse(content, None)
         .ok_or_else(|| "klint-rs: failed to parse source".to_string())?;
 
-    let root = tree.root_node();
+    Ok(scan_nested_template_literals_from_tree(tree.root_node()))
+}
+
+pub(crate) fn scan_nested_template_literals_from_tree(
+    root: Node<'_>,
+) -> Vec<NestedTemplateLiteralRecord> {
     let mut records = Vec::new();
     walk_template_literals(root, &mut records);
-    Ok(records)
+    records
 }
 fn walk_template_literals(node: Node<'_>, records: &mut Vec<NestedTemplateLiteralRecord>) {
     if node.kind() == "template_string" {

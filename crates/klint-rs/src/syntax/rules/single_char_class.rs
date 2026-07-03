@@ -15,10 +15,19 @@ pub fn scan_single_char_classes(
         .parse(content, None)
         .ok_or_else(|| "klint-rs: failed to parse source".to_string())?;
 
-    let root = tree.root_node();
+    Ok(scan_single_char_classes_from_tree(
+        tree.root_node(),
+        content.as_bytes(),
+    ))
+}
+
+pub(crate) fn scan_single_char_classes_from_tree(
+    root: Node<'_>,
+    source: &[u8],
+) -> Vec<SingleCharClassRecord> {
     let mut records = Vec::new();
-    walk_single_char_classes(root, content.as_bytes(), &mut records);
-    Ok(records)
+    walk_single_char_classes(root, source, &mut records);
+    records
 }
 fn walk_single_char_classes(
     node: Node<'_>,

@@ -5,51 +5,74 @@ use crate::config::RuleConfig;
 use crate::files::{is_javascript_like_source, match_pattern, relative_path};
 use crate::output::Violation;
 use crate::syntax::{
-    scan_consecutive_array_push, scan_nested_template_literals, scan_prefer_at,
-    scan_prefer_nullish_coalescing_assign, scan_prefer_string_raw, scan_prefer_string_raw_regexp,
-    scan_prefer_string_replaceall, scan_single_char_classes, scan_string_match, scan_sync_in_async,
-    scan_unguarded_json_parse,
+    TreeCache, scan_consecutive_array_push_from_tree, scan_nested_template_literals_from_tree,
+    scan_prefer_at_from_tree, scan_prefer_nullish_coalescing_assign_from_tree,
+    scan_prefer_string_raw_from_tree, scan_prefer_string_raw_regexp_from_tree,
+    scan_prefer_string_replaceall_from_tree, scan_single_char_classes_from_tree,
+    scan_string_match_from_tree, scan_sync_in_async_from_tree, scan_unguarded_json_parse_from_tree,
 };
 
 pub(crate) fn run_supported_rules(
     rules: &BTreeMap<String, RuleConfig>,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
     if let Some(config) = rules.get("no-string-match") {
-        run_no_string_match(config, files, file_contents, root, violations);
+        run_no_string_match(config, files, file_contents, tree_cache, root, violations);
     }
     if let Some(config) = rules.get("no-nested-template-literals") {
-        run_no_nested_template_literals(config, files, file_contents, root, violations);
+        run_no_nested_template_literals(config, files, file_contents, tree_cache, root, violations);
     }
     if let Some(config) = rules.get("no-consecutive-array-push") {
-        run_no_consecutive_array_push(config, files, file_contents, root, violations);
+        run_no_consecutive_array_push(config, files, file_contents, tree_cache, root, violations);
     }
     if let Some(config) = rules.get("no-unguarded-json-parse") {
-        run_no_unguarded_json_parse(config, files, file_contents, root, violations);
+        run_no_unguarded_json_parse(config, files, file_contents, tree_cache, root, violations);
     }
     if let Some(config) = rules.get("no-sync-in-async") {
-        run_no_sync_in_async(config, files, file_contents, root, violations);
+        run_no_sync_in_async(config, files, file_contents, tree_cache, root, violations);
     }
     if let Some(config) = rules.get("sonar/no-single-char-class") {
-        run_sonar_no_single_char_class(config, files, file_contents, root, violations);
+        run_sonar_no_single_char_class(config, files, file_contents, tree_cache, root, violations);
     }
     if let Some(config) = rules.get("sonar/prefer-at") {
-        run_sonar_prefer_at(config, files, file_contents, root, violations);
+        run_sonar_prefer_at(config, files, file_contents, tree_cache, root, violations);
     }
     if let Some(config) = rules.get("sonar/prefer-string-replaceall") {
-        run_sonar_prefer_string_replaceall(config, files, file_contents, root, violations);
+        run_sonar_prefer_string_replaceall(
+            config,
+            files,
+            file_contents,
+            tree_cache,
+            root,
+            violations,
+        );
     }
     if let Some(config) = rules.get("sonar/prefer-string-raw") {
-        run_sonar_prefer_string_raw(config, files, file_contents, root, violations);
+        run_sonar_prefer_string_raw(config, files, file_contents, tree_cache, root, violations);
     }
     if let Some(config) = rules.get("sonar/prefer-string-raw-regexp") {
-        run_sonar_prefer_string_raw_regexp(config, files, file_contents, root, violations);
+        run_sonar_prefer_string_raw_regexp(
+            config,
+            files,
+            file_contents,
+            tree_cache,
+            root,
+            violations,
+        );
     }
     if let Some(config) = rules.get("sonar/prefer-nullish-coalescing-assign") {
-        run_sonar_prefer_nullish_coalescing_assign(config, files, file_contents, root, violations);
+        run_sonar_prefer_nullish_coalescing_assign(
+            config,
+            files,
+            file_contents,
+            tree_cache,
+            root,
+            violations,
+        );
     }
 }
 
@@ -57,6 +80,7 @@ fn run_no_string_match(
     config: &RuleConfig,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
@@ -72,9 +96,10 @@ fn run_no_string_match(
         let Some(content) = file_contents.get(file) else {
             continue;
         };
-        let Ok(records) = scan_string_match(file, content) else {
+        let Some(tree) = tree_cache.get_or_parse(file, content) else {
             continue;
         };
+        let records = scan_string_match_from_tree(tree.root_node(), content.as_bytes());
 
         for record in records {
             let replacement = format!("new RegExp({}).exec({})", record.regex, record.receiver);
@@ -96,6 +121,7 @@ fn run_no_nested_template_literals(
     config: &RuleConfig,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
@@ -111,9 +137,10 @@ fn run_no_nested_template_literals(
         let Some(content) = file_contents.get(file) else {
             continue;
         };
-        let Ok(records) = scan_nested_template_literals(file, content) else {
+        let Some(tree) = tree_cache.get_or_parse(file, content) else {
             continue;
         };
+        let records = scan_nested_template_literals_from_tree(tree.root_node());
 
         for record in records {
             violations.push(Violation {
@@ -134,6 +161,7 @@ fn run_no_consecutive_array_push(
     config: &RuleConfig,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
@@ -149,9 +177,10 @@ fn run_no_consecutive_array_push(
         let Some(content) = file_contents.get(file) else {
             continue;
         };
-        let Ok(records) = scan_consecutive_array_push(file, content) else {
+        let Some(tree) = tree_cache.get_or_parse(file, content) else {
             continue;
         };
+        let records = scan_consecutive_array_push_from_tree(tree.root_node(), content.as_bytes());
 
         for record in records {
             violations.push(Violation {
@@ -173,6 +202,7 @@ fn run_no_unguarded_json_parse(
     config: &RuleConfig,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
@@ -188,9 +218,10 @@ fn run_no_unguarded_json_parse(
         let Some(content) = file_contents.get(file) else {
             continue;
         };
-        let Ok(records) = scan_unguarded_json_parse(file, content) else {
+        let Some(tree) = tree_cache.get_or_parse(file, content) else {
             continue;
         };
+        let records = scan_unguarded_json_parse_from_tree(tree.root_node(), content.as_bytes());
 
         for record in records {
             violations.push(Violation {
@@ -211,6 +242,7 @@ fn run_no_sync_in_async(
     config: &RuleConfig,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
@@ -226,9 +258,10 @@ fn run_no_sync_in_async(
         let Some(content) = file_contents.get(file) else {
             continue;
         };
-        let Ok(records) = scan_sync_in_async(file, content) else {
+        let Some(tree) = tree_cache.get_or_parse(file, content) else {
             continue;
         };
+        let records = scan_sync_in_async_from_tree(tree.root_node(), content.as_bytes());
 
         for record in records {
             violations.push(Violation {
@@ -250,6 +283,7 @@ fn run_sonar_no_single_char_class(
     config: &RuleConfig,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
@@ -265,9 +299,10 @@ fn run_sonar_no_single_char_class(
         let Some(content) = file_contents.get(file) else {
             continue;
         };
-        let Ok(records) = scan_single_char_classes(file, content) else {
+        let Some(tree) = tree_cache.get_or_parse(file, content) else {
             continue;
         };
+        let records = scan_single_char_classes_from_tree(tree.root_node(), content.as_bytes());
 
         for record in records {
             violations.push(Violation {
@@ -296,6 +331,7 @@ fn run_sonar_prefer_at(
     config: &RuleConfig,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
@@ -311,9 +347,10 @@ fn run_sonar_prefer_at(
         let Some(content) = file_contents.get(file) else {
             continue;
         };
-        let Ok(records) = scan_prefer_at(file, content) else {
+        let Some(tree) = tree_cache.get_or_parse(file, content) else {
             continue;
         };
+        let records = scan_prefer_at_from_tree(tree.root_node(), content.as_bytes());
 
         for record in records {
             let replacement = format!("{}.at(-{})", record.base, record.offset);
@@ -343,6 +380,7 @@ fn run_sonar_prefer_string_replaceall(
     config: &RuleConfig,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
@@ -358,9 +396,10 @@ fn run_sonar_prefer_string_replaceall(
         let Some(content) = file_contents.get(file) else {
             continue;
         };
-        let Ok(records) = scan_prefer_string_replaceall(file, content) else {
+        let Some(tree) = tree_cache.get_or_parse(file, content) else {
             continue;
         };
+        let records = scan_prefer_string_replaceall_from_tree(tree.root_node(), content.as_bytes());
 
         for record in records {
             let replacement = format!(
@@ -393,6 +432,7 @@ fn run_sonar_prefer_string_raw_regexp(
     config: &RuleConfig,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
@@ -408,9 +448,10 @@ fn run_sonar_prefer_string_raw_regexp(
         let Some(content) = file_contents.get(file) else {
             continue;
         };
-        let Ok(records) = scan_prefer_string_raw_regexp(file, content) else {
+        let Some(tree) = tree_cache.get_or_parse(file, content) else {
             continue;
         };
+        let records = scan_prefer_string_raw_regexp_from_tree(tree.root_node(), content.as_bytes());
 
         for record in records {
             violations.push(Violation {
@@ -438,6 +479,7 @@ fn run_sonar_prefer_string_raw(
     config: &RuleConfig,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
@@ -453,9 +495,10 @@ fn run_sonar_prefer_string_raw(
         let Some(content) = file_contents.get(file) else {
             continue;
         };
-        let Ok(records) = scan_prefer_string_raw(file, content) else {
+        let Some(tree) = tree_cache.get_or_parse(file, content) else {
             continue;
         };
+        let records = scan_prefer_string_raw_from_tree(tree.root_node(), content.as_bytes());
 
         for record in records {
             violations.push(Violation {
@@ -483,6 +526,7 @@ fn run_sonar_prefer_nullish_coalescing_assign(
     config: &RuleConfig,
     files: &[PathBuf],
     file_contents: &BTreeMap<PathBuf, String>,
+    tree_cache: &TreeCache,
     root: &Path,
     violations: &mut Vec<Violation>,
 ) {
@@ -498,9 +542,11 @@ fn run_sonar_prefer_nullish_coalescing_assign(
         let Some(content) = file_contents.get(file) else {
             continue;
         };
-        let Ok(records) = scan_prefer_nullish_coalescing_assign(file, content) else {
+        let Some(tree) = tree_cache.get_or_parse(file, content) else {
             continue;
         };
+        let records =
+            scan_prefer_nullish_coalescing_assign_from_tree(tree.root_node(), content.as_bytes());
 
         for record in records {
             let replacement = format!("{} ??= {};", record.target, record.value);

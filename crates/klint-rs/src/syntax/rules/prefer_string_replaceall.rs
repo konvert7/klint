@@ -15,10 +15,19 @@ pub fn scan_prefer_string_replaceall(
         .parse(content, None)
         .ok_or_else(|| "klint-rs: failed to parse source".to_string())?;
 
-    let root = tree.root_node();
+    Ok(scan_prefer_string_replaceall_from_tree(
+        tree.root_node(),
+        content.as_bytes(),
+    ))
+}
+
+pub(crate) fn scan_prefer_string_replaceall_from_tree(
+    root: Node<'_>,
+    source: &[u8],
+) -> Vec<PreferStringReplaceAllRecord> {
     let mut records = Vec::new();
-    walk_prefer_string_replaceall(root, content.as_bytes(), &mut records);
-    Ok(records)
+    walk_prefer_string_replaceall(root, source, &mut records);
+    records
 }
 fn walk_prefer_string_replaceall(
     node: Node<'_>,
