@@ -4,14 +4,16 @@ import { relativeSlashPath } from "../core/paths";
 import { buildNodeReplacementFix } from "../core/rule-helpers";
 import type { KlintRule } from "../core/types";
 
-// Unescaped metacharacters that lose their special meaning inside a character class,
-// making [.] a valid shorthand for a literal dot without needing \.
+/**
+ * Metacharacters that lose their special meaning inside a character class, so `[.]`
+ * is a valid shorthand for a literal dot and must not be unwrapped to a bare `.`.
+ */
 const METACHAR_EXCEPTIONS = new Set([".", "*", "+", "?", "{", "}", "(", ")", "|", "$"]);
 
 interface CharClass {
-  start: number; // index of '[' in pattern
-  end: number; // index of ']' in pattern
-  inner: string; // the single token inside
+  bracketStart: number;
+  bracketEnd: number;
+  innerToken: string;
 }
 
 function parseCharClasses(pattern: string): CharClass[] {
@@ -58,7 +60,9 @@ function parseCharClasses(pattern: string): CharClass[] {
     }
     if (i >= pattern.length) break;
     const end = i++;
-    if (tokens.length === 1) results.push({ start, end, inner: tokens[0] });
+    if (tokens.length === 1) {
+      results.push({ bracketStart: start, bracketEnd: end, innerToken: tokens[0] });
+    }
   }
   return results;
 }
@@ -81,17 +85,16 @@ export const noSingleCharClass: KlintRule = {
         const flags = regexSrc.slice(lastSlash + 1);
 
         const allClasses = parseCharClasses(pattern);
-        const toFix = allClasses.filter((c) => !METACHAR_EXCEPTIONS.has(c.inner));
+        const toFix = allClasses.filter((c) => !METACHAR_EXCEPTIONS.has(c.innerToken));
         if (toFix.length === 0) return;
 
-        // Build fixed pattern: replace [token] with token for non-exceptions
         let fixedPattern = "";
         let prev = 0;
         for (const cls of allClasses) {
-          if (METACHAR_EXCEPTIONS.has(cls.inner)) continue;
-          fixedPattern += pattern.slice(prev, cls.start);
-          fixedPattern += cls.inner;
-          prev = cls.end + 1;
+          if (METACHAR_EXCEPTIONS.has(cls.innerToken)) continue;
+          fixedPattern += pattern.slice(prev, cls.bracketStart);
+          fixedPattern += cls.innerToken;
+          prev = cls.bracketEnd + 1;
         }
         fixedPattern += pattern.slice(prev);
 
@@ -101,7 +104,7 @@ export const noSingleCharClass: KlintRule = {
         violations.push({
           file: relativeSlashPath(root, file),
           line: fix.startLine,
-          message: `Character class [${toFix[0].inner}] contains a single element — remove the brackets.`,
+          message: `Character class [${toFix[0].innerToken}] contains a single element — remove the brackets.`,
           fix,
         });
       });

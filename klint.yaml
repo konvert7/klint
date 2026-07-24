@@ -46,3 +46,13 @@ arch:
     - limit: 500
       in: [core, rules, plugins, cli]
       message: "This file is too long — split it into focused modules."
+
+  maxCommentDensity:
+    - limit: 5
+      in: [core, rules, plugins, cli]
+      message: "Too much of this file is comments — encode intent in names and small functions, not prose."
+
+  maxCommentBlock:
+    - limit: 2
+      in: [core, rules, plugins, cli]
+      message: "Comment block too tall — extract a well-named function instead of stacking comment lines."

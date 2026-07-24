@@ -20,12 +20,7 @@ export function applyFixes(violations: Violation[], root: string): number {
   let applied = 0;
   for (const [absPath, fileViolations] of byFile) {
     const lines = readFileSync(absPath, "utf-8").split("\n");
-    // Sort by endLine descending so the largest-range fix at any position wins.
-    // This handles bottom-to-top ordering (higher lines first) AND ensures outer
-    // fixes beat inner/overlapping fixes when chained calls share a start position.
-    const sorted = [...fileViolations].sort(
-      (a, b) => (b.fix?.endLine ?? 0) - (a.fix?.endLine ?? 0)
-    );
+    const sorted = [...fileViolations].sort(byLargestFixRangeFirst);
 
     const used: Array<{ start: number; end: number }> = [];
     for (const v of sorted) {
@@ -41,4 +36,12 @@ export function applyFixes(violations: Violation[], root: string): number {
   }
 
   return applied;
+}
+
+/**
+ * Largest-range fix wins: sorting by `endLine` descending applies fixes bottom-to-top
+ * and lets an outer or overlapping fix beat inner ones that share a start position.
+ */
+function byLargestFixRangeFirst(a: Violation, b: Violation): number {
+  return (b.fix?.endLine ?? 0) - (a.fix?.endLine ?? 0);
 }
