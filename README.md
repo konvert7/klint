@@ -148,7 +148,7 @@ klint --engine compare --json  # parity check; rejects unsupported rules
 
 Rust currently supports:
 
-- `arch` rules: imports, forbidden patterns (literal + `re:` regex), singleton locations, `maxLines` file limits
+- `arch` rules: imports, forbidden patterns (literal + `re:` regex), singleton locations, `maxLines` file limits, comment budgets (`maxCommentDensity`, `maxCommentBlock`)
 - `no-unguarded-json-parse`
 - `no-sync-in-async`
 - `no-nested-template-literals`
@@ -341,6 +341,31 @@ arch:
 ```
 
 `maxLines` is enforced in both the TS and Rust engines and applies to every language klint scans, with no formatter dependency.
+
+### Comment Budgets
+
+Push intent into names and code rather than prose — and keep token cost down — by capping how much of a file may be comments. Two independent limits, both counting only ordinary `//`, `/* */`, and `#` comments; doc-comments (`/** */` JSDoc and Python docstrings) are exempt by default so documentation stays free.
+
+`maxCommentDensity` caps the share of a file's physical lines that are comment lines. The denominator is total physical lines (the same count `maxLines` uses), so blank lines dilute the ratio:
+
+```yaml
+arch:
+  maxCommentDensity:
+    - limit: 5                # percent — no more than 5% of the file may be comments
+      in: ["src/**"]
+      message: "Encode intent in names, not comments"   # optional
+```
+
+`maxCommentBlock` caps how many consecutive comment lines may stack into one block, flagged at the first line past the limit. A tall explanation should become a well-named function instead:
+
+```yaml
+arch:
+  maxCommentBlock:
+    - limit: 2                # at most 2 comment lines in a row
+      in: ["src/**"]
+```
+
+Set `countDocComments: true` on either rule to count doc-comments toward the limit as well. Both rules run in the TS and Rust engines; Python files (`#` comments) are enforced by the Rust engine.
 
 ### Python Architecture Checks
 

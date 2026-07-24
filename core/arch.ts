@@ -1,5 +1,6 @@
 import { dirname, isAbsolute, resolve } from "node:path";
 import ts from "typescript";
+import { commentLineSet, firstCommentBlockOverrun } from "./arch-comments";
 import { walkAst } from "./ast";
 import { relativeSlashPath, toSlashPath } from "./paths";
 import type { ArchConfig, Severity, Violation } from "./types";
@@ -276,6 +277,54 @@ export function runArchRules(
           line: rule.limit + 1,
           message: rule.message ?? `File exceeds the maximum of ${rule.limit} lines`,
           rule: "arch/max-lines",
+          severity,
+        });
+      }
+    }
+  }
+
+  for (const rule of arch.maxCommentDensity ?? []) {
+    const severity: Severity = rule.severity ?? "error";
+    const inFiles = resolveLayerFiles(rule.in, layers, root, allFiles);
+    for (const file of inFiles) {
+      const content = fileContents.get(file);
+      if (content === undefined) continue;
+      const total = countLines(content);
+      if (total === 0) continue;
+      const commentLines = commentLineSet(file, content, rule.countDocComments ?? false);
+      const density = (commentLines.size / total) * 100;
+      if (density > rule.limit) {
+        violations.push({
+          file: relativeSlashPath(root, file),
+          line: 1,
+          message:
+            rule.message ??
+            `Comment density ${density.toFixed(1)}% exceeds the maximum of ${rule.limit}%`,
+          rule: "arch/max-comment-density",
+          severity,
+        });
+      }
+    }
+  }
+
+  for (const rule of arch.maxCommentBlock ?? []) {
+    const severity: Severity = rule.severity ?? "error";
+    const inFiles = resolveLayerFiles(rule.in, layers, root, allFiles);
+    for (const file of inFiles) {
+      const content = fileContents.get(file);
+      if (content === undefined) continue;
+      const commentLines = [
+        ...commentLineSet(file, content, rule.countDocComments ?? false),
+      ].sort((a, b) => a - b);
+      const overrun = firstCommentBlockOverrun(commentLines, rule.limit);
+      if (overrun !== undefined) {
+        violations.push({
+          file: relativeSlashPath(root, file),
+          line: overrun,
+          message:
+            rule.message ??
+            `Comment block exceeds the maximum of ${rule.limit} consecutive lines`,
+          rule: "arch/max-comment-block",
           severity,
         });
       }

@@ -2,7 +2,9 @@ mod architecture;
 mod rules;
 
 pub use architecture::{ImportRecord, JsxElementRecord, scan_imports, scan_jsx_elements};
-pub(crate) use architecture::{scan_imports_from_tree, scan_jsx_elements_from_tree};
+pub(crate) use architecture::{
+    scan_comments_from_tree, scan_imports_from_tree, scan_jsx_elements_from_tree,
+};
 pub use rules::{
     ConsecutiveArrayPushRecord, NestedTemplateLiteralRecord, PreferAtRecord,
     PreferNullishCoalescingAssignRecord, PreferStringRawRecord, PreferStringRawRegexpRecord,

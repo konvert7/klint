@@ -132,6 +132,45 @@ pub(crate) fn scan_jsx_elements_from_tree(root: Node<'_>, source: &[u8]) -> Vec<
     walk_jsx_elements(root, source, &mut elements);
     elements
 }
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct CommentRecord {
+    /// 1-based first physical line the comment occupies.
+    pub start_line: usize,
+    /// 1-based last physical line the comment occupies.
+    pub end_line: usize,
+    pub is_doc: bool,
+}
+
+/// Collects every comment node (all grammars name them `comment` — `//`,
+/// `/* */`, and Python `#`), classified as doc vs ordinary. Docstrings are
+/// string expressions, not comment nodes, so they never appear here.
+pub(crate) fn scan_comments_from_tree(root: Node<'_>, source: &[u8]) -> Vec<CommentRecord> {
+    let mut comments = Vec::new();
+    walk_comments(root, source, &mut comments);
+    comments
+}
+
+fn walk_comments(node: Node<'_>, source: &[u8], comments: &mut Vec<CommentRecord>) {
+    if node.kind() == "comment" {
+        let text = node.utf8_text(source).unwrap_or("");
+        comments.push(CommentRecord {
+            start_line: node.start_position().row + 1,
+            end_line: node.end_position().row + 1,
+            is_doc: is_doc_comment(text),
+        });
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        walk_comments(child, source, comments);
+    }
+}
+
+/// A `/** */` JSDoc block, but not the empty `/**/` comment. Mirrors the TS engine.
+fn is_doc_comment(text: &str) -> bool {
+    text.starts_with("/**") && text != "/**/"
+}
 fn walk_imports(node: Node<'_>, source: &[u8], imports: &mut Vec<ImportRecord>) {
     if node.kind() == "import_statement" {
         if let Some(record) = static_import_record(node, source) {
@@ -285,10 +324,71 @@ fn first_identifier_child(node: Node<'_>) -> Option<Node<'_>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
+    use tree_sitter::Parser;
 
     fn imports(content: &str) -> Vec<ImportRecord> {
         scan_imports(&PathBuf::from("index.ts"), content).expect("source should parse")
+    }
+
+    fn comments(path: &str, content: &str) -> Vec<CommentRecord> {
+        let mut parser = Parser::new();
+        parser
+            .set_language(&language_for_path(Path::new(path)))
+            .expect("parser loads");
+        let tree = parser.parse(content, None).expect("source parses");
+        scan_comments_from_tree(tree.root_node(), content.as_bytes())
+    }
+
+    #[test]
+    fn classifies_doc_and_ordinary_comments_with_line_spans() {
+        assert_eq!(
+            comments(
+                "index.ts",
+                "// line\nconst x = 1; /* inline */\n/**\n * doc\n */\n",
+            ),
+            vec![
+                CommentRecord {
+                    start_line: 1,
+                    end_line: 1,
+                    is_doc: false,
+                },
+                CommentRecord {
+                    start_line: 2,
+                    end_line: 2,
+                    is_doc: false,
+                },
+                CommentRecord {
+                    start_line: 3,
+                    end_line: 5,
+                    is_doc: true,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn treats_python_hash_comments_as_ordinary() {
+        assert_eq!(
+            comments("mod.py", "# a\nx = 1\n"),
+            vec![CommentRecord {
+                start_line: 1,
+                end_line: 1,
+                is_doc: false,
+            }]
+        );
+    }
+
+    #[test]
+    fn ignores_the_empty_block_comment() {
+        assert_eq!(
+            comments("index.ts", "/**/\n"),
+            vec![CommentRecord {
+                start_line: 1,
+                end_line: 1,
+                is_doc: false,
+            }]
+        );
     }
 
     #[test]

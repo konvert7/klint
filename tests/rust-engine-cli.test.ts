@@ -1296,3 +1296,67 @@ rules: {}
     }
   });
 });
+
+describe("KLINT_ENGINE=rust — comment budget rules", () => {
+  beforeAll(() => {
+    rustBin = ensureRustBinary();
+  }, RUST_BUILD_TIMEOUT_MS);
+
+  test("matches TypeScript for density and block rules, exempting doc-comments", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["src"]
+rules: {}
+arch:
+  maxCommentDensity:
+    - limit: 20
+      in: "src/**"
+  maxCommentBlock:
+    - limit: 2
+      in: "src/**"
+`,
+      {
+        "src/noisy.ts": "// a\n// b\n// c\nconst x = 1;\nconst y = 2;\n",
+        "src/documented.ts": "/**\n * doc\n * doc\n * doc\n */\nexport const z = 3;\n",
+        "src/inline.ts": "const a = 1; // one\nconst b = 2; // two\nconst c = 3;\n",
+      }
+    );
+
+    try {
+      const ts = runCli(dir);
+      const rust = runCli(dir, { KLINT_ENGINE: "rust", KLINT_RUST_BIN: rustBin });
+
+      expect(rust.code).toBe(2);
+      expect(rust.code).toBe(ts.code);
+      expect(parseJson(rust)).toEqual(parseJson(ts));
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("countDocComments: true makes both engines count doc-comments", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["src"]
+rules: {}
+arch:
+  maxCommentBlock:
+    - limit: 2
+      countDocComments: true
+      in: "src/**"
+`,
+      { "src/documented.ts": "/**\n * doc\n * doc\n * doc\n */\nexport const z = 3;\n" }
+    );
+
+    try {
+      const ts = runCli(dir);
+      const rust = runCli(dir, { KLINT_ENGINE: "rust", KLINT_RUST_BIN: rustBin });
+
+      expect(rust.code).toBe(2);
+      expect(rust.code).toBe(ts.code);
+      expect(parseJson(rust)).toEqual(parseJson(ts));
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+});

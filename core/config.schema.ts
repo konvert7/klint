@@ -237,6 +237,76 @@ const ArchMaxLinesRuleSchema = z
     ],
   });
 
+const CountDocCommentsSchema = z
+  .boolean()
+  .optional()
+  .describe(
+    "Count doc-comments toward the limit. Doc-comments are `/** … */` JSDoc blocks (TS/JS) and docstrings (Python); ordinary `//`, `/* */`, and `#` comments are always counted. Defaults to false, so documentation is exempt and only explanatory/inline comments are capped."
+  );
+
+const ArchMaxCommentDensityRuleSchema = z
+  .object({
+    limit: z
+      .number()
+      .positive()
+      .max(100)
+      .describe(
+        "Maximum percentage of a file's physical lines that may be comment lines. Denominator is total physical lines (code + comments + blanks), the same count `maxLines` uses. A file above this ratio is a violation."
+      ),
+    countDocComments: CountDocCommentsSchema,
+    in: StringOrStringArray.describe(
+      "Layer name(s) or glob(s) the limit applies to. Files outside the scope are not checked."
+    ),
+    message: z
+      .string()
+      .optional()
+      .describe(
+        "Optional error message. Defaults to a message naming the measured density and the limit."
+      ),
+    severity: ArchSeveritySchema.optional(),
+  })
+  .strict()
+  .describe(
+    "A per-file comment-density ceiling. Caps how much of a file may be explanatory comments — the honest way to push intent into code and names rather than prose (and to keep token cost down), while leaving doc-comments free by default."
+  )
+  .meta({
+    examples: [
+      'arch:\n  maxCommentDensity:\n    - limit: 5\n      in: src/**\n      message: "Encode intent in names, not comments"',
+      "arch:\n  maxCommentDensity:\n    - limit: 10\n      countDocComments: true\n      in: src/**",
+    ],
+  });
+
+const ArchMaxCommentBlockRuleSchema = z
+  .object({
+    limit: z
+      .number()
+      .int()
+      .positive()
+      .describe(
+        "Maximum number of consecutive comment lines allowed in a single block. A run of more comment lines than this — e.g. a tall comment stacked above a statement — is a violation, reported at the first offending line."
+      ),
+    countDocComments: CountDocCommentsSchema,
+    in: StringOrStringArray.describe(
+      "Layer name(s) or glob(s) the limit applies to. Files outside the scope are not checked."
+    ),
+    message: z
+      .string()
+      .optional()
+      .describe(
+        "Optional error message. Defaults to a message naming the consecutive-line limit."
+      ),
+    severity: ArchSeveritySchema.optional(),
+  })
+  .strict()
+  .describe(
+    "A per-block comment-height cap. Limits how many comment lines may stack together, so comments stay terse and a long explanation becomes a well-named function instead. Doc-comments are exempt by default."
+  )
+  .meta({
+    examples: [
+      'arch:\n  maxCommentBlock:\n    - limit: 2\n      in: src/**\n      message: "Extract a named function instead of a comment block"',
+    ],
+  });
+
 const ArchSchema = z
   .object({
     layers: ArchLayersSchema.optional(),
@@ -262,10 +332,22 @@ const ArchSchema = z
       .describe(
         "Per-file line-count limits. Cap how long files in a layer may grow, with different ceilings per scope."
       ),
+    maxCommentDensity: z
+      .array(ArchMaxCommentDensityRuleSchema)
+      .optional()
+      .describe(
+        "Per-file comment-density ceilings. Cap the share of a file that may be explanatory comments; doc-comments are exempt by default."
+      ),
+    maxCommentBlock: z
+      .array(ArchMaxCommentBlockRuleSchema)
+      .optional()
+      .describe(
+        "Per-block comment-height caps. Limit how many comment lines may stack together; doc-comments are exempt by default."
+      ),
   })
   .strict()
   .describe(
-    "Architecture-as-Code constraints — layers, import boundaries, forbidden patterns, singleton locations. Enforced by the arch engine alongside the rule set."
+    "Architecture-as-Code constraints — layers, import boundaries, forbidden patterns, singleton locations, comment budgets. Enforced by the arch engine alongside the rule set."
   );
 
 function buildRulesSchema() {

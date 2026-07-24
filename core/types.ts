@@ -104,12 +104,29 @@ interface ArchMaxLinesRule {
   severity?: Exclude<Severity, "off">;
 }
 
+interface ArchCommentRuleBase {
+  limit: number;
+  in: string | string[];
+  /** Count doc-comments (`/** *​/` JSDoc, Python docstrings) toward the limit. Defaults to false. */
+  countDocComments?: boolean;
+  message?: string;
+  severity?: Exclude<Severity, "off">;
+}
+
+/** Caps the share of a file's physical lines that are non-doc comments. */
+interface ArchMaxCommentDensityRule extends ArchCommentRuleBase {}
+
+/** Caps how many consecutive comment lines may stack into a single block. */
+interface ArchMaxCommentBlockRule extends ArchCommentRuleBase {}
+
 export interface ArchConfig {
   layers?: Record<string, string[]>;
   imports?: ArchImportRule[];
   forbidden?: ArchForbiddenRule[];
   singleton?: ArchSingletonRule[];
   maxLines?: ArchMaxLinesRule[];
+  maxCommentDensity?: ArchMaxCommentDensityRule[];
+  maxCommentBlock?: ArchMaxCommentBlockRule[];
 }
 
 export interface KlintConfig {
