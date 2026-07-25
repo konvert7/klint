@@ -1,3 +1,16 @@
+# [0.27.0](https://github.com/konvert7/klint/compare/v0.26.0...v0.27.0) (2026-07-25)
+
+
+### Bug Fixes
+
+* order violations the same way ([2a8e0f5](https://github.com/konvert7/klint/commit/2a8e0f53a5ef8a0b1a84c0ce1e603547b10aca4a))
+
+
+### Features
+
+* add comment budget rules for density and block limits ([17593a1](https://github.com/konvert7/klint/commit/17593a16597684634a0b82bf86b11fa6fcdcdd29))
+* configure comment limits ([7299617](https://github.com/konvert7/klint/commit/7299617612004c4bab5af6b773cbbe4c3555878e))
+
 # [0.26.0](https://github.com/konvert7/klint/compare/v0.25.0...v0.26.0) (2026-07-03)
 
 
