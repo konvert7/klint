@@ -64,7 +64,14 @@ function resolveFiles(
       // directory doesn't exist — skip
     }
   }
-  return [...files];
+  return [...files].sort(byLexicographicOrder);
+}
+
+// Not localeCompare — must match the Rust engine's locale-independent Vec<PathBuf>::sort().
+function byLexicographicOrder(a: string, b: string): number {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
 }
 
 function matchPattern(relPath: string, pattern: string): boolean {
