@@ -92,7 +92,7 @@ const ArchImportRuleSchema = z
       .literal("allow")
       .optional()
       .describe(
-        'When set to "allow", `import type` statements that would otherwise be denied are permitted. Useful for type-only references across layers.'
+        'When set to "allow", `import type` statements that would otherwise be denied are permitted. In Python, imports inside an `if TYPE_CHECKING:` block are exempted the same way. Useful for type-only references across layers.'
       ),
     message: z
       .string()

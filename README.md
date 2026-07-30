@@ -263,6 +263,10 @@ arch:
       message: "Core may reference adapter types, but not adapter values"
 ```
 
+This covers `import type`, `export type … from`, and — in Python — every import
+inside an `if TYPE_CHECKING:` block. The `else` and `elif` branches of such a
+guard stay runtime imports and are still reported.
+
 Block npm packages and `node:` builtins with `deny-packages`. `deny` and `allow` work on layers of
 project files, so they can never reach a specifier that doesn't resolve to one — that is what
 `deny-packages` is for:

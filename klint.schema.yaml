@@ -603,8 +603,9 @@ properties:
                   items:
                     type: string
             type-only:
-              description: When set to "allow", `import type` statements that would otherwise be denied are permitted. Useful for
-                type-only references across layers.
+              description: When set to "allow", `import type` statements that would otherwise be denied are permitted. In Python,
+                imports inside an `if TYPE_CHECKING:` block are exempted the same way. Useful for type-only references
+                across layers.
               type: string
               const: allow
             message:

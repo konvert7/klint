@@ -79,7 +79,7 @@ arch:
       allow: ["src/dao/**", "src/prisma/**"]
       message: "DAO may only import from dao or prisma"
 
-    # type-only: allow — import type {} is permitted even when value imports are denied
+    # type-only: allow — import type {} and Python if TYPE_CHECKING: blocks stay permitted
     - from: core
       deny: targets
       type-only: allow

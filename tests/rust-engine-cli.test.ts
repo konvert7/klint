@@ -835,6 +835,63 @@ arch:
     }
   });
 
+  test("--engine rust exempts Python TYPE_CHECKING imports under type-only allow", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["src"]
+rules: {}
+arch:
+  layers:
+    jobs: ["src/app/jobs/**"]
+    lib: ["src/app/lib/**"]
+  imports:
+    - from: jobs
+      deny: lib
+      type-only: allow
+      message: "Jobs must not import lib directly"
+`,
+      {
+        "src/app/jobs/worker.py":
+          "from typing import TYPE_CHECKING\n\nif TYPE_CHECKING:\n    from app.lib.auth import Key\nelse:\n    from app.lib.auth import load_key\n",
+        "src/app/lib/auth.py":
+          "class Key:\n    pass\n\n\ndef load_key():\n    return 'x'\n",
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{
+          file: string;
+          line: number;
+          rule: string;
+          message: string;
+          severity: string;
+          fix: unknown;
+        }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(rust.code).toBe(2);
+      expect(payload.summary).toEqual({ errors: 1, warnings: 0 });
+      expect(payload.violations).toEqual([
+        {
+          file: "src/app/jobs/worker.py",
+          line: 6,
+          rule: "arch/imports",
+          message: "Jobs must not import lib directly",
+          severity: "error",
+          fix: null,
+        },
+      ]);
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine rust rejects unknown plugins", () => {
     const dir = setupFixture(
       `
