@@ -678,6 +678,63 @@ arch:
     }
   });
 
+  test("--engine rust checks every target of a multi-target Python import", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["src"]
+rules: {}
+arch:
+  layers:
+    jobs: ["src/app/jobs/**"]
+    lib: ["src/app/lib/**"]
+  imports:
+    - from: jobs
+      deny: lib
+      message: "Jobs must not import lib directly"
+`,
+      {
+        "src/app/jobs/worker.py":
+          "import json, app.lib.auth\nfrom . import helper, sibling\n",
+        "src/app/jobs/helper.py": "value = 1\n",
+        "src/app/jobs/sibling.py": "value = 2\n",
+        "src/app/lib/auth.py": "def load_key():\n    return 'x'\n",
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{
+          file: string;
+          line: number;
+          rule: string;
+          message: string;
+          severity: string;
+          fix: unknown;
+        }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(rust.code).toBe(2);
+      expect(payload.summary).toEqual({ errors: 1, warnings: 0 });
+      expect(payload.violations).toEqual([
+        {
+          file: "src/app/jobs/worker.py",
+          line: 1,
+          rule: "arch/imports",
+          message: "Jobs must not import lib directly",
+          severity: "error",
+          fix: null,
+        },
+      ]);
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine rust rejects unknown plugins", () => {
     const dir = setupFixture(
       `

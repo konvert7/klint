@@ -228,10 +228,10 @@ fn first_string_child(node: Node<'_>) -> Option<Node<'_>> {
 }
 
 fn walk_python_imports(node: Node<'_>, source: &[u8], imports: &mut Vec<ImportRecord>) {
-    if matches!(node.kind(), "import_statement" | "import_from_statement")
-        && let Some(record) = python_import_record(node, source)
-    {
-        imports.push(record);
+    match node.kind() {
+        "import_statement" => imports.extend(python_import_records(node, source)),
+        "import_from_statement" => imports.extend(python_from_import_records(node, source)),
+        _ => {}
     }
 
     let mut cursor = node.walk();
@@ -240,51 +240,88 @@ fn walk_python_imports(node: Node<'_>, source: &[u8], imports: &mut Vec<ImportRe
     }
 }
 
-fn python_import_record(node: Node<'_>, source: &[u8]) -> Option<ImportRecord> {
-    let text = node.utf8_text(source).ok()?.trim();
-    let specifier = if let Some(rest) = text.strip_prefix("import ") {
-        first_python_import_target(rest)?.to_string()
-    } else {
-        let rest = text.strip_prefix("from ")?;
-        let (module, imports) = rest.split_once(" import ")?;
-        python_from_import_specifier(module.trim(), imports.trim())?
+fn python_import_records(node: Node<'_>, source: &[u8]) -> Vec<ImportRecord> {
+    python_import_names(node)
+        .into_iter()
+        .filter_map(|name| {
+            Some(python_record(python_import_target_text(name, source)?, name))
+        })
+        .collect()
+}
+
+fn python_from_import_records(node: Node<'_>, source: &[u8]) -> Vec<ImportRecord> {
+    let Some(module) = node.child_by_field_name("module_name") else {
+        return Vec::new();
     };
 
-    Some(ImportRecord {
+    if module.kind() != "relative_import" {
+        return node_text(module, source)
+            .map(|specifier| vec![python_record(specifier, module)])
+            .unwrap_or_default();
+    }
+
+    let Some(prefix) = python_relative_prefix(module, source) else {
+        return Vec::new();
+    };
+
+    if let Some(module_path) = python_relative_module_path(module, source) {
+        return vec![python_record(format!("{prefix}{module_path}"), module)];
+    }
+
+    python_import_names(node)
+        .into_iter()
+        .filter_map(|name| {
+            let target = python_import_target_text(name, source)?;
+            Some(python_record(format!("{prefix}{target}"), name))
+        })
+        .collect()
+}
+
+fn python_import_names<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
+    let mut cursor = node.walk();
+    node.children_by_field_name("name", &mut cursor).collect()
+}
+
+fn python_import_target_text(name: Node<'_>, source: &[u8]) -> Option<String> {
+    let target = if name.kind() == "aliased_import" {
+        name.child_by_field_name("name")?
+    } else {
+        name
+    };
+    node_text(target, source)
+}
+
+fn python_relative_prefix(module: Node<'_>, source: &[u8]) -> Option<String> {
+    let mut cursor = module.walk();
+    let prefix = module
+        .children(&mut cursor)
+        .find(|child| child.kind() == "import_prefix")?;
+    let dots = node_text(prefix, source)?
+        .chars()
+        .filter(|char| *char == '.')
+        .count();
+    Some(if dots == 1 {
+        "./".to_string()
+    } else {
+        "../".repeat(dots - 1)
+    })
+}
+
+fn python_relative_module_path(module: Node<'_>, source: &[u8]) -> Option<String> {
+    let mut cursor = module.walk();
+    let dotted = module
+        .children(&mut cursor)
+        .find(|child| child.kind() == "dotted_name")?;
+    Some(node_text(dotted, source)?.replace('.', "/"))
+}
+
+fn python_record(specifier: String, node: Node<'_>) -> ImportRecord {
+    ImportRecord {
         specifier,
         line: node.start_position().row + 1,
         is_type_only: false,
         is_dynamic: false,
-    })
-}
-
-fn python_from_import_specifier(module: &str, imports: &str) -> Option<String> {
-    if !module.starts_with('.') {
-        return Some(module.to_string());
     }
-
-    let dot_count = module.chars().take_while(|char| *char == '.').count();
-    let module_path = module[dot_count..].replace('.', "/");
-    let target = if module_path.is_empty() {
-        first_python_import_target(imports)?.to_string()
-    } else {
-        module_path
-    };
-    let prefix = if dot_count == 1 {
-        "./".to_string()
-    } else {
-        "../".repeat(dot_count - 1)
-    };
-    Some(format!("{prefix}{target}"))
-}
-
-fn first_python_import_target(imports: &str) -> Option<&str> {
-    imports
-        .split(',')
-        .next()?
-        .split_whitespace()
-        .next()
-        .filter(|target| !target.is_empty() && *target != "*")
 }
 
 fn walk_jsx_elements(node: Node<'_>, source: &[u8], elements: &mut Vec<JsxElementRecord>) {
@@ -495,6 +532,97 @@ mod tests {
                     is_dynamic: false,
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn extracts_every_target_of_a_multi_target_python_import() {
+        let records = scan_imports(
+            &PathBuf::from("src/jobs/worker.py"),
+            "import os, sys\nimport os.path as p, json\n",
+        )
+        .expect("python source should parse");
+
+        assert_eq!(
+            records,
+            vec![
+                ImportRecord {
+                    specifier: "os".to_string(),
+                    line: 1,
+                    is_type_only: false,
+                    is_dynamic: false,
+                },
+                ImportRecord {
+                    specifier: "sys".to_string(),
+                    line: 1,
+                    is_type_only: false,
+                    is_dynamic: false,
+                },
+                ImportRecord {
+                    specifier: "os.path".to_string(),
+                    line: 2,
+                    is_type_only: false,
+                    is_dynamic: false,
+                },
+                ImportRecord {
+                    specifier: "json".to_string(),
+                    line: 2,
+                    is_type_only: false,
+                    is_dynamic: false,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn extracts_every_target_of_a_bare_relative_python_import() {
+        let records = scan_imports(
+            &PathBuf::from("src/jobs/worker.py"),
+            "from . import first, second as alias\nfrom ..lib import (\n    auth,\n    other,\n)\n",
+        )
+        .expect("python source should parse");
+
+        assert_eq!(
+            records,
+            vec![
+                ImportRecord {
+                    specifier: "./first".to_string(),
+                    line: 1,
+                    is_type_only: false,
+                    is_dynamic: false,
+                },
+                ImportRecord {
+                    specifier: "./second".to_string(),
+                    line: 1,
+                    is_type_only: false,
+                    is_dynamic: false,
+                },
+                ImportRecord {
+                    specifier: "../lib".to_string(),
+                    line: 2,
+                    is_type_only: false,
+                    is_dynamic: false,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn ignores_python_wildcard_imports_without_a_module_path() {
+        let records = scan_imports(
+            &PathBuf::from("src/jobs/worker.py"),
+            "from . import *\nfrom app.lib import *\n",
+        )
+        .expect("python source should parse");
+
+        assert_eq!(
+            records,
+            vec![ImportRecord {
+                specifier: "app.lib".to_string(),
+                line: 2,
+                is_type_only: false,
+                is_dynamic: false,
+            }]
         );
     }
 
