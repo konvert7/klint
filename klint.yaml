@@ -2,7 +2,7 @@
 
 plugins:
   - sonar
-include: ["**/*.ts", "!tests/**", "!node_modules/**"]
+include: ["**/*.ts", "crates/**/*.rs", "!tests/**", "!node_modules/**", "!target/**"]
 rules:
   no-unguarded-json-parse: error
   no-floating-promise: error
@@ -22,6 +22,7 @@ arch:
     rules:   ["rules/**"]
     plugins: ["plugins/**"]
     cli:     ["cli.ts", "cli/**"]
+    engine:  ["crates/klint-rs/src/**"]
 
   imports:
     - from: [core, rules, plugins]
@@ -46,13 +47,16 @@ arch:
     - limit: 500
       in: [core, rules, plugins, cli]
       message: "This file is too long — split it into focused modules."
+    - limit: 1200
+      in: engine
+      message: "This engine module is too long — split it into focused modules. Ratchet only: lower this toward 500 as files are split."
 
   maxCommentDensity:
     - limit: 5
-      in: [core, rules, plugins, cli]
+      in: [core, rules, plugins, cli, engine]
       message: "Too much of this file is comments — encode intent in names and small functions, not prose."
 
   maxCommentBlock:
     - limit: 2
-      in: [core, rules, plugins, cli]
+      in: [core, rules, plugins, cli, engine]
       message: "Comment block too tall — extract a well-named function instead of stacking comment lines."
