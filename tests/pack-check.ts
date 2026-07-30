@@ -43,6 +43,9 @@ try {
     if (existsSync(join(packageRoot, nativePackage.binaryPath))) {
       expectedFiles.push(`package/${nativePackage.binaryPath}`);
     }
+    if (existsSync(join(packageRoot, "bin", "VERSION"))) {
+      expectedFiles.push("package/bin/VERSION");
+    }
     expectedFiles.sort();
     const list = packAndList(packageRoot);
 
@@ -64,7 +67,7 @@ try {
     );
     assertEquals(
       packageJson.files,
-      [nativePackage.binaryPath],
+      [nativePackage.binaryPath, "bin/VERSION"],
       `${nativePackage.packageName} files`
     );
     assertEquals(

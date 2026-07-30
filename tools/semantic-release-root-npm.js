@@ -18,7 +18,7 @@ export async function verifyConditions(_, context) {
   }
 }
 
-export async function prepare(_, context) {
+export async function prepare(pluginConfig = {}, context) {
   const cwd = context.cwd ?? process.cwd();
   const version = context.nextRelease?.version;
 
@@ -29,6 +29,20 @@ export async function prepare(_, context) {
   const packageJson = readPackageJson(cwd);
   packageJson.version = version;
   writePackageJson(cwd, packageJson);
+
+  regenerateSchema(cwd, pluginConfig.spawnSync ?? spawnSync);
+}
+
+function regenerateSchema(cwd, spawn) {
+  const result = spawn("bun", ["tools/generate-schema.ts"], {
+    cwd,
+    encoding: "utf-8",
+    stdio: "inherit",
+  });
+
+  if ((result.status ?? -1) !== 0) {
+    throw new Error(`Schema generation failed with exit code ${result.status ?? -1}`);
+  }
 }
 
 export async function publish(pluginConfig = {}, context) {

@@ -29,6 +29,9 @@ describe("semantic-release native npm plugin", () => {
         expect(packageJson.name).toBe(name);
         expect(packageJson.version).toBe("1.2.3");
         expect(packageJson.private).toBe(false);
+        expect(
+          readFileSync(join(cwd, "npm", "native", dir, "bin", "VERSION"), "utf-8")
+        ).toBe("1.2.3\n");
       }
     } finally {
       rmSync(cwd, { recursive: true, force: true });

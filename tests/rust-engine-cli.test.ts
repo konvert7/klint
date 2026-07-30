@@ -1,6 +1,13 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -1996,6 +2003,106 @@ arch:
       expect(rust.code).toBe(2);
       expect(rust.code).toBe(ts.code);
       expect(parseJson(rust)).toEqual(parseJson(ts));
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+});
+
+describe("KLINT_ENGINE=rust — schema version advisory", () => {
+  const taggedUrl = (version: string) =>
+    `https://raw.githubusercontent.com/konvert7/klint/refs/tags/v${version}/klint.schema.json`;
+
+  const archConfig = (schema: string) => `
+$schema: ${schema}
+include: ["src"]
+rules: {}
+arch:
+  maxLines:
+    - limit: 500
+      in: "src/**"
+`;
+
+  const installedVersion = (): string =>
+    JSON.parse(readFileSync(join(ROOT, "package.json"), "utf-8")).version;
+
+  test("warns on a stale schema version without failing the run", () => {
+    const dir = setupNamedFixture(archConfig(taggedUrl("0.0.1")), {
+      "src/subject.ts": "export const a = 1;\n",
+    });
+
+    try {
+      const result = runCli(dir);
+      const payload = parseJson(result) as {
+        violations: Array<{ file: string; rule: string; severity: string; line: number }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(result.code).toBe(0);
+      expect(payload.summary).toEqual({ errors: 0, warnings: 1 });
+      expect(payload.violations).toHaveLength(1);
+      expect(payload.violations[0].rule).toBe("klint/schema-version");
+      expect(payload.violations[0].severity).toBe("warn");
+      expect(payload.violations[0].file).toBe("klint.yaml");
+      expect(payload.violations[0].line).toBe(2);
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("stays silent when the declared version matches the installed one", () => {
+    const dir = setupNamedFixture(archConfig(taggedUrl(installedVersion())), {
+      "src/subject.ts": "export const a = 1;\n",
+    });
+
+    try {
+      const result = runCli(dir);
+      expect(result.code).toBe(0);
+      expect(parseJson(result)).toEqual({
+        violations: [],
+        summary: { errors: 0, warnings: 0 },
+      });
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("stays silent for a local schema path", () => {
+    const dir = setupNamedFixture(archConfig("./klint.schema.json"), {
+      "src/subject.ts": "export const a = 1;\n",
+    });
+
+    try {
+      const result = runCli(dir);
+      expect(result.code).toBe(0);
+      expect(parseJson(result)).toEqual({
+        violations: [],
+        summary: { errors: 0, warnings: 0 },
+      });
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("reaches every engine exactly once and keeps compare green", () => {
+    const dir = setupNamedFixture(archConfig(taggedUrl("0.0.1")), {
+      "src/subject.ts": "export const a = 1;\n",
+    });
+
+    try {
+      for (const engine of ["ts", "rust", "auto", "compare"]) {
+        const result = runCliArgs(dir, ["--json", "--engine", engine], {
+          KLINT_RUST_BIN: rustBin,
+        });
+        const payload = parseJson(result) as {
+          violations: Array<{ rule: string }>;
+          summary: { errors: number; warnings: number };
+        };
+
+        expect(result.code).toBe(0);
+        expect(payload.violations.map((v) => v.rule)).toEqual(["klint/schema-version"]);
+        expect(payload.summary).toEqual({ errors: 0, warnings: 1 });
+      }
     } finally {
       rmSync(dir, { recursive: true });
     }

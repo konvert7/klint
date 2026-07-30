@@ -69,6 +69,16 @@ either a whole directory or individual files:
 include: ["src", "!**/.venv/**", "!**/*_test.py", "!src/jobs/legacy.py"]
 ```
 
+Set `$schema` to a version-tagged URL to pin the schema your editor validates against:
+
+```yaml
+$schema: https://raw.githubusercontent.com/konvert7/klint/refs/tags/v0.29.0/klint.schema.json
+```
+
+When the tagged version differs from the installed klint, the run reports a
+`klint/schema-version` warning naming both versions and the URL to move to. It is a
+warning, so the exit code stays `0`. Local paths carry no version and are never checked.
+
 `arch.layers` gives names to file groups so rules can talk about
 architecture instead of repeating globs. `root` optionally sets the directory
 that `include` paths and reported file names resolve against.

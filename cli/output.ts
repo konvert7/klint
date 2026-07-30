@@ -85,6 +85,25 @@ export function mergeJsonOutputs(...outputs: JsonPayload[]): JsonPayload {
   };
 }
 
+export function withAdvisories(
+  stdout: string,
+  advisories: Array<Omit<Violation, "fix">>
+): string {
+  if (advisories.length === 0) return stdout;
+  const payload = parseJsonPayload(stdout);
+  if (!isJsonPayload(payload)) return stdout;
+
+  const violations = [
+    ...payload.violations,
+    ...advisories.map((advisory) => ({ ...advisory, fix: null })),
+  ];
+  const errors = violations.filter((v) => v.severity === "error").length;
+  return JSON.stringify({
+    violations,
+    summary: { errors, warnings: violations.length - errors },
+  });
+}
+
 export function isJsonPayload(value: unknown): value is JsonPayload {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<JsonPayload>;

@@ -129,6 +129,8 @@ jobs:
 
       - name: Build native binary
         run: cargo build -p klint-rs --release --target ${{ matrix.rust-target }}
+        env:
+          KLINT_VERSION: ${{ needs.metadata.outputs.version }}
 
       - name: Stage artifact directory
         shell: bash

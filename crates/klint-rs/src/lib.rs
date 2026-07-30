@@ -5,6 +5,7 @@ mod files;
 mod output;
 mod rules;
 pub mod syntax;
+mod version;
 
 use std::path::PathBuf;
 
@@ -14,6 +15,8 @@ use engine::run_engine;
 use files::{read_files, resolve_files};
 pub use output::{JsonOutput, Summary, Violation};
 use rules::plan_rule_passes;
+pub use version::reported_version;
+use version::schema_version_advisory;
 
 #[derive(Debug)]
 pub struct RunOptions {
@@ -37,7 +40,8 @@ pub fn run(options: RunOptions) -> Result<JsonOutput, String> {
         .as_ref()
         .map(|arch| ArchPlan::build(arch, &files, &root));
 
-    let violations = run_engine(&rule_passes, arch_plan.as_ref(), &files, &contents, &root);
+    let mut violations = run_engine(&rule_passes, arch_plan.as_ref(), &files, &contents, &root);
+    violations.extend(schema_version_advisory(raw.schema.as_deref(), &config_path));
 
     Ok(output::output_from_violations(violations))
 }

@@ -6,7 +6,17 @@
     "@semantic-release/changelog",
     "./tools/semantic-release-native-npm.js",
     "./tools/semantic-release-root-npm.js",
-    ["@semantic-release/git", { "assets": ["package.json", "CHANGELOG.md"] }],
+    [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "package.json",
+          "CHANGELOG.md",
+          "klint.schema.json",
+          "klint.schema.yaml"
+        ]
+      }
+    ],
     "@semantic-release/github"
   ]
 }

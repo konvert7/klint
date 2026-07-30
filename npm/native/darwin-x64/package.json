@@ -8,9 +8,16 @@
     "type": "git",
     "url": "git+https://github.com/konvert7/klint.git"
   },
-  "os": ["darwin"],
-  "cpu": ["x64"],
-  "files": ["bin/klint-rs"],
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin/klint-rs",
+    "bin/VERSION"
+  ],
   "bin": {
     "klint-rs": "bin/klint-rs"
   }

@@ -58,7 +58,7 @@ fn parse_args(args: &[String]) -> Result<CliOptions, String> {
                 std::process::exit(0);
             }
             "--version" | "-V" | "version" => {
-                println!("klint-rs {}", env!("CARGO_PKG_VERSION"));
+                println!("klint-rs {}", klint_rs::reported_version());
                 std::process::exit(0);
             }
             _ => {

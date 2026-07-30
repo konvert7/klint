@@ -22,9 +22,16 @@ describe("semantic-release root npm plugin", () => {
       )
     );
 
+    const commands: Array<{ command: string; args: string[] }> = [];
+
     try {
       await prepare(
-        {},
+        {
+          spawnSync(command: string, args: string[]) {
+            commands.push({ command, args });
+            return { status: 0 };
+          },
+        },
         {
           cwd,
           nextRelease: { version: "1.2.3" },
@@ -36,6 +43,26 @@ describe("semantic-release root npm plugin", () => {
       expect(packageJson.optionalDependencies).toEqual({
         "@konvert7/klint-darwin-arm64": "*",
       });
+      expect(commands).toEqual([{ command: "bun", args: ["tools/generate-schema.ts"] }]);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  test("prepare fails loudly when schema regeneration fails", async () => {
+    const cwd = mkdtempSync(join(tmpdir(), "klint-root-npm-plugin-"));
+    writeFileSync(
+      join(cwd, "package.json"),
+      JSON.stringify({ name: "@konvert7/klint", version: "0.0.0" })
+    );
+
+    try {
+      await expect(
+        prepare(
+          { spawnSync: () => ({ status: 1 }) },
+          { cwd, nextRelease: { version: "1.2.3" } }
+        )
+      ).rejects.toThrow("Schema generation failed");
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }

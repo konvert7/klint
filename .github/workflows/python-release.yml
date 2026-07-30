@@ -140,6 +140,8 @@ jobs:
       - name: Build native binary
         if: matrix.package != 'linux-x64'
         run: cargo build -p klint-rs --release --target ${{ matrix.rust-target }}
+        env:
+          KLINT_VERSION: ${{ needs.metadata.outputs.version }}
 
       - name: Build manylinux native binary
         if: matrix.package == 'linux-x64'
@@ -147,6 +149,7 @@ jobs:
           docker run --rm \
             -v "$PWD:/io" \
             -w /io \
+            -e KLINT_VERSION="${{ needs.metadata.outputs.version }}" \
             quay.io/pypa/manylinux_2_28_x86_64 \
             bash -lc 'curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal && source "$HOME/.cargo/env" && cargo build -p klint-rs --release --target x86_64-unknown-linux-gnu'
 

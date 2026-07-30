@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runKlint } from "../core/runner";
-import type { KlintRule, RuleConfigValue } from "../core/types";
+import type { KlintRule, RuleConfigValue, Violation } from "../core/types";
 import {
   emptyJsonPayload,
   isJsonPayload,
@@ -13,6 +13,7 @@ import {
   parseJsonPayload,
   toJsonCliResult,
   toJsonPayload,
+  withAdvisories,
   writeTextOutput,
 } from "./output";
 import { PACKAGE_ROOT } from "./paths";
@@ -25,6 +26,7 @@ import {
 } from "./rust-config";
 
 export function runRustEngine({
+  advisories,
   fix,
   json,
   raw,
@@ -32,6 +34,7 @@ export function runRustEngine({
   rulesFile,
   startedAt,
 }: {
+  advisories: Array<Omit<Violation, "fix">>;
   fix: boolean;
   json: boolean;
   raw: {
@@ -73,7 +76,7 @@ export function runRustEngine({
 
   if (result.stderr) process.stderr.write(result.stderr);
   if (json) {
-    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stdout) process.stdout.write(withAdvisories(result.stdout, advisories));
     process.exit(result.status ?? 1);
   }
 
@@ -82,10 +85,11 @@ export function runRustEngine({
     process.stderr.write("klint: --engine rust failed to parse Rust JSON output\n");
     process.exit(1);
   }
-  writeTextOutput(payload.violations, startedAt);
+  writeTextOutput([...payload.violations, ...advisories], startedAt);
 }
 
 export function runCompareEngine({
+  advisories,
   fix,
   json,
   raw,
@@ -93,6 +97,7 @@ export function runCompareEngine({
   rulesFile,
   tsViolations,
 }: {
+  advisories: Array<Omit<Violation, "fix">>;
   fix: boolean;
   json: boolean;
   raw: {
@@ -154,7 +159,7 @@ export function runCompareEngine({
     process.exit(1);
   }
 
-  process.stdout.write(tsResult.stdout);
+  process.stdout.write(withAdvisories(tsResult.stdout, advisories));
   process.exit(tsResult.status);
 }
 
@@ -188,6 +193,7 @@ function writeRustEngineConfig({
 }
 
 export function runAutoEngine({
+  advisories,
   fix,
   json,
   raw,
@@ -197,6 +203,7 @@ export function runAutoEngine({
   customRules,
   customRulesMap,
 }: {
+  advisories: Array<Omit<Violation, "fix">>;
   fix: boolean;
   json: boolean;
   raw: {
@@ -241,10 +248,10 @@ export function runAutoEngine({
   const tsOutput = toJsonPayload(tsViolations);
   const merged = mergeJsonOutputs(rustOutput, tsOutput);
   if (json) {
-    process.stdout.write(JSON.stringify(merged));
+    process.stdout.write(withAdvisories(JSON.stringify(merged), advisories));
     process.exit(merged.summary.errors > 0 ? 2 : 0);
   }
-  writeTextOutput(merged.violations, startedAt);
+  writeTextOutput([...merged.violations, ...advisories], startedAt);
 }
 
 function runAutoRustSubset({

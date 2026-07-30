@@ -377,7 +377,7 @@ export const KlintConfigSchema = z
       .string()
       .optional()
       .describe(
-        "JSON Schema reference. Use ./klint.schema.json for local validation or https://klint.dev/schema.json for the published schema."
+        "JSON Schema reference. Use ./klint.schema.json for local validation, or a version-tagged URL such as https://raw.githubusercontent.com/konvert7/klint/refs/tags/v0.29.0/klint.schema.json to pin the schema. A tagged URL naming a version other than the installed one raises a klint/schema-version warning."
       ),
     root: z
       .string()

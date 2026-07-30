@@ -8,13 +8,25 @@ import { installSkill } from "./cli/install-skill";
 import {
   formatDuration,
   toJsonCliResult,
+  withAdvisories,
   writeDebugEvent,
   writeTextOutput,
 } from "./cli/output";
+import { PACKAGE_ROOT } from "./cli/paths";
 import { runAutoEngine, runCompareEngine, runRustEngine } from "./cli/rust-engine";
 import { applyFixes } from "./core/fixer";
 import { runKlint } from "./core/runner";
+import { schemaVersionAdvisory } from "./core/schema-version";
 import type { ArchConfig, KlintConfig, KlintRule, RuleConfigValue } from "./core/types";
+
+async function installedVersion(): Promise<string> {
+  const manifest = await readFile(resolve(PACKAGE_ROOT, "package.json"), "utf-8");
+  try {
+    return (JSON.parse(manifest) as { version?: string }).version ?? "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
 
 interface CliOptions {
   configDir?: string;
@@ -52,6 +64,9 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     else if (args[i] === "--help" || args[i] === "-h") {
       printHelp();
       process.exit(0);
+    } else if (args[i] === "--version" || args[i] === "-V") {
+      process.stdout.write(`klint ${await installedVersion()}\n`);
+      process.exit(0);
     }
   }
 
@@ -70,6 +85,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
   }
 
   interface RawConfig {
+    $schema?: string;
     root?: string;
     include?: string[];
     plugins?: string[];
@@ -77,17 +93,25 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     arch?: unknown;
   }
   let raw: RawConfig;
+  let configText = "";
   try {
-    const text = await readFile(configPath, "utf-8");
-    raw = (usingYaml ? parseYaml(text) : JSON.parse(text)) as RawConfig;
+    configText = await readFile(configPath, "utf-8");
+    raw = (usingYaml ? parseYaml(configText) : JSON.parse(configText)) as RawConfig;
   } catch {
     process.stderr.write(`klint: failed to parse ${configPath}\n`);
     process.exit(1);
   }
   const root = resolve(configDir, raw.root ?? ".");
 
+  const advisories = schemaVersionAdvisory({
+    schema: raw.$schema,
+    installed: await installedVersion(),
+    configFile: usingYaml ? "klint.yaml" : "klint.config.json",
+    configText,
+  });
+
   if (engine === "rust") {
-    runRustEngine({ fix, json, raw, root, rulesFile, startedAt });
+    runRustEngine({ advisories, fix, json, raw, root, rulesFile, startedAt });
     return;
   }
   if (
@@ -119,6 +143,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
 
   if (engine === "auto") {
     runAutoEngine({
+      advisories,
       fix,
       json,
       raw,
@@ -145,6 +170,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
 
   if (engine === "compare") {
     runCompareEngine({
+      advisories,
       fix,
       json,
       raw,
@@ -157,7 +183,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
 
   if (json) {
     const tsResult = toJsonCliResult(violations);
-    process.stdout.write(tsResult.stdout);
+    process.stdout.write(withAdvisories(tsResult.stdout, advisories));
     process.exit(tsResult.status);
   }
 
@@ -189,7 +215,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     process.stdout.write(`${msg} Finished in ${formatDuration(startedAt)}.\n`);
     process.exit(0);
   }
-  writeTextOutput(violations, startedAt);
+  writeTextOutput([...violations, ...advisories], startedAt);
 }
 
 if (import.meta.main) await main();

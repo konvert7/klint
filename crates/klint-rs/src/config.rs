@@ -7,6 +7,8 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct RawConfig {
+    #[serde(rename = "$schema")]
+    pub(crate) schema: Option<String>,
     pub(crate) root: Option<String>,
     pub(crate) include: Option<Vec<String>>,
     pub(crate) plugins: Option<Vec<String>>,

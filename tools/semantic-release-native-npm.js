@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const NATIVE_PACKAGES = [
@@ -57,6 +57,8 @@ export async function prepare(_, context) {
     if (!existsSync(binary)) {
       throw new Error(`Missing native binary for ${nativePackage.name}: ${binary}`);
     }
+
+    writeFileSync(join(dirname(binary), "VERSION"), `${version}\n`);
   }
 }
 
