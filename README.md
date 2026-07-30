@@ -279,12 +279,22 @@ arch:
       message: "Data access must not read request state or touch the filesystem"
 ```
 
-Matching is per path segment, so `next` also covers `next/headers` while leaving `nextra` alone,
-and `next/headers` does not match `next/navigation`. The specifier comes off the AST rather than a
+Matching is per segment, so `next` also covers `next/headers` while leaving `nextra` alone,
+and `next/headers` does not match `next/navigation`. Python splits on dots instead, so the same
+rule blocks pip packages and stdlib modules — `os` covers `os.path` and leaves `oscrypto` alone:
+
+```yaml
+arch:
+  imports:
+    - from: ["src/app/jobs/**"]
+      deny-packages: ["requests", "os"]
+      message: "Jobs must go through the http client and config"
+```
+
+The specifier comes off the AST rather than a
 text scan, so static imports and dynamic `import()` are both caught while a mention inside a comment
 or string is not. `type-only: allow` exempts `import type` here too. `deny-packages` composes with
-`deny` in the same rule — one covers packages, the other project paths — and applies to
-TypeScript/JavaScript sources only.
+`deny` in the same rule — one covers packages, the other project paths.
 
 ### Forbidden Patterns
 
@@ -438,8 +448,9 @@ is not an import and is left alone. A package import resolves through
 `<module>.py`, `<module>/__init__.py`, or a `<module>/` directory holding
 scanned `.py` files, so PEP 420 namespace packages with no `__init__.py` are
 covered. External packages that do not resolve to project files, such as
-`requests`, are ignored. This is architecture
-enforcement, not full packaging or virtual-environment analysis.
+`requests`, are ignored by `deny`/`allow` and are the target of `deny-packages`
+instead. This is architecture enforcement, not full packaging or
+virtual-environment analysis.
 
 ### Swift Architecture Checks
 

@@ -437,9 +437,7 @@ fn run_arch_import_rules(
                     &python,
                     &swift_modules,
                 ) else {
-                    if is_javascript_like_source(&file)
-                        && matches_package(&import.specifier, &deny_packages)
-                    {
+                    if denies_package(&file, &import.specifier, &deny_packages) {
                         violations.push(Violation {
                             file: relative_path(root, &file),
                             line: import.line,
@@ -888,10 +886,27 @@ fn in_prefixes(path: &Path, prefixes: &[PathBuf]) -> bool {
     })
 }
 
-fn matches_package(specifier: &str, entries: &[String]) -> bool {
+fn denies_package(file: &Path, specifier: &str, entries: &[String]) -> bool {
+    package_separator(file).is_some_and(|separator| matches_package(specifier, entries, separator))
+}
+
+/// What splits a package specifier into segments — `/` for npm specifiers,
+/// `.` for Python modules, so `next` covers `next/headers` and `os` covers
+/// `os.path`. Languages without package-level imports yield nothing.
+fn package_separator(file: &Path) -> Option<char> {
+    if is_javascript_like_source(file) {
+        Some('/')
+    } else if is_python_source(file) {
+        Some('.')
+    } else {
+        None
+    }
+}
+
+fn matches_package(specifier: &str, entries: &[String], separator: char) -> bool {
     entries
         .iter()
-        .any(|entry| specifier == entry || specifier.starts_with(&format!("{entry}/")))
+        .any(|entry| specifier == entry || specifier.starts_with(&format!("{entry}{separator}")))
 }
 
 fn is_bare_specifier(specifier: &str) -> bool {
@@ -998,7 +1013,26 @@ fn scan_lines_for_pattern(
 
 #[cfg(test)]
 mod tests {
-    use super::first_comment_block_overrun;
+    use super::{first_comment_block_overrun, matches_package};
+
+    #[test]
+    fn matches_npm_packages_by_slash_segment() {
+        let entries = vec!["next".to_string(), "node:fs".to_string()];
+        assert!(matches_package("next", &entries, '/'));
+        assert!(matches_package("next/headers", &entries, '/'));
+        assert!(matches_package("node:fs/promises", &entries, '/'));
+        assert!(!matches_package("nextra", &entries, '/'));
+    }
+
+    #[test]
+    fn matches_python_modules_by_dot_segment() {
+        let entries = vec!["os".to_string(), "google.cloud".to_string()];
+        assert!(matches_package("os", &entries, '.'));
+        assert!(matches_package("os.path", &entries, '.'));
+        assert!(matches_package("google.cloud.storage", &entries, '.'));
+        assert!(!matches_package("oscrypto", &entries, '.'));
+        assert!(!matches_package("google.protobuf", &entries, '.'));
+    }
 
     #[test]
     fn reports_first_line_past_the_limit_in_an_over_tall_block() {

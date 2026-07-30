@@ -892,6 +892,44 @@ arch:
     }
   });
 
+  test("--engine rust blocks denied Python packages and stdlib modules", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["src"]
+rules: {}
+arch:
+  layers:
+    jobs: ["src/app/jobs/**"]
+  imports:
+    - from: jobs
+      deny-packages: ["requests", "os"]
+      message: "Jobs must go through the http client and config"
+`,
+      {
+        "src/app/jobs/worker.py":
+          'import requests\nimport os.path\nfrom requests.adapters import HTTPAdapter\nimport requests_mock\nimport oscrypto\nfrom . import helper\nimport importlib\nlazy = importlib.import_module("requests.sessions")\n',
+        "src/app/jobs/helper.py": "value = 1\n",
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{ file: string; line: number; message: string }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(rust.code).toBe(2);
+      expect(payload.summary).toEqual({ errors: 4, warnings: 0 });
+      expect(payload.violations.map((violation) => violation.line)).toEqual([1, 2, 3, 8]);
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine rust rejects unknown plugins", () => {
     const dir = setupFixture(
       `
