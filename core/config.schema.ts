@@ -244,7 +244,7 @@ const CountDocCommentsSchema = z
   .boolean()
   .optional()
   .describe(
-    "Count doc-comments toward the limit. Doc-comments are `/** … */` JSDoc blocks (TS/JS) and docstrings (Python); ordinary `//`, `/* */`, and `#` comments are always counted. Defaults to false, so documentation is exempt and only explanatory/inline comments are capped."
+    "Count doc-comments toward the limit. Doc-comments are `/** … */` JSDoc blocks (TS/JS), `///` (Swift), and `///` or `//!` (Rust); ordinary `//`, `/* */`, and `#` comments are always counted. Defaults to false, so documentation is exempt and only explanatory/inline comments are capped. Has no effect on Python: docstrings are string expressions rather than comments, so they never count toward either limit."
   );
 
 const CommentIgnoreSchema = StringOrStringArray.optional().describe(

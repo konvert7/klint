@@ -108,7 +108,7 @@ interface ArchMaxLinesRule {
 interface ArchCommentRuleBase {
   limit: number;
   in: string | string[];
-  /** Count doc-comments (`/** *​/` JSDoc, Python docstrings) toward the limit. Defaults to false. */
+  /** Count doc-comments (`/** *​/` JSDoc, Swift `///`, Rust `///` and `//!`) toward the limit. Defaults to false. No effect on Python, whose docstrings are never counted. */
   countDocComments?: boolean;
   /** Comment lines matching these patterns count toward neither limit. Literal substring, or `re:` for a regex. */
   ignore?: string | string[];
