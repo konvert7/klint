@@ -81,6 +81,7 @@ struct ArchMaxCommentDensityRule {
     limit: f64,
     #[serde(rename = "countDocComments", default)]
     count_doc_comments: bool,
+    ignore: Option<StringOrVec>,
     #[serde(rename = "in")]
     in_scope: StringOrVec,
     message: Option<String>,
@@ -92,6 +93,7 @@ struct ArchMaxCommentBlockRule {
     limit: usize,
     #[serde(rename = "countDocComments", default)]
     count_doc_comments: bool,
+    ignore: Option<StringOrVec>,
     #[serde(rename = "in")]
     in_scope: StringOrVec,
     message: Option<String>,

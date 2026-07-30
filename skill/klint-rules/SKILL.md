@@ -190,6 +190,7 @@ arch:
   maxCommentBlock:
     - limit: 2                 # consecutive comment lines; required
       in: ["src/**"]
+      ignore: ["@codegen:"]    # optional — structural markers, not prose
       message: "Extract a well-named function instead of stacking comment lines"
 ```
 
@@ -201,6 +202,28 @@ count. Set `countDocComments: true` to include them.
 
 The two are complementary: density catches a file that is 30% commented in scattered one-liners,
 block catches a ten-line essay above one function in an otherwise sparse file. Neither alone catches both.
+
+**`ignore` — comments that are machinery, not prose.** Some comments are load-bearing input to a
+build or codegen step (`// @codegen:region-start`, feature-strip markers, pragmas). They are comments to the
+lexer but structure to the project, and counting them makes both limits measure the wrong thing:
+
+```yaml
+arch:
+  maxCommentDensity:
+    - limit: 5
+      in: ["src/**"]
+      ignore: ["@codegen:"]         # literal substring, or "re:" for a regex
+```
+
+Two rules govern how an ignored line behaves, and both matter:
+
+- **It stays in the density denominator.** A marker is a physical line like code, so a 20-line file
+  with 4 markers and 1 real comment measures 1/20, not 1/16.
+- **It does not break a comment block.** `// a` / `// @marker` / `// b` / `// c` is a run of three
+  counted lines, not two runs. Otherwise sprinkling a marker every other line would defeat the cap.
+
+`ignore` tests the **physical source line**, so it only ever applies to lines already identified as
+comments — code containing the same text is untouched. Enforced identically in both engines.
 
 ## Pitfalls
 

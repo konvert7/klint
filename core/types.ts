@@ -110,6 +110,8 @@ interface ArchCommentRuleBase {
   in: string | string[];
   /** Count doc-comments (`/** *​/` JSDoc, Python docstrings) toward the limit. Defaults to false. */
   countDocComments?: boolean;
+  /** Comment lines matching these patterns count toward neither limit. Literal substring, or `re:` for a regex. */
+  ignore?: string | string[];
   message?: string;
   severity?: Exclude<Severity, "off">;
 }

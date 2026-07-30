@@ -177,13 +177,13 @@ impl PatternPass {
 
 const REGEX_PREFIX: &str = "re:";
 
-enum LineMatcher {
+pub(super) enum LineMatcher {
     Literal(String),
     Regex(regex::Regex),
 }
 
 impl LineMatcher {
-    fn build(pattern: &str) -> Self {
+    pub(super) fn build(pattern: &str) -> Self {
         let Some(source) = pattern.strip_prefix(REGEX_PREFIX) else {
             return Self::Literal(pattern.to_string());
         };
@@ -196,7 +196,7 @@ impl LineMatcher {
         }
     }
 
-    fn is_match(&self, line: &str) -> bool {
+    pub(super) fn is_match(&self, line: &str) -> bool {
         match self {
             Self::Literal(pattern) => line.contains(pattern.as_str()),
             Self::Regex(regex) => regex.is_match(line),

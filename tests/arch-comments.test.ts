@@ -213,3 +213,124 @@ describe("arch comment rules — schema validation", () => {
     ).toBe(true);
   });
 });
+
+const MARKER = "@codegen:";
+
+function lintIgnore(arch: ArchConfig, content: string, rule: string, file = "app.ts") {
+  return lint(arch, [{ path: ["src", file], content }], rule);
+}
+
+describe("arch comment rules — ignore", () => {
+  const DENSITY = "arch/max-comment-density";
+  const BLOCK = "arch/max-comment-block";
+
+  test("ignored comment lines do not count toward density", () => {
+    const content = `// ${MARKER}start\n// ${MARKER}end\nconst x = 1;\nconst y = 2;\n`;
+    expect(
+      lintIgnore({ maxCommentDensity: [{ limit: 10, in: "src/**" }] }, content, DENSITY)
+    ).toHaveLength(1);
+    expect(
+      lintIgnore(
+        { maxCommentDensity: [{ limit: 10, in: "src/**", ignore: MARKER }] },
+        content,
+        DENSITY
+      )
+    ).toHaveLength(0);
+  });
+
+  test("ignored lines stay in the density denominator", () => {
+    // 2 markers + 1 real comment over 10 lines: 10% counted, not 1-in-8.
+    const content = `// ${MARKER}start\n// ${MARKER}end\n// real\n${"const a = 1;\n".repeat(7)}`;
+    expect(
+      lintIgnore(
+        { maxCommentDensity: [{ limit: 10, in: "src/**", ignore: [MARKER] }] },
+        content,
+        DENSITY
+      )
+    ).toHaveLength(0);
+    expect(
+      lintIgnore(
+        { maxCommentDensity: [{ limit: 9, in: "src/**", ignore: [MARKER] }] },
+        content,
+        DENSITY
+      )
+    ).toHaveLength(1);
+  });
+
+  test("an ignored line does not count toward block height", () => {
+    const content = `// a\n// ${MARKER}mark\n// b\nconst x = 1;\n`;
+    expect(
+      lintIgnore({ maxCommentBlock: [{ limit: 2, in: "src/**" }] }, content, BLOCK)
+    ).toHaveLength(1);
+    expect(
+      lintIgnore(
+        { maxCommentBlock: [{ limit: 2, in: "src/**", ignore: MARKER }] },
+        content,
+        BLOCK
+      )
+    ).toHaveLength(0);
+  });
+
+  test("an ignored line does not break the run, so it cannot be used to evade the cap", () => {
+    const content = `// a\n// ${MARKER}mark\n// b\n// c\nconst x = 1;\n`;
+    const v = lintIgnore(
+      { maxCommentBlock: [{ limit: 2, in: "src/**", ignore: MARKER }] },
+      content,
+      BLOCK
+    );
+    expect(v).toHaveLength(1);
+    expect(v[0].line).toBe(4);
+  });
+
+  test("a re: prefix is matched as a regex", () => {
+    const content = `// region-1-start\n// region-1-end\nconst x = 1;\nconst y = 2;\n`;
+    expect(
+      lintIgnore(
+        {
+          maxCommentDensity: [
+            { limit: 10, in: "src/**", ignore: "re:region-\\d+-(start|end)" },
+          ],
+        },
+        content,
+        DENSITY
+      )
+    ).toHaveLength(0);
+  });
+
+  test("a non-matching ignore pattern leaves the rule fully active", () => {
+    const content = `// a\n// b\n// c\nconst x = 1;\n`;
+    expect(
+      lintIgnore(
+        { maxCommentBlock: [{ limit: 2, in: "src/**", ignore: ["nothing-matches"] }] },
+        content,
+        BLOCK
+      )
+    ).toHaveLength(1);
+  });
+
+  test("ignore only applies to comment lines, not code that contains the text", () => {
+    const content = `const marker = "${MARKER}x";\n// a\n// b\n// c\nconst y = 1;\n`;
+    const v = lintIgnore(
+      { maxCommentBlock: [{ limit: 2, in: "src/**", ignore: MARKER }] },
+      content,
+      BLOCK
+    );
+    expect(v).toHaveLength(1);
+    expect(v[0].line).toBe(4);
+  });
+
+  test("ignore is accepted as a string or an array by the schema", () => {
+    const parse = (arch: unknown) =>
+      KlintConfigSchema.safeParse({ include: ["."], rules: {}, arch });
+    expect(
+      parse({ maxCommentBlock: [{ limit: 2, in: "src/**", ignore: "x" }] }).success
+    ).toBe(true);
+    expect(
+      parse({ maxCommentDensity: [{ limit: 5, in: "src/**", ignore: ["x", "re:y"] }] })
+        .success
+    ).toBe(true);
+    expect(
+      parse({ maxCommentDensity: [{ limit: 5, in: "src/**", ignore: 3 }] }).success
+    ).toBe(false);
+  });
+});

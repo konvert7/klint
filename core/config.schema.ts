@@ -247,6 +247,10 @@ const CountDocCommentsSchema = z
     "Count doc-comments toward the limit. Doc-comments are `/** … */` JSDoc blocks (TS/JS) and docstrings (Python); ordinary `//`, `/* */`, and `#` comments are always counted. Defaults to false, so documentation is exempt and only explanatory/inline comments are capped."
   );
 
+const CommentIgnoreSchema = StringOrStringArray.optional().describe(
+  "Comment lines matching these patterns are structural, not prose — marker comments a build or codegen step reads, for example — and count toward neither limit. A literal substring by default; prefix with `re:` for a regex. Ignored lines still count in the density denominator (they are physical lines) and still hold a comment block together, so a marker cannot be used to split an over-tall block."
+);
+
 const ArchMaxCommentDensityRuleSchema = z
   .object({
     limit: z
@@ -257,6 +261,7 @@ const ArchMaxCommentDensityRuleSchema = z
         "Maximum percentage of a file's physical lines that may be comment lines. Denominator is total physical lines (code + comments + blanks), the same count `maxLines` uses. A file above this ratio is a violation."
       ),
     countDocComments: CountDocCommentsSchema,
+    ignore: CommentIgnoreSchema,
     in: StringOrStringArray.describe(
       "Layer name(s) or glob(s) the limit applies to. Files outside the scope are not checked."
     ),
@@ -289,6 +294,7 @@ const ArchMaxCommentBlockRuleSchema = z
         "Maximum number of consecutive comment lines allowed in a single block. A run of more comment lines than this — e.g. a tall comment stacked above a statement — is a violation, reported at the first offending line."
       ),
     countDocComments: CountDocCommentsSchema,
+    ignore: CommentIgnoreSchema,
     in: StringOrStringArray.describe(
       "Layer name(s) or glob(s) the limit applies to. Files outside the scope are not checked."
     ),

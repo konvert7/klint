@@ -69,7 +69,9 @@ function runRustKlint(root: string, testCase: GoldenCase): GoldenEnvelope {
   return JSON.parse(result.stdout) as GoldenEnvelope;
 }
 
-function normalize(violations: Violation[]): GoldenEnvelope {
+function normalize(
+  violations: GoldenEnvelope["violations"] | Violation[]
+): GoldenEnvelope {
   const normalized = violations
     .map((v) => ({ ...v, fix: v.fix ?? null }))
     .sort(
@@ -103,7 +105,9 @@ describe("rust golden parity — architecture rules", () => {
   for (const testCase of cases as unknown as GoldenCase[]) {
     test(testCase.name, () => {
       const root = writeCaseFixture(testCase);
-      expect(runRustKlint(root, testCase)).toEqual(testCase.expected);
+      expect(normalize(runRustKlint(root, testCase).violations)).toEqual(
+        testCase.expected
+      );
     });
   }
 });

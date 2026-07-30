@@ -615,5 +615,68 @@
         "warnings": 0
       }
     }
+  },
+  {
+    "name": "arch comment rules ignore marker comments across engines",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {},
+      "arch": {
+        "layers": {
+          "app": [
+            "src/**"
+          ]
+        },
+        "maxCommentDensity": [
+          {
+            "limit": 15,
+            "in": "app",
+            "ignore": [
+              "@gen:"
+            ],
+            "message": "Too much prose"
+          }
+        ],
+        "maxCommentBlock": [
+          {
+            "limit": 2,
+            "in": "app",
+            "ignore": "@gen:",
+            "message": "Comment stack too tall"
+          }
+        ]
+      }
+    },
+    "files": {
+      "src/markers.ts": "// @gen:start\nconst a = 1;\n// @gen:end\nconst b = 2;\n// @gen:start\nconst c = 3;\n// @gen:end\nconst d = 4;\nconst e = 5;\nconst f = 6;\n",
+      "src/prose.ts": "// explains a\n// explains b\nconst a = 1;\nconst b = 2;\nconst c = 3;\nconst d = 4;\nconst e = 5;\nconst f = 6;\nconst g = 7;\nconst h = 8;\n",
+      "src/evade.ts": "const zero = 0;\n// one\n// @gen:start\n// two\n// three\nconst v0 = 0;\nconst v1 = 1;\nconst v2 = 2;\nconst v3 = 3;\nconst v4 = 4;\nconst v5 = 5;\nconst v6 = 6;\nconst v7 = 7;\nconst v8 = 8;\nconst v9 = 9;\nconst v10 = 10;\nconst v11 = 11;\nconst v12 = 12;\nconst v13 = 13;\nconst v14 = 14;\nconst v15 = 15;\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/evade.ts",
+          "line": 5,
+          "rule": "arch/max-comment-block",
+          "message": "Comment stack too tall",
+          "severity": "error",
+          "fix": null
+        },
+        {
+          "file": "src/prose.ts",
+          "line": 1,
+          "rule": "arch/max-comment-density",
+          "message": "Too much prose",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 2,
+        "warnings": 0
+      }
+    }
   }
 ]

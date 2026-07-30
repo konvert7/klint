@@ -52,22 +52,40 @@ export function commentLineSet(
   return set;
 }
 
-/** Returns the first line at which a run of consecutive comment lines exceeds `limit`. */
+/**
+ * Comment lines whose source text matches an `ignore` pattern. They stay in the
+ * density denominator and keep a comment run contiguous, but count toward neither.
+ */
+export function ignoredCommentLines(
+  content: string,
+  commentLines: Iterable<number>,
+  matchesIgnore: (text: string) => boolean
+): Set<number> {
+  const sourceLines = content.split("\n");
+  const ignored = new Set<number>();
+  for (const line of commentLines) {
+    if (matchesIgnore(sourceLines[line - 1] ?? "")) ignored.add(line);
+  }
+  return ignored;
+}
+
+/**
+ * Returns the first line at which a run of consecutive comment lines exceeds
+ * `limit`. An ignored line neither counts toward the height nor breaks the run.
+ */
 export function firstCommentBlockOverrun(
   sortedLines: number[],
-  limit: number
+  limit: number,
+  ignored?: ReadonlySet<number>
 ): number | undefined {
-  let runStart = sortedLines[0];
-  let prev = sortedLines[0];
-  for (let i = 1; i <= sortedLines.length; i++) {
-    const line = sortedLines[i];
-    if (line === prev + 1) {
-      prev = line;
-      continue;
-    }
-    if (prev - runStart + 1 > limit) return runStart + limit;
-    runStart = line;
+  let counted = 0;
+  let prev: number | undefined;
+  for (const line of sortedLines) {
+    if (prev !== undefined && line !== prev + 1) counted = 0;
     prev = line;
+    if (ignored?.has(line)) continue;
+    counted += 1;
+    if (counted > limit) return line;
   }
   return undefined;
 }

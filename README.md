@@ -415,6 +415,18 @@ arch:
 
 Set `countDocComments: true` on either rule to count doc-comments toward the limit as well. Both rules run in the TS and Rust engines; Python (`#`) and Swift (`//`, `/* */`) files are enforced by the Rust engine.
 
+Some comments are machinery rather than prose — markers a build or codegen step reads, region pragmas — and counting them makes both limits measure the wrong thing. `ignore` exempts them, on either rule:
+
+```yaml
+arch:
+  maxCommentDensity:
+    - limit: 5
+      in: ["src/**"]
+      ignore: ["@codegen:"]     # literal substring, or "re:" for a regex
+```
+
+An ignored line still counts in the density denominator — it is a physical line like code — and still holds a comment block together, so a marker cannot be sprinkled between comment lines to split an over-tall block. Matching tests the physical source line and therefore only ever applies to lines already lexed as comments.
+
 ### Language Support
 
 klint scans TypeScript/JavaScript, Python, Swift, and Rust. Every architecture rule is enforced from the same `klint.yaml`, but what a rule can *see* depends on what the language actually has.

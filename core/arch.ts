@@ -1,6 +1,10 @@
 import { dirname, isAbsolute, resolve } from "node:path";
 import ts from "typescript";
-import { commentLineSet, firstCommentBlockOverrun } from "./arch-comments";
+import {
+  commentLineSet,
+  firstCommentBlockOverrun,
+  ignoredCommentLines,
+} from "./arch-comments";
 import { walkAst } from "./ast";
 import { relativeSlashPath, toSlashPath } from "./paths";
 import type { ArchConfig, Severity, Violation } from "./types";
@@ -309,6 +313,7 @@ export function runArchRules(
 
   for (const rule of arch.maxCommentDensity ?? []) {
     const severity: Severity = rule.severity ?? "error";
+    const ignoreMatcher = buildIgnoreMatcher(rule.ignore);
     const inFiles = resolveLayerFiles(rule.in, layers, root, allFiles);
     for (const file of inFiles) {
       const content = fileContents.get(file);
@@ -316,7 +321,11 @@ export function runArchRules(
       const total = countLines(content);
       if (total === 0) continue;
       const commentLines = commentLineSet(file, content, rule.countDocComments ?? false);
-      const density = (commentLines.size / total) * 100;
+      const ignored = ignoreMatcher
+        ? ignoredCommentLines(content, commentLines, ignoreMatcher)
+        : undefined;
+      const counted = commentLines.size - (ignored?.size ?? 0);
+      const density = (counted / total) * 100;
       if (density > rule.limit) {
         violations.push({
           file: relativeSlashPath(root, file),
@@ -333,6 +342,7 @@ export function runArchRules(
 
   for (const rule of arch.maxCommentBlock ?? []) {
     const severity: Severity = rule.severity ?? "error";
+    const ignoreMatcher = buildIgnoreMatcher(rule.ignore);
     const inFiles = resolveLayerFiles(rule.in, layers, root, allFiles);
     for (const file of inFiles) {
       const content = fileContents.get(file);
@@ -340,7 +350,10 @@ export function runArchRules(
       const commentLines = [
         ...commentLineSet(file, content, rule.countDocComments ?? false),
       ].sort((a, b) => a - b);
-      const overrun = firstCommentBlockOverrun(commentLines, rule.limit);
+      const ignored = ignoreMatcher
+        ? ignoredCommentLines(content, commentLines, ignoreMatcher)
+        : undefined;
+      const overrun = firstCommentBlockOverrun(commentLines, rule.limit, ignored);
       if (overrun !== undefined) {
         violations.push({
           file: relativeSlashPath(root, file),
@@ -401,6 +414,15 @@ function scanJsxElements(
 }
 
 const REGEX_PREFIX = "re:";
+
+function buildIgnoreMatcher(
+  ignore: string | string[] | undefined
+): ((line: string) => boolean) | undefined {
+  const patterns = toArray(ignore ?? []);
+  if (patterns.length === 0) return undefined;
+  const matchers = patterns.map(buildLineMatcher);
+  return (line) => matchers.some((matches) => matches(line));
+}
 
 function buildLineMatcher(pattern: string): (line: string) => boolean {
   if (!pattern.startsWith(REGEX_PREFIX)) {

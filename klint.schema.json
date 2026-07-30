@@ -1144,6 +1144,20 @@
                 "description": "Count doc-comments toward the limit. Doc-comments are `/** … */` JSDoc blocks (TS/JS) and docstrings (Python); ordinary `//`, `/* */`, and `#` comments are always counted. Defaults to false, so documentation is exempt and only explanatory/inline comments are capped.",
                 "type": "boolean"
               },
+              "ignore": {
+                "description": "Comment lines matching these patterns are structural, not prose — marker comments a build or codegen step reads, for example — and count toward neither limit. A literal substring by default; prefix with `re:` for a regex. Ignored lines still count in the density denominator (they are physical lines) and still hold a comment block together, so a marker cannot be used to split an over-tall block.",
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                ]
+              },
               "in": {
                 "anyOf": [
                   {
@@ -1198,6 +1212,20 @@
               "countDocComments": {
                 "description": "Count doc-comments toward the limit. Doc-comments are `/** … */` JSDoc blocks (TS/JS) and docstrings (Python); ordinary `//`, `/* */`, and `#` comments are always counted. Defaults to false, so documentation is exempt and only explanatory/inline comments are capped.",
                 "type": "boolean"
+              },
+              "ignore": {
+                "description": "Comment lines matching these patterns are structural, not prose — marker comments a build or codegen step reads, for example — and count toward neither limit. A literal substring by default; prefix with `re:` for a regex. Ignored lines still count in the density denominator (they are physical lines) and still hold a comment block together, so a marker cannot be used to split an over-tall block.",
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                ]
               },
               "in": {
                 "anyOf": [
