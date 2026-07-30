@@ -420,7 +420,13 @@ arch:
 
 Python import checks support relative imports such as
 `from ..lib.auth import load_key` and project-resolvable absolute imports such
-as `from app.lib.auth import load_key`. External packages that do not resolve to
+as `from app.lib.auth import load_key`. Every target of a multi-target statement
+is checked, so `import json, app.lib.auth` and `from . import helper, sibling`
+report per target rather than only the first one. Dynamic imports count too:
+`importlib.import_module("app.lib.auth")` and `__import__("app.lib.auth")` are
+read off the AST, including a renamed `from importlib import import_module as
+load`. A same-named call that is not bound to `importlib` — `self.import_module(…)` —
+is not an import and is left alone. External packages that do not resolve to
 project files, such as `requests`, are ignored. This is architecture
 enforcement, not full packaging or virtual-environment analysis.
 

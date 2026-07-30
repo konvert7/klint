@@ -27,7 +27,7 @@ Architecture rules:
 
 | Area | Notes |
 |------|-------|
-| `arch.imports` | Supports TypeScript/JavaScript static imports, dynamic imports, TS path aliases, allow/deny mode, `deny-packages` for npm and `node:` specifiers (TypeScript/JavaScript only, matching the TS engine), and type-only allowance. Supports Python relative imports and resolvable absolute project imports; unresolved Python package imports are ignored. Supports Swift `import Module` declarations when the module resolves to discovered project Swift files; unresolved system/package imports are ignored. |
+| `arch.imports` | Supports TypeScript/JavaScript static imports, dynamic imports, TS path aliases, allow/deny mode, `deny-packages` for npm and `node:` specifiers (TypeScript/JavaScript only, matching the TS engine), and type-only allowance. Supports Python relative imports, resolvable absolute project imports, every target of a multi-target statement, and `importlib.import_module`/`__import__` dynamic imports; unresolved Python package imports are ignored. Supports Swift `import Module` declarations when the module resolves to discovered project Swift files; unresolved system/package imports are ignored. |
 | `arch.forbidden` | Supports literal pattern checks for TypeScript/JavaScript, Python, and Swift files. JSX element checks are TypeScript/JavaScript only. |
 | `arch.singleton` | Supports literal pattern checks for TypeScript/JavaScript, Python, and Swift files. JSX element checks are TypeScript/JavaScript only. |
 
@@ -80,11 +80,17 @@ Python support starts at the architecture layer. The Rust engine discovers `.py`
 files and applies language-neutral `arch.forbidden` and `arch.singleton` pattern
 rules to them. `arch.imports` supports Python relative imports such as
 `from ..lib.auth import load_key` and absolute project imports such as
-`from app.lib.auth import load_key`. Absolute imports resolve against the
-project root and direct child directories containing Python files, checking
-`<module>.py` and `<module>/__init__.py`. Unresolved package imports such as
-`import requests` are ignored. TypeScript/Sonar syntax rules are still
-restricted to TypeScript/JavaScript-like files.
+`from app.lib.auth import load_key`. Every target of a multi-target statement
+produces its own record, so `import json, app.lib.auth` and
+`from . import helper, sibling` are checked per target. Dynamic imports are read
+off the AST as well: `importlib.import_module("…")` and `__import__("…")`,
+including `import importlib as il` and `from importlib import import_module as
+load` bindings — a call to a same-named method that is not bound to `importlib`
+is not treated as an import. Absolute imports resolve against the project root
+and direct child directories containing Python files, checking `<module>.py` and
+`<module>/__init__.py`. Unresolved package imports such as `import requests` are
+ignored. TypeScript/Sonar syntax rules are still restricted to
+TypeScript/JavaScript-like files.
 
 PyPI packaging is a later distribution step. Land it after the Rust engine has
 the Python behavior worth shipping and the package shape is decided.

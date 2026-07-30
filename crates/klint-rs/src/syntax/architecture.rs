@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::path::Path;
 use tree_sitter::{Node, Parser};
 
@@ -32,7 +33,7 @@ pub fn scan_imports(path: &Path, content: &str) -> Result<Vec<ImportRecord>, Str
     let root = tree.root_node();
     let mut imports = Vec::new();
     match source_language_for_path(path) {
-        SourceLanguage::Python => walk_python_imports(root, content.as_bytes(), &mut imports),
+        SourceLanguage::Python => imports.extend(scan_python_imports(root, content.as_bytes())),
         SourceLanguage::Swift => imports.extend(swift_imports(content)),
         SourceLanguage::JavaScriptLike => walk_imports(root, content.as_bytes(), &mut imports),
     }
@@ -49,7 +50,7 @@ pub(crate) fn scan_imports_from_tree(
 ) -> Vec<ImportRecord> {
     let mut imports = Vec::new();
     match source_language_for_path(path) {
-        SourceLanguage::Python => walk_python_imports(root, source, &mut imports),
+        SourceLanguage::Python => imports.extend(scan_python_imports(root, source)),
         SourceLanguage::Swift => {
             imports.extend(swift_imports(&String::from_utf8_lossy(source)));
         }
@@ -227,24 +228,170 @@ fn first_string_child(node: Node<'_>) -> Option<Node<'_>> {
         .find(|child| child.kind() == "string")
 }
 
-fn walk_python_imports(node: Node<'_>, source: &[u8], imports: &mut Vec<ImportRecord>) {
+fn scan_python_imports(root: Node<'_>, source: &[u8]) -> Vec<ImportRecord> {
+    let mut imports = Vec::new();
+    let importlib = python_importlib_bindings(root, source);
+    walk_python_imports(root, source, &importlib, &mut imports);
+    imports
+}
+
+fn walk_python_imports(
+    node: Node<'_>,
+    source: &[u8],
+    importlib: &ImportlibBindings,
+    imports: &mut Vec<ImportRecord>,
+) {
     match node.kind() {
         "import_statement" => imports.extend(python_import_records(node, source)),
         "import_from_statement" => imports.extend(python_from_import_records(node, source)),
+        "call" => imports.extend(python_dynamic_import_record(node, source, importlib)),
         _ => {}
     }
 
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_python_imports(child, source, imports);
+        walk_python_imports(child, source, importlib, imports);
     }
+}
+
+/// Names that `importlib` and `importlib.import_module` are bound to in this
+/// file, so `il.import_module("x")` and a renamed `from importlib import
+/// import_module as load` are both recognised while an unrelated
+/// `self.import_module(...)` is not.
+#[derive(Default)]
+struct ImportlibBindings {
+    modules: BTreeSet<String>,
+    functions: BTreeSet<String>,
+}
+
+fn python_importlib_bindings(root: Node<'_>, source: &[u8]) -> ImportlibBindings {
+    let mut bindings = ImportlibBindings::default();
+    collect_importlib_bindings(root, source, &mut bindings);
+    bindings
+}
+
+fn collect_importlib_bindings(node: Node<'_>, source: &[u8], bindings: &mut ImportlibBindings) {
+    match node.kind() {
+        "import_statement" => {
+            for name in python_import_names(node) {
+                if let Some(bound) = importlib_module_binding(name, source) {
+                    bindings.modules.insert(bound);
+                }
+            }
+        }
+        "import_from_statement"
+            if python_from_import_module(node, source).as_deref() == Some("importlib") =>
+        {
+            for name in python_import_names(node) {
+                if python_import_target_text(name, source).as_deref() == Some("import_module") {
+                    bindings.functions.insert(
+                        python_import_alias(name, source).unwrap_or("import_module".to_string()),
+                    );
+                }
+            }
+        }
+        _ => {}
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_importlib_bindings(child, source, bindings);
+    }
+}
+
+fn importlib_module_binding(name: Node<'_>, source: &[u8]) -> Option<String> {
+    let target = python_import_target_text(name, source)?;
+    if target == "importlib" {
+        return Some(python_import_alias(name, source).unwrap_or(target));
+    }
+    // `import importlib.util` binds the top-level package name, not the submodule.
+    if target.starts_with("importlib.") && python_import_alias(name, source).is_none() {
+        return Some("importlib".to_string());
+    }
+    None
+}
+
+fn python_import_alias(name: Node<'_>, source: &[u8]) -> Option<String> {
+    if name.kind() != "aliased_import" {
+        return None;
+    }
+    node_text(name.child_by_field_name("alias")?, source)
+}
+
+fn python_from_import_module(node: Node<'_>, source: &[u8]) -> Option<String> {
+    let module = node.child_by_field_name("module_name")?;
+    if module.kind() == "relative_import" {
+        return None;
+    }
+    node_text(module, source)
+}
+
+fn python_dynamic_import_record(
+    node: Node<'_>,
+    source: &[u8],
+    importlib: &ImportlibBindings,
+) -> Option<ImportRecord> {
+    if !is_python_dynamic_import_call(node.child_by_field_name("function")?, source, importlib) {
+        return None;
+    }
+
+    let arguments = node.child_by_field_name("arguments")?;
+    let specifier = first_string_child(arguments)?;
+    let record = python_record(
+        python_dynamic_specifier(&node_text(specifier, source)?)?,
+        specifier,
+    );
+    Some(ImportRecord {
+        is_dynamic: true,
+        ..record
+    })
+}
+
+fn is_python_dynamic_import_call(
+    function: Node<'_>,
+    source: &[u8],
+    importlib: &ImportlibBindings,
+) -> bool {
+    let Some(text) = node_text(function, source) else {
+        return false;
+    };
+    match function.kind() {
+        "identifier" => text == "__import__" || importlib.functions.contains(&text),
+        "attribute" => function
+            .child_by_field_name("object")
+            .and_then(|object| node_text(object, source))
+            .is_some_and(|object| {
+                importlib.modules.contains(&object)
+                    && function
+                        .child_by_field_name("attribute")
+                        .and_then(|attribute| node_text(attribute, source))
+                        .as_deref()
+                        == Some("import_module")
+            }),
+        _ => false,
+    }
+}
+
+fn python_dynamic_specifier(raw: &str) -> Option<String> {
+    let dots = raw.chars().take_while(|char| *char == '.').count();
+    if dots == 0 {
+        return (!raw.is_empty()).then(|| raw.to_string());
+    }
+    let module_path = raw[dots..].replace('.', "/");
+    if module_path.is_empty() {
+        return None;
+    }
+    Some(format!("{}{module_path}", python_dot_prefix(dots)))
 }
 
 fn python_import_records(node: Node<'_>, source: &[u8]) -> Vec<ImportRecord> {
     python_import_names(node)
         .into_iter()
         .filter_map(|name| {
-            Some(python_record(python_import_target_text(name, source)?, name))
+            Some(python_record(
+                python_import_target_text(name, source)?,
+                name,
+            ))
         })
         .collect()
 }
@@ -300,11 +447,15 @@ fn python_relative_prefix(module: Node<'_>, source: &[u8]) -> Option<String> {
         .chars()
         .filter(|char| *char == '.')
         .count();
-    Some(if dots == 1 {
+    Some(python_dot_prefix(dots))
+}
+
+fn python_dot_prefix(dots: usize) -> String {
+    if dots <= 1 {
         "./".to_string()
     } else {
         "../".repeat(dots - 1)
-    })
+    }
 }
 
 fn python_relative_module_path(module: Node<'_>, source: &[u8]) -> Option<String> {
@@ -624,6 +775,40 @@ mod tests {
                 is_dynamic: false,
             }]
         );
+    }
+
+    #[test]
+    fn extracts_python_dynamic_imports() {
+        let records = scan_imports(
+            &PathBuf::from("src/jobs/worker.py"),
+            "import importlib\nfrom importlib import import_module as load\nfirst = importlib.import_module(\"requests\")\nsecond = load(\"app.lib.auth\")\nthird = __import__(\"json\")\nfourth = importlib.import_module(\".sibling\")\n",
+        )
+        .expect("python source should parse");
+
+        assert_eq!(
+            records
+                .iter()
+                .filter(|record| record.is_dynamic)
+                .map(|record| (record.specifier.as_str(), record.line))
+                .collect::<Vec<_>>(),
+            vec![
+                ("requests", 3),
+                ("app.lib.auth", 4),
+                ("json", 5),
+                ("./sibling", 6),
+            ]
+        );
+    }
+
+    #[test]
+    fn ignores_python_calls_that_are_not_bound_to_importlib() {
+        let records = scan_imports(
+            &PathBuf::from("src/jobs/worker.py"),
+            "import_module(\"requests\")\nself.import_module(\"requests\")\nregistry.import_module(\"requests\")\n",
+        )
+        .expect("python source should parse");
+
+        assert_eq!(records, vec![]);
     }
 
     #[test]
