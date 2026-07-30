@@ -417,33 +417,33 @@ Set `countDocComments: true` on either rule to count doc-comments toward the lim
 
 ### Language Support
 
-klint scans TypeScript/JavaScript, Python, and Swift. Every architecture rule is enforced from the same `klint.yaml`, but what a rule can *see* depends on what the language actually has.
+klint scans TypeScript/JavaScript, Python, Swift, and Rust. Every architecture rule is enforced from the same `klint.yaml`, but what a rule can *see* depends on what the language actually has.
 
-| | TypeScript / JavaScript | Python | Swift |
-|---|---|---|---|
-| **Engines** | `ts`, `rust` | `rust` | `rust` |
-| **Parser** | TypeScript compiler API (TS engine), tree-sitter (Rust engine) | tree-sitter | tree-sitter |
-| `arch.imports` — static | ✅ | ✅ | ✅ |
-| `arch.imports` — dynamic | ✅ `import()` | ✅ `importlib.import_module`, `__import__` | — |
-| `arch.imports` — re-exports | ✅ `export … from` | — | ✅ `@_exported import` |
-| `arch.imports` — multi-target | — | ✅ `import a, b` | — |
-| `type-only: allow` | ✅ `import type` | ✅ `if TYPE_CHECKING:` | — |
-| Path aliases | ✅ `tsconfig.json` `paths` | — | — |
-| Module resolution | relative paths + alias chains | relative, absolute, and PEP 420 namespace packages | module name against project dirs and file stems |
-| `deny-packages` | ✅ `/` segments | ✅ `.` segments | ✅ `.` segments, module granularity |
-| `arch.forbidden` / `singleton` — `pattern` | ✅ | ✅ | ✅ |
-| `arch.forbidden` / `singleton` — `jsx-element` | ✅ | — | — |
-| `arch.maxLines` | ✅ | ✅ | ✅ |
-| `arch.maxCommentDensity` / `maxCommentBlock` | ✅ `//`, `/* */`, `/** */` docs | ✅ `#` | ✅ `//`, `/* */`, `///` and `/** */` docs |
-| Built-in rules and plugins | ✅ | ✗ | ✗ |
-| Custom rules (`klint.rules.ts`) | ✅ | ✗ | ✗ |
-| Type-aware rules | ✅ | ✗ | ✗ |
+| | TypeScript / JavaScript | Python | Swift | Rust |
+|---|---|---|---|---|
+| **Engines** | `ts`, `rust` | `rust` | `rust` | `rust` |
+| **Parser** | TypeScript compiler API (TS engine), tree-sitter (Rust engine) | tree-sitter | tree-sitter | tree-sitter |
+| `arch.imports` — static | ✅ | ✅ | ✅ | ✅ `use` |
+| `arch.imports` — dynamic | ✅ `import()` | ✅ `importlib.import_module`, `__import__` | — | — |
+| `arch.imports` — re-exports | ✅ `export … from` | — | ✅ `@_exported import` | ✅ `pub use` |
+| `arch.imports` — multi-target | — | ✅ `import a, b` | — | ✅ `use a::{b, c}` |
+| `type-only: allow` | ✅ `import type` | ✅ `if TYPE_CHECKING:` | — | — |
+| Path aliases | ✅ `tsconfig.json` `paths` | — | — | — |
+| Module resolution | relative paths + alias chains | relative, absolute, and PEP 420 namespace packages | module name against project dirs and file stems | `crate::`/`self::`/`super::` against the directory tree |
+| `deny-packages` | ✅ `/` segments | ✅ `.` segments | ✅ `.` segments, module granularity | ✅ `::` segments |
+| `arch.forbidden` / `singleton` — `pattern` | ✅ | ✅ | ✅ | ✅ |
+| `arch.forbidden` / `singleton` — `jsx-element` | ✅ | — | — | — |
+| `arch.maxLines` | ✅ | ✅ | ✅ | ✅ |
+| `arch.maxCommentDensity` / `maxCommentBlock` | ✅ `//`, `/* */`, `/** */` docs | ✅ `#` | ✅ `//`, `/* */`, `///` and `/** */` docs | ✅ `//`, `/* */`, `///` and `//!` docs |
+| Built-in rules and plugins | ✅ | ✗ | ✗ | ✗ |
+| Custom rules (`klint.rules.ts`) | ✅ | ✗ | ✗ | ✗ |
+| Type-aware rules | ✅ | ✗ | ✗ | ✗ |
 
 **✅** supported · **—** the language has no equivalent construct · **✗** not supported yet
 
-A dash is not a gap. Swift has no dynamic import expression, no `import type`, and one module per declaration, so those rows can never be filled. The `✗` rows are real limits: the rule set and custom rules are written against the TypeScript AST, and type-aware rules need a type checker that only the TS engine has.
+A dash is not a gap. Swift has no dynamic import expression, no `import type`, and one module per declaration; Rust has no dynamic import and no type-only import. Those rows can never be filled. The `✗` rows are real limits: the rule set and custom rules are written against the TypeScript AST, and type-aware rules need a type checker that only the TS engine has.
 
-Imports are read off the AST in every language, so a specifier written inside a comment or a string is never an import — including nested Swift block comments. Only file discovery differs: the TS engine walks `.ts`/`.tsx`/`.js`/`.jsx`/`.mts`/`.cts`, so Python and Swift files reach klint through the Rust engine, which `auto` mode selects for them automatically.
+Imports are read off the AST in every language, so a specifier written inside a comment or a string is never an import — including nested Swift block comments. Only file discovery differs: the TS engine walks `.ts`/`.tsx`/`.js`/`.jsx`/`.mts`/`.cts`, so Python, Swift, and Rust files reach klint through the Rust engine, which `auto` mode selects for them automatically.
 
 ### Python Architecture Checks
 
@@ -536,6 +536,53 @@ architecture enforcement, not full SwiftPM or Xcode build graph analysis.
 
 Comment budget rules apply to Swift too, where `///` counts as a doc-comment
 alongside `/** */`.
+
+### Rust Architecture Checks
+
+The Rust engine can apply architecture rules to Rust crates:
+
+```yaml
+include: ["crates/**/*.rs", "!target/**"]
+
+rules: {}
+
+arch:
+  layers:
+    cli: ["crates/app/src/cli/**"]
+    domain: ["crates/app/src/domain/**"]
+    storage: ["crates/app/src/storage/**"]
+
+  imports:
+    - from: domain
+      deny: storage
+      message: "Domain logic must not reach into the storage layer"
+    - from: domain
+      deny-packages: ["reqwest", "tokio"]
+      message: "Keep I/O crates out of the domain layer"
+
+  maxLines:
+    - limit: 500
+      in: [cli, domain, storage]
+```
+
+Rust import checks read `use` declarations off the AST, and every target of a
+braced list becomes its own record — `use a::{b::{c, d}, e as f}` is checked as
+`a::b::c`, `a::b::d`, and `a::e`. Aliases contribute their path, `*` wildcards
+contribute the path they glob, and a bare `self` in a list names its own prefix.
+`pub use` re-exports are checked the same way as plain `use`.
+
+Paths starting with `crate::`, `self::`, or `super::` resolve against the
+directory tree by convention: klint walks down from the crate's `src` directory
+(the one holding `lib.rs` or `main.rs`), probing `foo.rs` then `foo/mod.rs` at
+each step and keeping the longest prefix that lands on a real file. Everything
+after that prefix is treated as an item inside the module. External crates have
+no file to resolve to and are ignored by `deny`/`allow`, which is what
+`deny-packages` is for — it matches on `::` segments, so `tokio` denies
+`tokio::sync::Mutex` but never `tokio_util`. This is architecture enforcement,
+not a Cargo build graph or `#[path]` attribute resolver.
+
+Comment budget rules apply to Rust too, where both `///` and `//!` count as
+doc-comments.
 
 ## Built-in Rules
 
