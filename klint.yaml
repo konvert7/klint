@@ -45,11 +45,8 @@ arch:
 
   maxLines:
     - limit: 500
-      in: [core, rules, plugins, cli]
+      in: [core, rules, plugins, cli, engine]
       message: "This file is too long — split it into focused modules."
-    - limit: 1200
-      in: engine
-      message: "This engine module is too long — split it into focused modules. Ratchet only: lower this toward 500 as files are split."
 
   maxCommentDensity:
     - limit: 5

@@ -55,7 +55,8 @@ Plugin rules:
 Every Rust-supported rule should have:
 
 - Rust syntax scanner coverage in `crates/klint-rs/src/syntax/rules/<rule>.rs`.
-- Rust rule dispatch in `crates/klint-rs/src/rules.rs`.
+- Rust rule dispatch in `crates/klint-rs/src/rules/mod.rs`, with the rule body in
+  `builtin.rs` or `sonar.rs`.
 - CLI compare coverage in `tests/rust-engine-cli.test.ts`.
 - Golden parity coverage in `tests/golden/rule-cases.json`.
 
