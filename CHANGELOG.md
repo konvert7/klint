@@ -1,3 +1,16 @@
+# [0.30.0](https://github.com/konvert7/klint/compare/v0.29.0...v0.30.0) (2026-07-30)
+
+
+### Bug Fixes
+
+* **docs:** handle python docstrings correctly ([f0f7113](https://github.com/konvert7/klint/commit/f0f711338b3a1b301a68777f27a0ed2c5749bfa2))
+* **rust:** enhance file exclusion logic to support individual files and update documentation ([5d143d8](https://github.com/konvert7/klint/commit/5d143d843d6591e965bfa76702946e7ac2454d01))
+
+
+### Features
+
+* **version:** allow linting and showing a warning when the schema and installed versions mismatch ([fb0ef04](https://github.com/konvert7/klint/commit/fb0ef046e0290056c779ce585db1aaa3b1e586b1))
+
 # [0.29.0](https://github.com/konvert7/klint/compare/v0.28.0...v0.29.0) (2026-07-30)
 
 
