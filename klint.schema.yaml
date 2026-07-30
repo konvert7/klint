@@ -593,6 +593,15 @@ properties:
                 - type: array
                   items:
                     type: string
+            deny-packages:
+              description: Package specifier(s) the source is not allowed to import — npm packages and `node:` builtins, which
+                `deny`/`allow` cannot reach because they never resolve to a project file. Matching is per path segment,
+                so `next` also covers `next/headers` while `nextra` is unaffected. TypeScript/JavaScript only.
+              anyOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
             type-only:
               description: When set to "allow", `import type` statements that would otherwise be denied are permitted. Useful for
                 type-only references across layers.

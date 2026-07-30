@@ -2,12 +2,18 @@
   {
     "name": "arch imports deny static and dynamic imports",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {},
       "arch": {
         "layers": {
-          "skills": ["assets/skills/**"],
-          "core": ["src/lib/**"]
+          "skills": [
+            "assets/skills/**"
+          ],
+          "core": [
+            "src/lib/**"
+          ]
         },
         "imports": [
           {
@@ -42,18 +48,27 @@
           "fix": null
         }
       ],
-      "summary": { "errors": 2, "warnings": 0 }
+      "summary": {
+        "errors": 2,
+        "warnings": 0
+      }
     }
   },
   {
     "name": "arch imports allow type-only while blocking value import",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {},
       "arch": {
         "layers": {
-          "skills": ["assets/skills/**"],
-          "core": ["src/lib/**"]
+          "skills": [
+            "assets/skills/**"
+          ],
+          "core": [
+            "src/lib/**"
+          ]
         },
         "imports": [
           {
@@ -81,7 +96,10 @@
           "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
     }
   },
   {
@@ -90,17 +108,25 @@
       "compilerOptions": {
         "baseUrl": ".",
         "paths": {
-          "@/*": ["src/*"]
+          "@/*": [
+            "src/*"
+          ]
         }
       }
     },
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {},
       "arch": {
         "layers": {
-          "skills": ["assets/skills/**"],
-          "core": ["src/**"]
+          "skills": [
+            "assets/skills/**"
+          ],
+          "core": [
+            "src/**"
+          ]
         },
         "imports": [
           {
@@ -127,19 +153,29 @@
           "fix": null
         }
       ],
-      "summary": { "errors": 0, "warnings": 1 }
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "arch imports allow mode blocks unlisted relative import",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {},
       "arch": {
         "imports": [
           {
-            "from": ["src/dao/**"],
-            "allow": ["src/dao/**", "src/prisma/**"],
+            "from": [
+              "src/dao/**"
+            ],
+            "allow": [
+              "src/dao/**",
+              "src/prisma/**"
+            ],
             "message": "DAO may only import from dao or prisma"
           }
         ]
@@ -161,19 +197,26 @@
           "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
     }
   },
   {
     "name": "arch forbidden pattern",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {},
       "arch": {
         "forbidden": [
           {
             "pattern": "console.log(",
-            "in": ["src/lib/**"],
+            "in": [
+              "src/lib/**"
+            ],
             "message": "Use logger"
           }
         ]
@@ -193,19 +236,26 @@
           "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
     }
   },
   {
     "name": "arch forbidden jsx element",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {},
       "arch": {
         "forbidden": [
           {
             "jsx-element": "button",
-            "in": ["src/app/**/*.tsx"],
+            "in": [
+              "src/app/**/*.tsx"
+            ],
             "message": "Use Button primitive",
             "severity": "warn"
           }
@@ -226,20 +276,27 @@
           "fix": null
         }
       ],
-      "summary": { "errors": 0, "warnings": 1 }
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "arch singleton pattern",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {},
       "arch": {
         "singleton": [
           {
             "pattern": "process.env.API_KEY",
             "only": "src/lib/auth.ts",
-            "in": ["src/**"],
+            "in": [
+              "src/**"
+            ],
             "message": "Use auth module"
           }
         ]
@@ -260,20 +317,27 @@
           "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
     }
   },
   {
     "name": "arch singleton jsx element",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {},
       "arch": {
         "singleton": [
           {
             "jsx-element": "button",
             "only": "src/components/ui/button.tsx",
-            "in": ["src/**/*.tsx"],
+            "in": [
+              "src/**/*.tsx"
+            ],
             "message": "Raw button belongs in the Button primitive",
             "severity": "warn"
           }
@@ -295,13 +359,18 @@
           "fix": null
         }
       ],
-      "summary": { "errors": 0, "warnings": 1 }
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "arch forbidden regex rejects off-system tailwind spacing",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {},
       "arch": {
         "forbidden": [
@@ -335,16 +404,26 @@
           "fix": null
         }
       ],
-      "summary": { "errors": 2, "warnings": 0 }
+      "summary": {
+        "errors": 2,
+        "warnings": 0
+      }
     }
   },
   {
     "name": "arch maxLines flags files over the limit within scope",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {},
       "arch": {
-        "maxLines": [{ "limit": 2, "in": "src/**" }]
+        "maxLines": [
+          {
+            "limit": 2,
+            "in": "src/**"
+          }
+        ]
       }
     },
     "files": {
@@ -363,7 +442,77 @@
           "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "arch imports deny-packages blocks package and node: specifiers across engines",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {},
+      "arch": {
+        "layers": {
+          "dao": [
+            "src/dao/**"
+          ],
+          "session": [
+            "src/session.ts"
+          ]
+        },
+        "imports": [
+          {
+            "from": "dao",
+            "deny": "session",
+            "deny-packages": [
+              "next/headers",
+              "node:fs"
+            ],
+            "type-only": "allow",
+            "message": "DAO must not read request state"
+          }
+        ]
+      }
+    },
+    "files": {
+      "src/dao/users.ts": "import { headers } from \"next/headers\";\nimport \"node:fs/promises\";\nimport type { ReadonlyHeaders } from \"next/headers\";\nimport \"next/navigation\";\nimport \"nextra\";\nimport \"react\";\nimport { getUserId } from \"../session\";\nexport const value = [headers, getUserId];\nexport type H = ReadonlyHeaders;\n",
+      "src/session.ts": "export const getUserId = () => \"1\";\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/dao/users.ts",
+          "line": 1,
+          "rule": "arch/imports",
+          "message": "DAO must not read request state",
+          "severity": "error",
+          "fix": null
+        },
+        {
+          "file": "src/dao/users.ts",
+          "line": 2,
+          "rule": "arch/imports",
+          "message": "DAO must not read request state",
+          "severity": "error",
+          "fix": null
+        },
+        {
+          "file": "src/dao/users.ts",
+          "line": 7,
+          "rule": "arch/imports",
+          "message": "DAO must not read request state",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 3,
+        "warnings": 0
+      }
     }
   }
 ]

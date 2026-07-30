@@ -1,5 +1,6 @@
 use crate::files::{
-    is_python_source, is_swift_source, normalize_path, relative_path, supports_import_scan,
+    is_javascript_like_source, is_python_source, is_swift_source, normalize_path, relative_path,
+    supports_import_scan,
 };
 use crate::output::Violation;
 use crate::syntax::{
@@ -30,6 +31,8 @@ struct ArchImportRule {
     from: StringOrVec,
     deny: Option<StringOrVec>,
     allow: Option<StringOrVec>,
+    #[serde(rename = "deny-packages")]
+    deny_packages: Option<StringOrVec>,
     #[serde(rename = "type-only")]
     type_only: Option<String>,
     message: Option<String>,
@@ -379,10 +382,15 @@ fn run_arch_import_rules(
     let swift_modules = index_swift_modules(root, files);
 
     for rule in rules {
-        if rule.deny.is_none() && rule.allow.is_none() {
+        if rule.deny.is_none() && rule.allow.is_none() && rule.deny_packages.is_none() {
             continue;
         }
         let allow_type_only = rule.type_only.as_deref() == Some("allow");
+        let deny_packages = rule
+            .deny_packages
+            .as_ref()
+            .map(StringOrVec::items)
+            .unwrap_or_default();
 
         let severity = rule.severity.as_deref().unwrap_or("error");
         let from_files = resolve_layer_files(&rule.from, arch.layers.as_ref(), root, files);
@@ -429,6 +437,22 @@ fn run_arch_import_rules(
                     &python_roots,
                     &swift_modules,
                 ) else {
+                    if is_javascript_like_source(&file)
+                        && matches_package(&import.specifier, &deny_packages)
+                    {
+                        violations.push(Violation {
+                            file: relative_path(root, &file),
+                            line: import.line,
+                            rule: "arch/imports".to_string(),
+                            message: rule
+                                .message
+                                .as_deref()
+                                .unwrap_or("Import of a denied package")
+                                .to_string(),
+                            severity: severity.to_string(),
+                            fix: None,
+                        });
+                    }
                     continue;
                 };
 
@@ -822,6 +846,12 @@ fn in_prefixes(path: &Path, prefixes: &[PathBuf]) -> bool {
             path_in_prefix(path, &bare_path)
         })
     })
+}
+
+fn matches_package(specifier: &str, entries: &[String]) -> bool {
+    entries
+        .iter()
+        .any(|entry| specifier == entry || specifier.starts_with(&format!("{entry}/")))
 }
 
 fn is_bare_specifier(specifier: &str) -> bool {

@@ -58,6 +58,7 @@ interface ArchImportRule {
   from: string | string[];
   deny?: string | string[];
   allow?: string | string[];
+  "deny-packages"?: string | string[];
   "type-only"?: "allow";
   message?: string;
   severity?: Exclude<Severity, "off">;

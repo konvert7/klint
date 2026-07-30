@@ -203,6 +203,106 @@ describe("arch/imports — type-only: allow", () => {
   });
 });
 
+const DAO_LAYERS: ArchConfig["layers"] = { dao: ["src/dao/**"] };
+
+function lintDao(
+  rule: Omit<NonNullable<ArchConfig["imports"]>[number], "from">,
+  content: string
+) {
+  return lint({ layers: DAO_LAYERS, imports: [{ from: "dao", ...rule }] }, [
+    { path: ["src", "dao", "users.ts"], content },
+  ]);
+}
+
+describe("arch/imports — deny-packages", () => {
+  test("flags a denied package import", () => {
+    const v = lintDao(
+      { "deny-packages": "next/headers", message: "DAO must not read request state" },
+      `import { headers } from "next/headers";`
+    );
+    expect(v).toHaveLength(1);
+    expect(v[0].message).toContain("request state");
+    expect(v[0].rule).toBe("arch/imports");
+    expect(v[0].line).toBe(1);
+  });
+
+  test("reports a default message when none is given", () => {
+    const v = lintDao(
+      { "deny-packages": ["next/headers"] },
+      `import { headers } from "next/headers";`
+    );
+    expect(v).toHaveLength(1);
+    expect(v[0].message).toBe("Import of a denied package");
+  });
+
+  test("matches subpaths of a denied package", () => {
+    const v = lintDao({ "deny-packages": ["next"] }, `import "next/headers";`);
+    expect(v).toHaveLength(1);
+  });
+
+  test("does not match a package that merely shares a prefix", () => {
+    const v = lintDao({ "deny-packages": ["next"] }, `import "nextra";`);
+    expect(v).toHaveLength(0);
+  });
+
+  test("does not match a sibling subpath", () => {
+    const v = lintDao({ "deny-packages": ["next/headers"] }, `import "next/navigation";`);
+    expect(v).toHaveLength(0);
+  });
+
+  test("flags node: builtins", () => {
+    const v = lintDao({ "deny-packages": ["node:fs"] }, `import "node:fs/promises";`);
+    expect(v).toHaveLength(1);
+  });
+
+  test("flags dynamic imports", () => {
+    const v = lintDao(
+      { "deny-packages": ["next/headers"] },
+      `export const load = () => import("next/headers");`
+    );
+    expect(v).toHaveLength(1);
+  });
+
+  test("honors type-only: allow", () => {
+    const v = lintDao(
+      { "deny-packages": ["next/headers"], "type-only": "allow" },
+      `import type { ReadonlyHeaders } from "next/headers";\nexport type H = ReadonlyHeaders;`
+    );
+    expect(v).toHaveLength(0);
+  });
+
+  test("flags import type when type-only: allow is NOT set", () => {
+    const v = lintDao(
+      { "deny-packages": ["next/headers"] },
+      `import type { ReadonlyHeaders } from "next/headers";\nexport type H = ReadonlyHeaders;`
+    );
+    expect(v).toHaveLength(1);
+  });
+
+  test("leaves packages that are not denied alone", () => {
+    const v = lintDao({ "deny-packages": ["next/headers"] }, `import "react";`);
+    expect(v).toHaveLength(0);
+  });
+
+  test("composes with deny on project paths", () => {
+    const v = lint(
+      {
+        layers: { dao: ["src/dao/**"], session: ["src/session.ts"] },
+        imports: [{ from: "dao", deny: "session", "deny-packages": ["next/headers"] }],
+      },
+      [
+        {
+          path: ["src", "dao", "users.ts"],
+          content: `import { headers } from "next/headers";\nimport { getUserId } from "../session";\nexport const x = [headers, getUserId];`,
+        },
+        { path: ["src", "session.ts"], content: `export const getUserId = () => "1";` },
+      ]
+    );
+    expect(v).toHaveLength(2);
+    expect(v.map((violation) => violation.line).sort()).toEqual([1, 2]);
+  });
+});
+
 describe("arch/imports — allow (whitelist) mode", () => {
   test("does not flag import from explicitly allowed path", () => {
     const v = lint(

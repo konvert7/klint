@@ -259,6 +259,25 @@ arch:
       message: "Core may reference adapter types, but not adapter values"
 ```
 
+Block npm packages and `node:` builtins with `deny-packages`. `deny` and `allow` work on layers of
+project files, so they can never reach a specifier that doesn't resolve to one — that is what
+`deny-packages` is for:
+
+```yaml
+arch:
+  imports:
+    - from: ["src/dao/**"]
+      deny-packages: ["next/headers", "node:fs"]
+      message: "Data access must not read request state or touch the filesystem"
+```
+
+Matching is per path segment, so `next` also covers `next/headers` while leaving `nextra` alone,
+and `next/headers` does not match `next/navigation`. The specifier comes off the AST rather than a
+text scan, so static imports and dynamic `import()` are both caught while a mention inside a comment
+or string is not. `type-only: allow` exempts `import type` here too. `deny-packages` composes with
+`deny` in the same rule — one covers packages, the other project paths — and applies to
+TypeScript/JavaScript sources only.
+
 ### Forbidden Patterns
 
 Block literal string patterns inside a scoped layer:

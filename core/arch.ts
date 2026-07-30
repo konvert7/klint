@@ -103,6 +103,12 @@ function resolveLayerFiles(
   );
 }
 
+function matchesPackage(specifier: string, entries: string[]): boolean {
+  return entries.some(
+    (entry) => specifier === entry || specifier.startsWith(`${entry}/`)
+  );
+}
+
 function inPrefixes(absPath: string, prefixes: string[]): boolean {
   return prefixes.some((p) => {
     if (absPath === p || absPath.startsWith(`${p}/`)) return true;
@@ -167,16 +173,29 @@ export function runArchRules(
   for (const rule of arch.imports ?? []) {
     const severity: Severity = rule.severity ?? "error";
     const fromFiles = resolveLayerFiles(rule.from, layers, root, allFiles);
+    const denyPackages = toArray(rule["deny-packages"] ?? []);
 
     for (const file of fromFiles) {
       const content = fileContents.get(file);
       if (!content) continue;
 
       for (const imp of scanImports(file, content, aliases)) {
-        if (isBareSpecifier(imp.resolved)) continue;
         if (rule["type-only"] === "allow" && imp.isTypeOnly) continue;
 
         const relFile = relativeSlashPath(root, file);
+
+        if (isBareSpecifier(imp.resolved)) {
+          if (matchesPackage(imp.path, denyPackages)) {
+            violations.push({
+              file: relFile,
+              line: imp.line,
+              message: rule.message ?? "Import of a denied package",
+              rule: "arch/imports",
+              severity,
+            });
+          }
+          continue;
+        }
 
         if (rule.deny !== undefined) {
           const denyPrefixes = resolveLayerPrefixes(rule.deny, layers, root);

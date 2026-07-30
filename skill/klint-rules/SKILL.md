@@ -32,6 +32,7 @@ Wire it into `klint.yaml` for editor autocomplete and validation:
    |---|---|
    | Layer X must not import from layer Y | `arch.imports` + `deny` |
    | Layer X may only import from Y and Z | `arch.imports` + `allow` |
+   | Layer X must not import an npm package or `node:` builtin | `arch.imports` + `deny-packages` |
    | Pattern P must only appear in one designated file | `arch.singleton` + `pattern` |
    | Pattern P must never appear inside a scoped layer | `arch.forbidden` + `pattern` |
    | Raw HTML/JSX element must never appear in a scoped layer | `arch.forbidden` + `jsx-element` |
@@ -83,7 +84,18 @@ arch:
       deny: targets
       type-only: allow
       message: "Core must not depend on agent-specific code"
+
+    # deny-packages: block npm packages and node: builtins, which deny/allow cannot reach
+    # because they never resolve to a project file. Composes with deny in the same rule.
+    - from: ["src/dao/**"]
+      deny-packages: ["next/headers", "node:fs"]
+      message: "Data access must not read request state or touch the filesystem"
 ```
+
+`deny-packages` matches per path segment: `next` covers `next/headers`, `nextra` is unaffected, and
+`next/headers` does not match `next/navigation`. The specifier is read off the AST, so static and
+dynamic `import()` both count while a comment mentioning the package does not — unlike
+`forbidden` + `pattern`, which is a line-based text scan. TypeScript/JavaScript only.
 
 ### Singleton — one designated location
 

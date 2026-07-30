@@ -85,6 +85,9 @@ const ArchImportRuleSchema = z
     allow: StringOrStringArray.optional().describe(
       "Allowlist of layer name(s) / glob(s) the source may import from. Anything not matching `allow` is denied."
     ),
+    "deny-packages": StringOrStringArray.optional().describe(
+      "Package specifier(s) the source is not allowed to import — npm packages and `node:` builtins, which `deny`/`allow` cannot reach because they never resolve to a project file. Matching is per path segment, so `next` also covers `next/headers` while `nextra` is unaffected. TypeScript/JavaScript only."
+    ),
     "type-only": z
       .literal("allow")
       .optional()
