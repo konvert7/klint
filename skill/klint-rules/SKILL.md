@@ -39,6 +39,8 @@ Wire it into `klint.yaml` for editor autocomplete and validation:
    | Raw HTML/JSX element may only appear in one primitive file | `arch.singleton` + `jsx-element` |
    | A value-shaped pattern (regex) must never appear in a scoped layer | `arch.forbidden` + `pattern: "re:…"` |
    | No file in a layer may exceed N lines | `arch.maxLines` + `limit` |
+   | No file may be more than N% comments | `arch.maxCommentDensity` + `limit` |
+   | No comment block may stack more than N lines | `arch.maxCommentBlock` + `limit` |
 
 4. **Read `klint.yaml`** — check existing `arch.layers` and rules before adding anything. Add a new named layer to `arch.layers` if the file group doesn't exist yet.
 
@@ -169,10 +171,42 @@ arch:
 
 Required: `limit` + `in`. The count is **total physical lines** — blanks and comments included, not code lines — and a file over the limit is flagged at line `limit + 1`. Enforced identically in the TS and Rust engines, across every language klint scans.
 
+### Comment budget — cap explanatory prose
+
+Two ceilings on how much of a file may be comments. Use them to push intent into names and small
+functions rather than paragraphs that drift from the code they describe.
+
+```yaml
+arch:
+  # maxCommentDensity: what share of a file may be comment lines
+  maxCommentDensity:
+    - limit: 5                 # percent; required
+      in: ["src/**"]           # string OR array; supports ! negation
+      countDocComments: false  # optional — default false, so JSDoc/docstrings are exempt
+      message: "Encode intent in names and small functions, not prose"
+      severity: error          # optional — default error; use warn to record without blocking
+
+  # maxCommentBlock: how tall a single stack of comment lines may get
+  maxCommentBlock:
+    - limit: 2                 # consecutive comment lines; required
+      in: ["src/**"]
+      message: "Extract a well-named function instead of stacking comment lines"
+```
+
+Required: `limit` + `in`. Density is a **percentage of total physical lines** (code + comments +
+blanks — the same denominator `maxLines` uses). Block height counts **consecutive** comment lines and
+is reported at the first offending line. Both exempt doc-comments by default — `/** … */` JSDoc and
+Python docstrings — so documentation is not penalised; ordinary `//`, `/* */`, and `#` comments always
+count. Set `countDocComments: true` to include them.
+
+The two are complementary: density catches a file that is 30% commented in scattered one-liners,
+block catches a ten-line essay above one function in an otherwise sparse file. Neither alone catches both.
+
 ## Pitfalls
 
 - `pattern` in `singleton` and `forbidden` is a **literal substring** by default — it will not catch `process.env["KEY"]` (bracket notation). Either grep for both forms, or use a `re:` regex prefix to match them in one rule. Caveat: a literal pattern that itself begins with `re:` cannot be expressed (it is always read as a regex), and regexes must stay in the common JS/RE2 subset (no lookaround or backreferences) so both engines agree.
 - `maxLines.limit` counts **total physical lines** (blanks and comments included), not code lines; a trailing newline does not add a line, and both engines count identically.
+- `maxCommentDensity.limit` is a **percentage, not a line count** — `limit: 5` means 5% of the file, so a 40-line file is over budget at its third comment line. Measure before picking a number: land it as `severity: warn` first, read the reported densities, then tighten to `error`.
 - `jsx-element` matches **intrinsic** (lowercase HTML) tags only — `button`, `input`, `label`. It does not match custom React components like `<Button>`; to restrict those, use `arch.imports` against the component's module instead.
 - A `forbidden`/`singleton` stanza takes either `pattern` or `jsx-element`, never both — split into two stanzas if you need both.
 - `only` in `singleton` is relative to the project root — use forward slashes on all platforms.
