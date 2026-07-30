@@ -1081,6 +1081,205 @@ arch:
     }
   });
 
+  test("--engine rust applies architecture import rules to Rust use declarations", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["crates"]
+rules: {}
+arch:
+  layers:
+    syntax: ["crates/app/src/syntax/**"]
+    output: ["crates/app/src/output.rs"]
+  imports:
+    - from: syntax
+      deny: output
+      message: "Syntax must not depend on output"
+`,
+      {
+        "crates/app/src/lib.rs": "mod output;\npub mod syntax;\n",
+        "crates/app/src/output.rs": "pub struct Violation;\n",
+        "crates/app/src/syntax/mod.rs":
+          "use crate::output::Violation;\n// use crate::output::Ignored;\nuse std::fs;\n",
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{ file: string; line: number; message: string }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(rust.code).toBe(2);
+      expect(payload.summary).toEqual({ errors: 1, warnings: 0 });
+      expect(payload.violations[0]?.file).toBe("crates/app/src/syntax/mod.rs");
+      expect(payload.violations[0]?.line).toBe(1);
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine rust checks every target of a braced Rust use list", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["crates"]
+rules: {}
+arch:
+  layers:
+    cli: ["crates/app/src/cli.rs"]
+    core: ["crates/app/src/core/**"]
+  imports:
+    - from: cli
+      deny: core
+      message: "CLI must not reach into core internals"
+`,
+      {
+        "crates/app/src/lib.rs": "mod cli;\nmod core;\n",
+        "crates/app/src/core/mod.rs": "pub mod parse;\npub mod render;\n",
+        "crates/app/src/core/parse.rs": "pub fn parse() {}\n",
+        "crates/app/src/core/render.rs": "pub fn render() {}\n",
+        "crates/app/src/cli.rs":
+          "use crate::core::{parse::parse, render::render};\nuse std::io;\n",
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{ file: string; line: number }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(rust.code).toBe(2);
+      expect(payload.summary).toEqual({ errors: 2, warnings: 0 });
+      expect(payload.violations.map((violation) => violation.line)).toEqual([1, 1]);
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine rust resolves self and super Rust module paths", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["crates"]
+rules: {}
+arch:
+  layers:
+    leaf: ["crates/app/src/feature/leaf.rs"]
+    banned: ["crates/app/src/banned.rs", "crates/app/src/feature/helper.rs"]
+  imports:
+    - from: leaf
+      deny: banned
+      message: "Leaf must not reach these modules"
+`,
+      {
+        "crates/app/src/lib.rs": "mod banned;\nmod feature;\n",
+        "crates/app/src/banned.rs": "pub fn nope() {}\n",
+        "crates/app/src/feature/mod.rs": "pub mod helper;\npub mod leaf;\n",
+        "crates/app/src/feature/helper.rs": "pub fn help() {}\n",
+        "crates/app/src/feature/leaf.rs":
+          "use super::helper::help;\nuse crate::banned::nope;\nuse std::fmt;\n",
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{ line: number }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(rust.code).toBe(2);
+      expect(payload.summary).toEqual({ errors: 2, warnings: 0 });
+      expect(payload.violations.map((violation) => violation.line)).toEqual([1, 2]);
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine rust blocks denied external Rust crates", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["crates"]
+rules: {}
+arch:
+  layers:
+    core: ["crates/app/src/core.rs"]
+  imports:
+    - from: core
+      deny-packages: ["tokio", "std::process"]
+      message: "Core must stay runtime-free and must not spawn processes"
+`,
+      {
+        "crates/app/src/lib.rs": "mod core;\n",
+        "crates/app/src/core.rs":
+          "use tokio::runtime::Runtime;\nuse std::process::Command;\nuse std::fs;\nuse tokiox::thing;\n",
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{ line: number }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(rust.code).toBe(2);
+      expect(payload.summary).toEqual({ errors: 2, warnings: 0 });
+      expect(payload.violations.map((violation) => violation.line)).toEqual([1, 2]);
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine rust counts Rust comment kinds and exempts doc-comments", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["crates"]
+rules: {}
+arch:
+  maxCommentBlock:
+    - limit: 2
+      in: "crates/**"
+`,
+      {
+        "crates/app/src/documented.rs":
+          "/// doc\n/// doc\n/// doc\n//! doc\npub fn kept() {}\n",
+        "crates/app/src/noisy.rs": "/*\n * block\n * block\n */\npub fn noisy() {}\n",
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{ file: string; rule: string }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(payload.violations).toHaveLength(1);
+      expect(payload.violations[0]?.file).toBe("crates/app/src/noisy.rs");
+      expect(payload.violations[0]?.rule).toBe("arch/max-comment-block");
+      expect(rust.code).toBe(2);
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine rust rejects unknown plugins", () => {
     const dir = setupFixture(
       `

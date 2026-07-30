@@ -95,7 +95,8 @@ arch:
 `deny-packages` matches per segment: `next` covers `next/headers`, `nextra` is unaffected, and
 `next/headers` does not match `next/navigation`. Python uses dotted segments, so `os` covers
 `os.path` and blocks pip packages and stdlib modules alike. Swift uses dotted segments too, at
-module granularity, which is what makes system frameworks like `UIKit` reachable. The specifier is read off the AST, so
+module granularity, which is what makes system frameworks like `UIKit` reachable. Rust splits on
+`::`, so `tokio` covers `tokio::sync::Mutex` while `tokio_util` is unaffected. The specifier is read off the AST, so
 static imports, dynamic `import()`, and `export … from` re-exports all count while a comment
 mentioning the package does not — unlike `forbidden` + `pattern`, which is a line-based text scan.
 

@@ -1,6 +1,6 @@
 use crate::files::{
-    is_javascript_like_source, is_python_source, is_swift_source, normalize_path, relative_path,
-    supports_import_scan,
+    is_javascript_like_source, is_python_source, is_rust_source, is_swift_source, normalize_path,
+    relative_path, supports_import_scan,
 };
 use crate::output::Violation;
 use crate::syntax::{
@@ -380,6 +380,7 @@ fn run_arch_import_rules(
     let aliases = load_path_aliases(root);
     let python = PythonContext::index(root, files);
     let swift_modules = index_swift_modules(root, files);
+    let rust_crate_roots = index_rust_crate_roots(files);
 
     for rule in rules {
         if rule.deny.is_none() && rule.allow.is_none() && rule.deny_packages.is_none() {
@@ -426,6 +427,7 @@ fn run_arch_import_rules(
                     &aliases,
                     &python,
                     &swift_modules,
+                    &rust_crate_roots,
                 ) else {
                     if denies_package(&file, &import.specifier, &deny_packages) {
                         violations.push(Violation {
@@ -520,6 +522,7 @@ fn resolve_import(
     aliases: &[AliasEntry],
     python: &PythonContext,
     swift_modules: &BTreeMap<String, PathBuf>,
+    rust_crate_roots: &BTreeSet<PathBuf>,
 ) -> Option<PathBuf> {
     if !is_bare_specifier(specifier) {
         return Some(normalize_path(
@@ -530,6 +533,85 @@ fn resolve_import(
     resolve_alias(specifier, aliases)
         .or_else(|| resolve_python_module(specifier, python))
         .or_else(|| resolve_swift_module(specifier, swift_modules))
+        .or_else(|| resolve_rust_module(specifier, file, rust_crate_roots))
+}
+
+/// The `src` directory of every crate the scan found, keyed off the crate root
+/// files Cargo requires. A file belongs to the longest such directory that
+/// prefixes it, which is what `crate::` resolves against.
+fn index_rust_crate_roots(files: &[PathBuf]) -> BTreeSet<PathBuf> {
+    files
+        .iter()
+        .filter(|file| {
+            matches!(
+                file.file_name().and_then(|name| name.to_str()),
+                Some("lib.rs" | "main.rs")
+            )
+        })
+        .filter_map(|file| file.parent().map(normalize_path))
+        .collect()
+}
+
+fn rust_crate_src_dir(file: &Path, crate_roots: &BTreeSet<PathBuf>) -> Option<PathBuf> {
+    crate_roots
+        .iter()
+        .filter(|src| file.starts_with(src))
+        .max_by_key(|src| src.components().count())
+        .cloned()
+}
+
+/// The directory holding a file's child modules. `mod.rs`, `lib.rs`, and
+/// `main.rs` are their directory's module, so their children sit beside them;
+/// any other file owns a directory named after its stem.
+fn rust_module_dir(file: &Path) -> Option<PathBuf> {
+    let parent = file.parent()?;
+    match file.file_name().and_then(|name| name.to_str()) {
+        Some("mod.rs" | "lib.rs" | "main.rs") => Some(parent.to_path_buf()),
+        _ => Some(parent.join(file.file_stem()?)),
+    }
+}
+
+fn resolve_rust_module(
+    specifier: &str,
+    file: &Path,
+    crate_roots: &BTreeSet<PathBuf>,
+) -> Option<PathBuf> {
+    if !is_rust_source(file) {
+        return None;
+    }
+
+    let mut segments = specifier.split("::");
+    let first = segments.next()?;
+    let mut base = match first {
+        "crate" => rust_crate_src_dir(file, crate_roots)?,
+        "self" => rust_module_dir(file)?,
+        "super" => rust_module_dir(file)?.parent()?.to_path_buf(),
+        _ => return None,
+    };
+    let mut rest: Vec<&str> = segments.collect();
+    while rest.first() == Some(&"super") {
+        base = base.parent()?.to_path_buf();
+        rest.remove(0);
+    }
+
+    rust_module_file(&base, &rest)
+}
+
+/// Probes the longest prefix first, because a `use` path usually ends in an
+/// item rather than a module — `crate::syntax::architecture::scan_imports`
+/// resolves to `syntax/architecture.rs`, not to a `scan_imports` module.
+fn rust_module_file(base: &Path, segments: &[&str]) -> Option<PathBuf> {
+    for depth in (0..=segments.len()).rev() {
+        let candidate = segments[..depth]
+            .iter()
+            .fold(base.to_path_buf(), |path, segment| path.join(segment));
+        for module in [candidate.with_extension("rs"), candidate.join("mod.rs")] {
+            if module.is_file() {
+                return Some(normalize_path(&module));
+            }
+        }
+    }
+    None
 }
 
 fn resolve_alias(specifier: &str, aliases: &[AliasEntry]) -> Option<PathBuf> {
@@ -883,17 +965,19 @@ fn denies_package(file: &Path, specifier: &str, entries: &[String]) -> bool {
 /// What splits a package specifier into segments — `/` for npm specifiers,
 /// `.` for Python modules, so `next` covers `next/headers` and `os` covers
 /// `os.path`. Languages without package-level imports yield nothing.
-fn package_separator(file: &Path) -> Option<char> {
+fn package_separator(file: &Path) -> Option<&'static str> {
     if is_javascript_like_source(file) {
-        Some('/')
+        Some("/")
     } else if is_python_source(file) || is_swift_source(file) {
-        Some('.')
+        Some(".")
+    } else if is_rust_source(file) {
+        Some("::")
     } else {
         None
     }
 }
 
-fn matches_package(specifier: &str, entries: &[String], separator: char) -> bool {
+fn matches_package(specifier: &str, entries: &[String], separator: &str) -> bool {
     entries
         .iter()
         .any(|entry| specifier == entry || specifier.starts_with(&format!("{entry}{separator}")))
@@ -914,9 +998,8 @@ fn scan_jsx_elements_for_targets(
 ) {
     let target_names = targets.items();
     for file in files {
-        // Only jsx-path files can ever contain a jsx node (mirrors the
-        // early-return in `scan_jsx_elements`) — skip everything else rather
-        // than asking the cache to parse it for nothing.
+        // Only jsx-path files can ever contain a jsx node, so skip the rest
+        // rather than asking the cache to parse them for nothing.
         if !is_jsx_path(file) {
             continue;
         }
@@ -1008,31 +1091,31 @@ mod tests {
     #[test]
     fn matches_npm_packages_by_slash_segment() {
         let entries = vec!["next".to_string(), "node:fs".to_string()];
-        assert!(matches_package("next", &entries, '/'));
-        assert!(matches_package("next/headers", &entries, '/'));
-        assert!(matches_package("node:fs/promises", &entries, '/'));
-        assert!(!matches_package("nextra", &entries, '/'));
+        assert!(matches_package("next", &entries, "/"));
+        assert!(matches_package("next/headers", &entries, "/"));
+        assert!(matches_package("node:fs/promises", &entries, "/"));
+        assert!(!matches_package("nextra", &entries, "/"));
     }
 
     #[test]
     fn matches_python_modules_by_dot_segment() {
         let entries = vec!["os".to_string(), "google.cloud".to_string()];
-        assert!(matches_package("os", &entries, '.'));
-        assert!(matches_package("os.path", &entries, '.'));
-        assert!(matches_package("google.cloud.storage", &entries, '.'));
-        assert!(!matches_package("oscrypto", &entries, '.'));
-        assert!(!matches_package("google.protobuf", &entries, '.'));
+        assert!(matches_package("os", &entries, "."));
+        assert!(matches_package("os.path", &entries, "."));
+        assert!(matches_package("google.cloud.storage", &entries, "."));
+        assert!(!matches_package("oscrypto", &entries, "."));
+        assert!(!matches_package("google.protobuf", &entries, "."));
     }
 
     #[test]
     fn separates_swift_specifiers_by_dot() {
         assert_eq!(
             package_separator(Path::new("Sources/App/Core/Auth.swift")),
-            Some('.')
+            Some(".")
         );
         let entries = vec!["UIKit".to_string()];
-        assert!(matches_package("UIKit", &entries, '.'));
-        assert!(!matches_package("UIKitten", &entries, '.'));
+        assert!(matches_package("UIKit", &entries, "."));
+        assert!(!matches_package("UIKitten", &entries, "."));
     }
 
     #[test]

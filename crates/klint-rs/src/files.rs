@@ -71,7 +71,7 @@ fn collect_source_files(
 }
 
 fn is_supported_source(path: &Path) -> bool {
-    supports_import_scan(path) || is_swift_source(path)
+    supports_import_scan(path)
 }
 
 pub(crate) fn is_javascript_like_source(path: &Path) -> bool {
@@ -89,8 +89,15 @@ pub(crate) fn is_swift_source(path: &Path) -> bool {
     matches!(path.extension().and_then(|ext| ext.to_str()), Some("swift"))
 }
 
+pub(crate) fn is_rust_source(path: &Path) -> bool {
+    matches!(path.extension().and_then(|ext| ext.to_str()), Some("rs"))
+}
+
 pub(crate) fn supports_import_scan(path: &Path) -> bool {
-    is_javascript_like_source(path) || is_python_source(path) || is_swift_source(path)
+    is_javascript_like_source(path)
+        || is_python_source(path)
+        || is_swift_source(path)
+        || is_rust_source(path)
 }
 
 pub(crate) fn normalize_path(path: &Path) -> PathBuf {
@@ -263,9 +270,8 @@ mod tests {
 
     #[test]
     fn resolve_files_matches_root_level_files_under_double_star_glob() {
-        // `**/*.ts` must match a root-level file (e.g. cli.ts), not only nested ones —
-        // `**` means zero-or-more path segments. Regression test for include_base
-        // collapsing the base to a literal "**" directory.
+        // `**` means zero-or-more path segments, so `**/*.ts` must match a root-level
+        // file. Regression test for include_base collapsing it to a literal directory.
         let root = temp_root("double-star-root");
         create_dir_all(root.join("src")).expect("create src");
         write(root.join("cli.ts"), "export const x = 1;\n").expect("write root source");

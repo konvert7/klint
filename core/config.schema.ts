@@ -86,7 +86,7 @@ const ArchImportRuleSchema = z
       "Allowlist of layer name(s) / glob(s) the source may import from. Anything not matching `allow` is denied."
     ),
     "deny-packages": StringOrStringArray.optional().describe(
-      "Package specifier(s) the source is not allowed to import — npm packages, `node:` builtins, Python pip packages and stdlib modules, and Swift system frameworks, which `deny`/`allow` cannot reach because they never resolve to a project file. Matching is per segment: `/` in TypeScript/JavaScript, so `next` also covers `next/headers` while `nextra` is unaffected, and `.` in Python and Swift, so `os` also covers `os.path` while `oscrypto` is unaffected. Python and Swift sources are checked by the Rust engine."
+      "Package specifier(s) the source is not allowed to import — npm packages, `node:` builtins, Python pip packages and stdlib modules, Swift system frameworks, and external Rust crates, which `deny`/`allow` cannot reach because they never resolve to a project file. Matching is per segment: `/` in TypeScript/JavaScript, so `next` also covers `next/headers` while `nextra` is unaffected; `.` in Python and Swift, so `os` also covers `os.path` while `oscrypto` is unaffected; and `::` in Rust, so `tokio` also covers `tokio::sync::Mutex` while `tokio_util` is unaffected. Python, Swift, and Rust sources are checked by the Rust engine."
     ),
     "type-only": z
       .literal("allow")

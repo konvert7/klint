@@ -46,6 +46,7 @@ pub(crate) fn scan_imports_from_tree(
     match source_language_for_path(path) {
         SourceLanguage::Python => imports.extend(scan_python_imports(root, source)),
         SourceLanguage::Swift => walk_swift_imports(root, source, &mut imports),
+        SourceLanguage::Rust => walk_rust_imports(root, source, &mut imports),
         SourceLanguage::JavaScriptLike => walk_imports(root, source, &mut imports),
     }
     imports
@@ -81,6 +82,85 @@ fn first_named_child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Nod
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
         .find(|child| child.kind() == kind)
+}
+
+fn walk_rust_imports(node: Node<'_>, source: &[u8], imports: &mut Vec<ImportRecord>) {
+    if node.kind() == "use_declaration" {
+        imports.extend(rust_use_records(node, source));
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        walk_rust_imports(child, source, imports);
+    }
+}
+
+fn rust_use_records(node: Node<'_>, source: &[u8]) -> Vec<ImportRecord> {
+    let Some(argument) = node.child_by_field_name("argument") else {
+        return Vec::new();
+    };
+    let mut paths = Vec::new();
+    collect_rust_use_paths(argument, source, "", &mut paths);
+    let line = node.start_position().row + 1;
+    paths
+        .into_iter()
+        .map(|specifier| ImportRecord {
+            specifier,
+            line,
+            is_type_only: false,
+            is_dynamic: false,
+        })
+        .collect()
+}
+
+/// Flattens one `use` tree into a path per imported target. A braced list
+/// multiplies its prefix across every branch, so `use a::{b::{c, d}, e as f}`
+/// yields `a::b::c`, `a::b::d`, and `a::e` — the same per-target treatment
+/// Python multi-target imports get. A bare `self` in a list names the prefix
+/// itself, and `as` aliases and `*` wildcards contribute their path only.
+fn collect_rust_use_paths(node: Node<'_>, source: &[u8], prefix: &str, paths: &mut Vec<String>) {
+    match node.kind() {
+        "scoped_use_list" => {
+            let nested = match node.child_by_field_name("path") {
+                Some(path) => {
+                    join_rust_path(prefix, &raw_node_text(path, source).unwrap_or_default())
+                }
+                None => prefix.to_string(),
+            };
+            let Some(list) = node.child_by_field_name("list") else {
+                return;
+            };
+            let mut cursor = list.walk();
+            for child in list.named_children(&mut cursor) {
+                collect_rust_use_paths(child, source, &nested, paths);
+            }
+        }
+        "use_as_clause" => {
+            if let Some(path) = node.child_by_field_name("path") {
+                collect_rust_use_paths(path, source, prefix, paths);
+            }
+        }
+        "use_wildcard" => {
+            let mut cursor = node.walk();
+            if let Some(path) = node.named_children(&mut cursor).next() {
+                collect_rust_use_paths(path, source, prefix, paths);
+            }
+        }
+        "self" if !prefix.is_empty() => paths.push(prefix.to_string()),
+        _ => {
+            if let Some(text) = raw_node_text(node, source) {
+                paths.push(join_rust_path(prefix, &text));
+            }
+        }
+    }
+}
+
+fn join_rust_path(prefix: &str, segment: &str) -> String {
+    if prefix.is_empty() {
+        segment.to_string()
+    } else {
+        format!("{prefix}::{segment}")
+    }
 }
 
 pub fn scan_jsx_elements(path: &Path, content: &str) -> Result<Vec<JsxElementRecord>, String> {
@@ -120,10 +200,11 @@ pub struct CommentRecord {
     pub is_doc: bool,
 }
 
-/// Collects every comment node, classified as doc vs ordinary. The TypeScript
-/// and Python grammars name every comment `comment`; the Swift grammar splits
-/// `/* */` out as `multiline_comment`. Docstrings are string expressions, not
-/// comment nodes, so they never appear here.
+/// Collects every comment node, classified as doc vs ordinary. Each grammar
+/// names comments differently: `comment` in TypeScript and Python,
+/// `comment`/`multiline_comment` in Swift, `line_comment`/`block_comment` in
+/// Rust. Docstrings are string expressions, not comment nodes, so they never
+/// appear here.
 pub(crate) fn scan_comments_from_tree(
     path: &Path,
     root: Node<'_>,
@@ -134,18 +215,29 @@ pub(crate) fn scan_comments_from_tree(
     comments
 }
 
+/// Rows the comment text itself covers, counted from its first row. Rust
+/// doc-comment nodes extend past their last character to swallow the newline,
+/// so the node's own end row would credit them with a line they do not occupy.
+fn trailing_line_span(text: &str) -> usize {
+    text.trim_end().lines().count().saturating_sub(1)
+}
+
 fn walk_comments(
     language: SourceLanguage,
     node: Node<'_>,
     source: &[u8],
     comments: &mut Vec<CommentRecord>,
 ) {
-    if matches!(node.kind(), "comment" | "multiline_comment") {
+    if matches!(
+        node.kind(),
+        "comment" | "multiline_comment" | "line_comment" | "block_comment"
+    ) {
         let text = node.utf8_text(source).unwrap_or("");
+        let start_line = node.start_position().row + 1;
         comments.push(CommentRecord {
-            start_line: node.start_position().row + 1,
-            end_line: node.end_position().row + 1,
-            is_doc: is_doc_comment(language, text),
+            start_line,
+            end_line: start_line + trailing_line_span(text),
+            is_doc: is_doc_comment(language, node, text),
         });
     }
 
@@ -157,12 +249,25 @@ fn walk_comments(
 
 /// A `/** */` JSDoc block, but not the empty `/**/` comment. Mirrors the TS
 /// engine. Swift also documents with `///`, where TypeScript reserves triple
-/// slashes for `/// <reference>` directives rather than documentation.
-fn is_doc_comment(language: SourceLanguage, text: &str) -> bool {
-    if language == SourceLanguage::Swift && text.starts_with("///") {
-        return true;
+/// slashes for `/// <reference>` directives rather than documentation. Rust
+/// marks `///` and `//!` in the tree itself, so its doc comments are read off
+/// the node rather than guessed from the text.
+fn is_doc_comment(language: SourceLanguage, node: Node<'_>, text: &str) -> bool {
+    match language {
+        SourceLanguage::Rust => has_rust_doc_marker(node),
+        SourceLanguage::Swift if text.starts_with("///") => true,
+        _ => text.starts_with("/**") && text != "/**/",
     }
-    text.starts_with("/**") && text != "/**/"
+}
+
+fn has_rust_doc_marker(node: Node<'_>) -> bool {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor).any(|child| {
+        matches!(
+            child.kind(),
+            "outer_doc_comment_marker" | "inner_doc_comment_marker"
+        )
+    })
 }
 fn walk_imports(node: Node<'_>, source: &[u8], imports: &mut Vec<ImportRecord>) {
     match node.kind() {
@@ -988,6 +1093,64 @@ mod tests {
                 CommentRecord {
                     start_line: 5,
                     end_line: 5,
+                    is_doc: false,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn flattens_rust_use_trees_into_one_record_per_target() {
+        let records = scan_imports(
+            &PathBuf::from("crates/klint-rs/src/arch.rs"),
+            "use crate::syntax::{TreeCache, scan_imports_from_tree};\nuse std::collections::{BTreeMap, BTreeSet};\nuse super::helper as alias;\nuse self::inner::*;\nuse crate::files::{self, normalize_path};\n// use crate::ignored::Thing;\n",
+        )
+        .expect("rust source should parse");
+
+        assert_eq!(
+            records
+                .iter()
+                .map(|record| (record.specifier.as_str(), record.line))
+                .collect::<Vec<_>>(),
+            vec![
+                ("crate::syntax::TreeCache", 1),
+                ("crate::syntax::scan_imports_from_tree", 1),
+                ("std::collections::BTreeMap", 2),
+                ("std::collections::BTreeSet", 2),
+                ("super::helper", 3),
+                ("self::inner", 4),
+                ("crate::files", 5),
+                ("crate::files::normalize_path", 5),
+            ]
+        );
+    }
+
+    #[test]
+    fn classifies_rust_line_block_and_doc_comments() {
+        assert_eq!(
+            comments(
+                "lib.rs",
+                "//! inner\n/// doc\n// plain\n/*\n * block\n */\n"
+            ),
+            vec![
+                CommentRecord {
+                    start_line: 1,
+                    end_line: 1,
+                    is_doc: true,
+                },
+                CommentRecord {
+                    start_line: 2,
+                    end_line: 2,
+                    is_doc: true,
+                },
+                CommentRecord {
+                    start_line: 3,
+                    end_line: 3,
+                    is_doc: false,
+                },
+                CommentRecord {
+                    start_line: 4,
+                    end_line: 6,
                     is_doc: false,
                 },
             ]

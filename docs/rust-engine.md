@@ -27,9 +27,9 @@ Architecture rules:
 
 | Area | Notes |
 |------|-------|
-| `arch.imports` | Supports TypeScript/JavaScript static imports, dynamic imports, re-export specifiers (`export … from`), TS path aliases, allow/deny mode, `deny-packages` for npm and `node:` specifiers (matching the TS engine), and type-only allowance. Supports Python relative imports, resolvable absolute project imports, every target of a multi-target statement, `importlib.import_module`/`__import__` dynamic imports, `if TYPE_CHECKING:` blocks as type-only allowance, and `deny-packages` against pip packages and stdlib modules matched per dotted segment; unresolved Python package imports are otherwise ignored. Supports Swift `import_declaration` nodes — plain, attributed (`@_exported`, `@testable`), keyword-qualified (`import struct Module.Type`), and submodule paths — when the module resolves to discovered project Swift files; imports written inside comments produce no record, `deny-packages` reaches unresolved Swift modules such as system frameworks at module granularity, and otherwise unresolved system/package imports are ignored. |
-| `arch.forbidden` | Supports literal pattern checks for TypeScript/JavaScript, Python, and Swift files. JSX element checks are TypeScript/JavaScript only. |
-| `arch.singleton` | Supports literal pattern checks for TypeScript/JavaScript, Python, and Swift files. JSX element checks are TypeScript/JavaScript only. |
+| `arch.imports` | Supports TypeScript/JavaScript static imports, dynamic imports, re-export specifiers (`export … from`), TS path aliases, allow/deny mode, `deny-packages` for npm and `node:` specifiers (matching the TS engine), and type-only allowance. Supports Python relative imports, resolvable absolute project imports, every target of a multi-target statement, `importlib.import_module`/`__import__` dynamic imports, `if TYPE_CHECKING:` blocks as type-only allowance, and `deny-packages` against pip packages and stdlib modules matched per dotted segment; unresolved Python package imports are otherwise ignored. Supports Swift `import_declaration` nodes — plain, attributed (`@_exported`, `@testable`), keyword-qualified (`import struct Module.Type`), and submodule paths — when the module resolves to discovered project Swift files; imports written inside comments produce no record, `deny-packages` reaches unresolved Swift modules such as system frameworks at module granularity, and otherwise unresolved system/package imports are ignored. Supports Rust `use` declarations with every target of a braced list checked separately, aliases and wildcards resolved to their path, `pub use` re-exports, path-shaped `crate::`/`self::`/`super::` module resolution against the directory tree, and `deny-packages` against external crates matched per `::` segment. |
+| `arch.forbidden` | Supports literal pattern checks for TypeScript/JavaScript, Python, Swift, and Rust files. JSX element checks are TypeScript/JavaScript only. |
+| `arch.singleton` | Supports literal pattern checks for TypeScript/JavaScript, Python, Swift, and Rust files. JSX element checks are TypeScript/JavaScript only. |
 
 Top-level rules:
 
@@ -131,6 +131,45 @@ granularity, which covers the intended target of system frameworks such as
 Swift cases live in `tests/rust-engine-cli.test.ts` and in Rust unit tests, never
 in the golden harness — the TypeScript engine cannot parse Swift, so no golden
 case can run through both engines.
+
+## Rust Support
+
+`.rs` files parse with `tree-sitter-rust` through the same `TreeCache` as every
+other language. `arch.imports` walks `use_declaration` nodes and flattens the
+`use` tree into one record per imported target, so a braced list multiplies its
+prefix across every branch: `use a::{b::{c, d}, e as f}` records `a::b::c`,
+`a::b::d`, and `a::e`. `use_as_clause` and `use_wildcard` contribute the path
+they wrap, and a bare `self` inside a list names its own prefix. All records
+from one declaration carry the declaration's line. `pub use` re-exports parse to
+the same node shape as plain `use`.
+
+Module resolution is path-shaped rather than a Cargo build graph. `crate::`
+anchors at the innermost directory holding `lib.rs` or `main.rs`, `self::` at
+the current file's module directory, and `super::` at its parent, with leading
+`super::` segments applied repeatedly. From that base, klint takes the longest
+prefix of the remaining segments that resolves to a real `foo.rs` or
+`foo/mod.rs` and treats the rest as an item inside that module. Paths that do
+not start with one of those three keywords name an external crate, resolve to no
+file, and are therefore invisible to `deny`/`allow` — `deny-packages` is the
+rule that reaches them. `#[path]` attributes and `mod` declarations that rename
+a module are not followed, so an unconventional layout produces false negatives
+rather than false positives.
+
+`deny-packages` splits Rust specifiers on `::`, which is the first separator
+that is not a single character; `package_separator` returns `&'static str` for
+that reason.
+
+The Rust grammar names comments `line_comment` and `block_comment`, so the
+comment scanner matches four node kinds across the supported languages.
+Doc-comments are detected from the tree rather than the text: a comment is a doc
+when it holds an `outer_doc_comment_marker` or `inner_doc_comment_marker` child,
+which covers `///` and `//!` without misreading a `////` separator line. Rust
+doc-comment nodes extend past their last character to swallow the trailing
+newline, so `end_line` comes from the comment text rather than the node's end
+row.
+
+Rust cases live in `tests/rust-engine-cli.test.ts` and in Rust unit tests, never
+in the golden harness.
 
 ## Custom Rules And Plugins
 
