@@ -570,6 +570,119 @@ arch:
     }
   });
 
+  test("--engine rust ignores Swift imports written inside comments", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["Sources"]
+rules: {}
+arch:
+  layers:
+    ui: ["Sources/App/UI/**"]
+    core: ["Sources/App/Core/**"]
+  imports:
+    - from: ui
+      deny: core
+      message: "UI must not import core directly"
+`,
+      {
+        "Sources/App/UI/ViewModel.swift":
+          "/*\nimport Core\n*/\n// import Core\n/* outer /* inner import Core */ still */\nimport Foundation\n",
+        "Sources/App/Core/Auth.swift": "public struct Auth {}\n",
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: unknown[];
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(payload.violations).toEqual([]);
+      expect(payload.summary).toEqual({ errors: 0, warnings: 0 });
+      expect(rust.code).toBe(0);
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine rust reads Swift imports carrying attributes and submodule paths", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["Sources"]
+rules: {}
+arch:
+  layers:
+    ui: ["Sources/App/UI/**"]
+    core: ["Sources/App/Core/**"]
+  imports:
+    - from: ui
+      deny: core
+      message: "UI must not import core directly"
+`,
+      {
+        "Sources/App/UI/ViewModel.swift":
+          "@_exported import Core\n@testable import Core\nimport struct Core.Auth\nimport Core.Session\n",
+        "Sources/App/Core/Auth.swift": "public struct Auth {}\n",
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{ file: string; line: number; rule: string }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(payload.violations.map((violation) => violation.line)).toEqual([1, 2, 3, 4]);
+      expect(payload.summary).toEqual({ errors: 4, warnings: 0 });
+      expect(rust.code).toBe(2);
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  test("--engine rust counts Swift block comments toward maxCommentBlock", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["Sources"]
+rules: {}
+arch:
+  maxCommentBlock:
+    - limit: 2
+      in: "Sources/**"
+`,
+      {
+        "Sources/App/UI/ViewModel.swift":
+          "/*\n * block\n * block\n * block\n */\npublic struct Widget {}\n",
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{ file: string; line: number; rule: string }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(payload.violations).toHaveLength(1);
+      expect(payload.violations[0]?.rule).toBe("arch/max-comment-block");
+      expect(payload.violations[0]?.file).toBe("Sources/App/UI/ViewModel.swift");
+      expect(rust.code).toBe(2);
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine rust applies architecture import rules to Python relative imports", () => {
     const dir = setupNamedFixture(
       `

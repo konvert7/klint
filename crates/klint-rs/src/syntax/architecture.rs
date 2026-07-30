@@ -2,7 +2,10 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use tree_sitter::{Node, Parser};
 
-use super::{SourceLanguage, is_jsx_path, language_for_path, node_text, source_language_for_path};
+use super::{
+    SourceLanguage, is_jsx_path, language_for_path, node_text, raw_node_text,
+    source_language_for_path,
+};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ImportRecord {
@@ -18,10 +21,6 @@ pub struct JsxElementRecord {
     pub line: usize,
 }
 pub fn scan_imports(path: &Path, content: &str) -> Result<Vec<ImportRecord>, String> {
-    if source_language_for_path(path) == SourceLanguage::Swift {
-        return Ok(swift_imports(content));
-    }
-
     let mut parser = Parser::new();
     parser
         .set_language(&language_for_path(path))
@@ -30,19 +29,14 @@ pub fn scan_imports(path: &Path, content: &str) -> Result<Vec<ImportRecord>, Str
         .parse(content, None)
         .ok_or_else(|| "klint-rs: failed to parse source".to_string())?;
 
-    let root = tree.root_node();
-    let mut imports = Vec::new();
-    match source_language_for_path(path) {
-        SourceLanguage::Python => imports.extend(scan_python_imports(root, content.as_bytes())),
-        SourceLanguage::Swift => imports.extend(swift_imports(content)),
-        SourceLanguage::JavaScriptLike => walk_imports(root, content.as_bytes(), &mut imports),
-    }
-    Ok(imports)
+    Ok(scan_imports_from_tree(
+        path,
+        tree.root_node(),
+        content.as_bytes(),
+    ))
 }
 
-/// Same scan as [`scan_imports`] but reuses an already-parsed tree. The
-/// caller is responsible for only passing trees for non-Swift paths (Swift
-/// import scanning never parses with tree-sitter — see [`scan_imports`]).
+/// Same scan as [`scan_imports`] but reuses an already-parsed tree.
 pub(crate) fn scan_imports_from_tree(
     path: &Path,
     root: Node<'_>,
@@ -51,59 +45,42 @@ pub(crate) fn scan_imports_from_tree(
     let mut imports = Vec::new();
     match source_language_for_path(path) {
         SourceLanguage::Python => imports.extend(scan_python_imports(root, source)),
-        SourceLanguage::Swift => {
-            imports.extend(swift_imports(&String::from_utf8_lossy(source)));
-        }
+        SourceLanguage::Swift => walk_swift_imports(root, source, &mut imports),
         SourceLanguage::JavaScriptLike => walk_imports(root, source, &mut imports),
     }
     imports
 }
 
-fn swift_imports(content: &str) -> Vec<ImportRecord> {
-    content
-        .lines()
-        .enumerate()
-        .filter_map(|(index, line)| {
-            swift_import_specifier(line).map(|specifier| ImportRecord {
-                specifier,
-                line: index + 1,
-                is_type_only: false,
-                is_dynamic: false,
-            })
-        })
-        .collect()
+fn walk_swift_imports(node: Node<'_>, source: &[u8], imports: &mut Vec<ImportRecord>) {
+    if node.kind() == "import_declaration" {
+        imports.extend(swift_import_record(node, source));
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        walk_swift_imports(child, source, imports);
+    }
 }
 
-fn swift_import_specifier(line: &str) -> Option<String> {
-    let mut text = line.trim();
-    if text.starts_with("//") {
-        return None;
-    }
+/// The module a Swift `import` names. `import_declaration` exposes no field
+/// names, so the module is the first `simple_identifier` under its `identifier`
+/// child — one shape for `import Beta.Sub` and `import struct Models.User`
+/// alike, with `@testable`/`@_exported` parked in a sibling `modifiers` node.
+fn swift_import_record(node: Node<'_>, source: &[u8]) -> Option<ImportRecord> {
+    let identifier = first_named_child_of_kind(node, "identifier")?;
+    let module = first_named_child_of_kind(identifier, "simple_identifier")?;
+    Some(ImportRecord {
+        specifier: raw_node_text(module, source)?,
+        line: identifier.start_position().row + 1,
+        is_type_only: false,
+        is_dynamic: false,
+    })
+}
 
-    while let Some(rest) = text.strip_prefix('@') {
-        let attr_end = rest.find(char::is_whitespace)?;
-        text = rest[attr_end..].trim_start();
-    }
-
-    let rest = text.strip_prefix("import ")?;
-    let mut parts = rest.split_whitespace();
-    let mut target = parts.next()?;
-    if matches!(
-        target,
-        "class" | "struct" | "enum" | "protocol" | "func" | "typealias" | "var" | "let"
-    ) {
-        target = parts.next()?;
-    }
-
-    let module = target
-        .split('.')
-        .next()?
-        .trim_matches(|char: char| !char.is_alphanumeric() && char != '_');
-    if module.is_empty() {
-        None
-    } else {
-        Some(module.to_string())
-    }
+fn first_named_child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .find(|child| child.kind() == kind)
 }
 
 pub fn scan_jsx_elements(path: &Path, content: &str) -> Result<Vec<JsxElementRecord>, String> {
@@ -143,33 +120,48 @@ pub struct CommentRecord {
     pub is_doc: bool,
 }
 
-/// Collects every comment node (all grammars name them `comment` — `//`,
-/// `/* */`, and Python `#`), classified as doc vs ordinary. Docstrings are
-/// string expressions, not comment nodes, so they never appear here.
-pub(crate) fn scan_comments_from_tree(root: Node<'_>, source: &[u8]) -> Vec<CommentRecord> {
+/// Collects every comment node, classified as doc vs ordinary. The TypeScript
+/// and Python grammars name every comment `comment`; the Swift grammar splits
+/// `/* */` out as `multiline_comment`. Docstrings are string expressions, not
+/// comment nodes, so they never appear here.
+pub(crate) fn scan_comments_from_tree(
+    path: &Path,
+    root: Node<'_>,
+    source: &[u8],
+) -> Vec<CommentRecord> {
     let mut comments = Vec::new();
-    walk_comments(root, source, &mut comments);
+    walk_comments(source_language_for_path(path), root, source, &mut comments);
     comments
 }
 
-fn walk_comments(node: Node<'_>, source: &[u8], comments: &mut Vec<CommentRecord>) {
-    if node.kind() == "comment" {
+fn walk_comments(
+    language: SourceLanguage,
+    node: Node<'_>,
+    source: &[u8],
+    comments: &mut Vec<CommentRecord>,
+) {
+    if matches!(node.kind(), "comment" | "multiline_comment") {
         let text = node.utf8_text(source).unwrap_or("");
         comments.push(CommentRecord {
             start_line: node.start_position().row + 1,
             end_line: node.end_position().row + 1,
-            is_doc: is_doc_comment(text),
+            is_doc: is_doc_comment(language, text),
         });
     }
 
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_comments(child, source, comments);
+        walk_comments(language, child, source, comments);
     }
 }
 
-/// A `/** */` JSDoc block, but not the empty `/**/` comment. Mirrors the TS engine.
-fn is_doc_comment(text: &str) -> bool {
+/// A `/** */` JSDoc block, but not the empty `/**/` comment. Mirrors the TS
+/// engine. Swift also documents with `///`, where TypeScript reserves triple
+/// slashes for `/// <reference>` directives rather than documentation.
+fn is_doc_comment(language: SourceLanguage, text: &str) -> bool {
+    if language == SourceLanguage::Swift && text.starts_with("///") {
+        return true;
+    }
     text.starts_with("/**") && text != "/**/"
 }
 fn walk_imports(node: Node<'_>, source: &[u8], imports: &mut Vec<ImportRecord>) {
@@ -600,7 +592,7 @@ mod tests {
             .set_language(&language_for_path(Path::new(path)))
             .expect("parser loads");
         let tree = parser.parse(content, None).expect("source parses");
-        scan_comments_from_tree(tree.root_node(), content.as_bytes())
+        scan_comments_from_tree(Path::new(path), tree.root_node(), content.as_bytes())
     }
 
     #[test]
@@ -954,6 +946,49 @@ mod tests {
                     line: 3,
                     is_type_only: false,
                     is_dynamic: false,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn skips_swift_imports_inside_block_comments() {
+        let records = scan_imports(
+            &PathBuf::from("Sources/App/UI/ViewModel.swift"),
+            "/*\nimport Core\n*/\n/* outer /* inner import Nested */ still */\nimport Foundation\n",
+        )
+        .expect("swift imports should scan");
+
+        assert_eq!(
+            records,
+            vec![ImportRecord {
+                specifier: "Foundation".to_string(),
+                line: 5,
+                is_type_only: false,
+                is_dynamic: false,
+            }]
+        );
+    }
+
+    #[test]
+    fn classifies_swift_block_and_triple_slash_comments() {
+        assert_eq!(
+            comments("View.swift", "/*\n * block\n */\n/// doc\n// plain\n"),
+            vec![
+                CommentRecord {
+                    start_line: 1,
+                    end_line: 3,
+                    is_doc: false,
+                },
+                CommentRecord {
+                    start_line: 4,
+                    end_line: 4,
+                    is_doc: true,
+                },
+                CommentRecord {
+                    start_line: 5,
+                    end_line: 5,
+                    is_doc: false,
                 },
             ]
         );

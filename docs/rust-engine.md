@@ -27,7 +27,7 @@ Architecture rules:
 
 | Area | Notes |
 |------|-------|
-| `arch.imports` | Supports TypeScript/JavaScript static imports, dynamic imports, re-export specifiers (`export … from`), TS path aliases, allow/deny mode, `deny-packages` for npm and `node:` specifiers (matching the TS engine), and type-only allowance. Supports Python relative imports, resolvable absolute project imports, every target of a multi-target statement, `importlib.import_module`/`__import__` dynamic imports, `if TYPE_CHECKING:` blocks as type-only allowance, and `deny-packages` against pip packages and stdlib modules matched per dotted segment; unresolved Python package imports are otherwise ignored. Supports Swift `import Module` declarations when the module resolves to discovered project Swift files; unresolved system/package imports are ignored. |
+| `arch.imports` | Supports TypeScript/JavaScript static imports, dynamic imports, re-export specifiers (`export … from`), TS path aliases, allow/deny mode, `deny-packages` for npm and `node:` specifiers (matching the TS engine), and type-only allowance. Supports Python relative imports, resolvable absolute project imports, every target of a multi-target statement, `importlib.import_module`/`__import__` dynamic imports, `if TYPE_CHECKING:` blocks as type-only allowance, and `deny-packages` against pip packages and stdlib modules matched per dotted segment; unresolved Python package imports are otherwise ignored. Supports Swift `import_declaration` nodes — plain, attributed (`@_exported`, `@testable`), keyword-qualified (`import struct Module.Type`), and submodule paths — when the module resolves to discovered project Swift files; imports written inside comments produce no record, and unresolved system/package imports are ignored. |
 | `arch.forbidden` | Supports literal pattern checks for TypeScript/JavaScript, Python, and Swift files. JSX element checks are TypeScript/JavaScript only. |
 | `arch.singleton` | Supports literal pattern checks for TypeScript/JavaScript, Python, and Swift files. JSX element checks are TypeScript/JavaScript only. |
 
@@ -104,11 +104,28 @@ the Python behavior worth shipping and the package shape is decided.
 Swift support starts at the same architecture-pattern layer as Python did. The
 Rust engine discovers `.swift` files and applies language-neutral
 `arch.forbidden` and `arch.singleton` literal pattern rules to them.
-`arch.imports` parses Swift `import Module` declarations, including forms such
-as `@_exported import Module` and `import struct Module.Type`. Imported modules
-resolve against discovered project Swift directories and file stems. This is
-intended for architecture boundaries, not complete SwiftPM or Xcode build graph
-analysis. Unresolved system or package modules such as `Foundation` are ignored.
+
+`.swift` files parse with `tree-sitter-swift`, so Swift shares the same
+`TreeCache` path as TypeScript and Python. `arch.imports` walks
+`import_declaration` nodes: the module is the first `simple_identifier` under
+the declaration's `identifier` child, which covers `import Module`,
+`@_exported import Module`, `@testable import Module`,
+`import struct Module.Type`, and `import Module.Submodule` in one shape.
+Attributes live in a sibling `modifiers` node and carry no module of their own.
+An `import` inside a `//` or `/* */` comment produces no record, nesting
+included. Imported modules resolve against discovered project Swift directories
+and file stems. This is intended for architecture boundaries, not complete
+SwiftPM or Xcode build graph analysis. Unresolved system or package modules such
+as `Foundation` are ignored.
+
+The Swift grammar names block comments `multiline_comment` rather than
+`comment`, so the comment scanner matches both kinds; `arch.maxCommentDensity`
+and `arch.maxCommentBlock` treat `///` as a doc-comment in Swift, where
+TypeScript reserves triple slashes for `/// <reference>` directives.
+
+Swift cases live in `tests/rust-engine-cli.test.ts` and in Rust unit tests, never
+in the golden harness — the TypeScript engine cannot parse Swift, so no golden
+case can run through both engines.
 
 ## Custom Rules And Plugins
 

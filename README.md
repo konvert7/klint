@@ -484,12 +484,17 @@ arch:
       message: "Use AppConfig"
 ```
 
-Swift import checks parse declarations such as `import Core`,
-`@_exported import Core`, and `import struct Models.User`. Imported modules
-resolve against discovered project Swift directories and file stems. System or
-package modules that are not present in the project, such as `Foundation`, are
-ignored. This is architecture enforcement, not full SwiftPM or Xcode build graph
-analysis.
+Swift import checks read declarations off the AST, covering `import Core`,
+`@_exported import Core`, `@testable import Core`, `import struct Models.User`,
+and submodule paths such as `import Core.Session`. Because the specifier comes
+from the parse tree, an `import` written inside a `//` or `/* */` comment is not
+an import — including nested block comments. Imported modules resolve against
+discovered project Swift directories and file stems. System or package modules
+that are not present in the project, such as `Foundation`, are ignored. This is
+architecture enforcement, not full SwiftPM or Xcode build graph analysis.
+
+Comment budget rules apply to Swift too, where `///` counts as a doc-comment
+alongside `/** */`.
 
 ## Built-in Rules
 

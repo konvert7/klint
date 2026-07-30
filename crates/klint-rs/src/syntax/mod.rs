@@ -78,7 +78,7 @@ enum SourceLanguage {
 fn language_for_path(path: &Path) -> Language {
     match source_language_for_path(path) {
         SourceLanguage::Python => tree_sitter_python::LANGUAGE.into(),
-        SourceLanguage::Swift => tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
+        SourceLanguage::Swift => tree_sitter_swift::LANGUAGE.into(),
         SourceLanguage::JavaScriptLike => {
             if is_jsx_path(path) {
                 tree_sitter_typescript::LANGUAGE_TSX.into()

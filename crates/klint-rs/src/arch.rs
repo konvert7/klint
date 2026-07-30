@@ -4,7 +4,7 @@ use crate::files::{
 };
 use crate::output::Violation;
 use crate::syntax::{
-    TreeCache, is_jsx_path, scan_comments_from_tree, scan_imports, scan_imports_from_tree,
+    TreeCache, is_jsx_path, scan_comments_from_tree, scan_imports_from_tree,
     scan_jsx_elements_from_tree,
 };
 use serde::Deserialize;
@@ -239,7 +239,7 @@ fn comment_line_set(
     count_doc_comments: bool,
 ) -> Option<Vec<usize>> {
     let tree = tree_cache.get_or_parse(file, content)?;
-    let comments = scan_comments_from_tree(tree.root_node(), content.as_bytes());
+    let comments = scan_comments_from_tree(file, tree.root_node(), content.as_bytes());
     let mut lines = std::collections::BTreeSet::new();
     for comment in comments {
         if !count_doc_comments && comment.is_doc {
@@ -410,20 +410,10 @@ fn run_arch_import_rules(
             let Some(content) = file_contents.get(&file) else {
                 continue;
             };
-            // Swift import scanning never parses with tree-sitter (see
-            // `scan_imports`), so route it straight to the fallback rather
-            // than asking the cache to parse Swift source as TypeScript.
-            let imports = if is_swift_source(&file) {
-                let Ok(imports) = scan_imports(&file, content) else {
-                    continue;
-                };
-                imports
-            } else {
-                let Some(tree) = tree_cache.get_or_parse(&file, content) else {
-                    continue;
-                };
-                scan_imports_from_tree(&file, tree.root_node(), content.as_bytes())
+            let Some(tree) = tree_cache.get_or_parse(&file, content) else {
+                continue;
             };
+            let imports = scan_imports_from_tree(&file, tree.root_node(), content.as_bytes());
 
             for import in imports {
                 if allow_type_only && import.is_type_only {
