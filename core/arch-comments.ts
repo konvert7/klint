@@ -15,6 +15,8 @@ function collectComments(file: string, content: string): CommentSpan[] {
   const scanner = ts.createScanner(ts.ScriptTarget.Latest, false, variant, content);
   const starts = lineStarts(content);
   const spans: CommentSpan[] = [];
+  const substitutionDepths: number[] = [];
+  let braceDepth = 0;
   let token = scanner.scan();
   while (token !== ts.SyntaxKind.EndOfFileToken) {
     if (
@@ -28,6 +30,18 @@ function collectComments(file: string, content: string): CommentSpan[] {
         endLine: lineAt(starts, Math.max(start, end - 1)),
         isDoc: isDocComment(content.slice(start, end)),
       });
+    } else if (token === ts.SyntaxKind.TemplateHead) {
+      substitutionDepths.push(braceDepth);
+    } else if (token === ts.SyntaxKind.OpenBraceToken) {
+      braceDepth += 1;
+    } else if (token === ts.SyntaxKind.CloseBraceToken) {
+      if (substitutionDepths.at(-1) === braceDepth) {
+        if (scanner.reScanTemplateToken(false) === ts.SyntaxKind.TemplateTail) {
+          substitutionDepths.pop();
+        }
+      } else {
+        braceDepth -= 1;
+      }
     }
     token = scanner.scan();
   }

@@ -723,5 +723,74 @@
         "warnings": 0
       }
     }
+  },
+  {
+    "name": "comment rules see past template literal substitutions across engines",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {},
+      "arch": {
+        "layers": {
+          "app": [
+            "src/**"
+          ]
+        },
+        "maxCommentBlock": [
+          {
+            "limit": 3,
+            "in": "app",
+            "message": "Comment stack too tall"
+          }
+        ]
+      }
+    },
+    "files": {
+      "src/plain.ts": "const greeting = \"hello\";\n// one\n// two\n// three\n// four\nconst z = 1;\n",
+      "src/substitution.ts": "const greeting = `hi ${name} there`;\n// one\n// two\n// three\n// four\nconst z = 1;\n",
+      "src/object-substitution.ts": "const s = `${ { k: 1 } }`;\n// one\n// two\n// three\n// four\nconst z = 1;\n",
+      "src/nested-substitution.ts": "const s = `a${ `b${c}` }d`;\n// one\n// two\n// three\n// four\nconst z = 1;\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/nested-substitution.ts",
+          "line": 5,
+          "rule": "arch/max-comment-block",
+          "message": "Comment stack too tall",
+          "severity": "error",
+          "fix": null
+        },
+        {
+          "file": "src/object-substitution.ts",
+          "line": 5,
+          "rule": "arch/max-comment-block",
+          "message": "Comment stack too tall",
+          "severity": "error",
+          "fix": null
+        },
+        {
+          "file": "src/plain.ts",
+          "line": 5,
+          "rule": "arch/max-comment-block",
+          "message": "Comment stack too tall",
+          "severity": "error",
+          "fix": null
+        },
+        {
+          "file": "src/substitution.ts",
+          "line": 5,
+          "rule": "arch/max-comment-block",
+          "message": "Comment stack too tall",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 4,
+        "warnings": 0
+      }
+    }
   }
 ]

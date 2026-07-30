@@ -181,6 +181,59 @@ describe("arch comment rules — shared behavior", () => {
   });
 });
 
+describe("arch comment rules — template literals", () => {
+  const tallBlock = "// one\n// two\n// three\n// four\nconst z = 1;\n";
+
+  test("sees comments that follow a template substitution", () => {
+    const v = lint(
+      { maxCommentBlock: [{ limit: 3, in: "src/**" }] },
+      [
+        {
+          path: ["src", "a.ts"],
+          content: `const greeting = \`hi \${name} there\`;\n${tallBlock}`,
+        },
+      ],
+      "arch/max-comment-block"
+    );
+    expect(v).toHaveLength(1);
+    expect(v[0].line).toBe(5);
+  });
+
+  test("sees comments after a substitution containing an object literal", () => {
+    const v = lint(
+      { maxCommentBlock: [{ limit: 3, in: "src/**" }] },
+      [{ path: ["src", "a.ts"], content: `const s = \`\${ { k: 1 } }\`;\n${tallBlock}` }],
+      "arch/max-comment-block"
+    );
+    expect(v).toHaveLength(1);
+    expect(v[0].line).toBe(5);
+  });
+
+  test("sees comments after nested template substitutions", () => {
+    const v = lint(
+      { maxCommentBlock: [{ limit: 3, in: "src/**" }] },
+      [
+        {
+          path: ["src", "a.ts"],
+          content: `const s = \`a\${ \`b\${c}\` }d\`;\nconst t = \`\${u}\`;\n${tallBlock}`,
+        },
+      ],
+      "arch/max-comment-block"
+    );
+    expect(v).toHaveLength(1);
+    expect(v[0].line).toBe(6);
+  });
+
+  test("counts density across a template substitution", () => {
+    const v = lint(
+      { maxCommentDensity: [{ limit: 10, in: "src/**" }] },
+      [{ path: ["src", "a.ts"], content: `const s = \`\${x}\`;\n${tallBlock}` }],
+      "arch/max-comment-density"
+    );
+    expect(v).toHaveLength(1);
+  });
+});
+
 describe("arch comment rules — schema validation", () => {
   function parse(arch: unknown) {
     return KlintConfigSchema.safeParse({ include: ["."], rules: {}, arch });
