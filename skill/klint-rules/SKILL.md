@@ -93,8 +93,9 @@ arch:
 ```
 
 `deny-packages` matches per path segment: `next` covers `next/headers`, `nextra` is unaffected, and
-`next/headers` does not match `next/navigation`. The specifier is read off the AST, so static and
-dynamic `import()` both count while a comment mentioning the package does not — unlike
+`next/headers` does not match `next/navigation`. The specifier is read off the AST, so static
+imports, dynamic `import()`, and `export … from` re-exports all count while a comment mentioning
+the package does not — unlike
 `forbidden` + `pattern`, which is a line-based text scan. TypeScript/JavaScript only.
 
 ### Singleton — one designated location

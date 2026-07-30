@@ -135,6 +135,11 @@ function scanImports(
         specifierNode = node.moduleSpecifier;
         isTypeOnly = node.importClause?.isTypeOnly ?? false;
       }
+    } else if (ts.isExportDeclaration(node)) {
+      if (node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
+        specifierNode = node.moduleSpecifier;
+        isTypeOnly = node.isTypeOnly;
+      }
     } else if (
       ts.isCallExpression(node) &&
       node.expression.kind === ts.SyntaxKind.ImportKeyword &&

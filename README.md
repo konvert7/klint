@@ -248,6 +248,10 @@ arch:
       message: "Data modules may only depend on data, db, and types"
 ```
 
+Every rule reads the module specifier off the AST, so `import`, dynamic
+`import()`, and re-exports all count as dependencies — `export { x } from "…"`
+and `export * from "…"` cross a boundary exactly like an import does.
+
 Allow type-only imports when runtime imports are forbidden:
 
 ```yaml

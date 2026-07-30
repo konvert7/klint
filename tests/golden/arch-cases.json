@@ -514,5 +514,106 @@
         "warnings": 0
       }
     }
+  },
+  {
+    "name": "arch imports deny re-export specifiers across engines",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {},
+      "arch": {
+        "layers": {
+          "skills": [
+            "assets/skills/**"
+          ],
+          "core": [
+            "src/lib/**"
+          ]
+        },
+        "imports": [
+          {
+            "from": "skills",
+            "deny": "core",
+            "type-only": "allow",
+            "message": "Skills must be self-contained"
+          }
+        ]
+      }
+    },
+    "files": {
+      "assets/skills/demo/index.ts": "export { foo } from \"../../../src/lib/utils\";\nexport * from \"../../../src/lib/dynamic\";\nexport type { Shape } from \"../../../src/lib/types\";\nexport const local = 1;\n",
+      "src/lib/utils.ts": "export const foo = 1;\n",
+      "src/lib/dynamic.ts": "export const dynamic = 1;\n",
+      "src/lib/types.ts": "export type Shape = { id: string };\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "assets/skills/demo/index.ts",
+          "line": 1,
+          "rule": "arch/imports",
+          "message": "Skills must be self-contained",
+          "severity": "error",
+          "fix": null
+        },
+        {
+          "file": "assets/skills/demo/index.ts",
+          "line": 2,
+          "rule": "arch/imports",
+          "message": "Skills must be self-contained",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 2,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "arch imports deny-packages blocks a re-exported package specifier",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {},
+      "arch": {
+        "layers": {
+          "dao": [
+            "src/dao/**"
+          ]
+        },
+        "imports": [
+          {
+            "from": "dao",
+            "deny-packages": [
+              "next/headers"
+            ],
+            "message": "Data access must not read request state"
+          }
+        ]
+      }
+    },
+    "files": {
+      "src/dao/user.ts": "export { headers } from \"next/headers\";\nexport { cache } from \"react\";\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/dao/user.ts",
+          "line": 1,
+          "rule": "arch/imports",
+          "message": "Data access must not read request state",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
   }
 ]

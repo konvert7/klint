@@ -173,14 +173,11 @@ fn is_doc_comment(text: &str) -> bool {
     text.starts_with("/**") && text != "/**/"
 }
 fn walk_imports(node: Node<'_>, source: &[u8], imports: &mut Vec<ImportRecord>) {
-    if node.kind() == "import_statement" {
-        if let Some(record) = static_import_record(node, source) {
-            imports.push(record);
-        }
-    } else if node.kind() == "call_expression"
-        && let Some(record) = dynamic_import_record(node, source)
-    {
-        imports.push(record);
+    match node.kind() {
+        "import_statement" => imports.extend(module_source_record(node, source, "import type ")),
+        "export_statement" => imports.extend(module_source_record(node, source, "export type ")),
+        "call_expression" => imports.extend(dynamic_import_record(node, source)),
+        _ => {}
     }
 
     let mut cursor = node.walk();
@@ -189,21 +186,28 @@ fn walk_imports(node: Node<'_>, source: &[u8], imports: &mut Vec<ImportRecord>) 
     }
 }
 
-fn static_import_record(node: Node<'_>, source: &[u8]) -> Option<ImportRecord> {
+/// The specifier of a statement that names another module — `import … from
+/// "x"` and re-exporting `export … from "x"`. A local `export const` carries no
+/// `source` field, so it yields nothing.
+fn module_source_record(
+    node: Node<'_>,
+    source: &[u8],
+    type_only_prefix: &str,
+) -> Option<ImportRecord> {
     let source_node = node.child_by_field_name("source")?;
     Some(ImportRecord {
         specifier: node_text(source_node, source)?,
         line: source_node.start_position().row + 1,
-        is_type_only: static_import_is_type_only(node, source),
+        is_type_only: node_starts_with(node, source, type_only_prefix),
         is_dynamic: false,
     })
 }
 
-fn static_import_is_type_only(node: Node<'_>, source: &[u8]) -> bool {
+fn node_starts_with(node: Node<'_>, source: &[u8], prefix: &str) -> bool {
     let Ok(text) = node.utf8_text(source) else {
         return false;
     };
-    text.trim_start().starts_with("import type ")
+    text.trim_start().starts_with(prefix)
 }
 
 fn dynamic_import_record(node: Node<'_>, source: &[u8]) -> Option<ImportRecord> {
