@@ -1,3 +1,15 @@
+# [0.31.0](https://github.com/konvert7/klint/compare/v0.30.0...v0.31.0) (2026-07-30)
+
+
+### Bug Fixes
+
+* **comments:** scan past template literal substitutions ([11f8255](https://github.com/konvert7/klint/commit/11f8255df6949c2c97243833572c70f0d1076e87))
+
+
+### Features
+
+* **schema:** ship the config schema in the published package ([64f86ee](https://github.com/konvert7/klint/commit/64f86ee4209fadd7f2717653671a84e2224131c7))
+
 # [0.30.0](https://github.com/konvert7/klint/compare/v0.29.0...v0.30.0) (2026-07-30)
 
 
