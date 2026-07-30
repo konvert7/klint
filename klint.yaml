@@ -23,37 +23,48 @@ arch:
     plugins: ["plugins/**"]
     cli:     ["cli.ts", "cli/**"]
     engine:  ["crates/klint-rs/src/**"]
+    engine-tests: ["crates/klint-rs/tests/**"]
 
   imports:
     - from: [core, rules, plugins]
       deny: cli
       message: "Library layers must not import from the CLI — the dependency flows one way."
+    - from: [core, rules, plugins]
+      deny-packages: ["node:child_process"]
+      message: "Only the CLI may spawn a process — library layers must stay embeddable."
 
   forbidden:
-    - pattern: "console.log("
+    - pattern: "re:console\\.(log|error|warn|info|debug|trace)\\("
       in: [core, rules, plugins]
-      message: "console.log in library code corrupts --json output — delegate all output to the CLI."
-    - pattern: "console.error("
-      in: [core, rules, plugins]
-      message: "console.error in library code corrupts --json output — delegate all output to the CLI."
+      message: "console output in library code corrupts --json — delegate all output to the CLI."
+    - pattern: ".unwrap()"
+      in: [engine, engine-tests]
+      message: "Use .expect(\"reason\") so a panic says why."
+    - pattern: "unsafe "
+      in: engine
+      message: "The engine is safe Rust — no unsafe blocks."
 
   singleton:
     - pattern: "process.exit("
       only: "cli.ts"
       in: [core, rules, plugins]
       message: "process.exit() in a library layer terminates the host — only the CLI may exit."
+    - pattern: "std::process::exit("
+      only: "crates/klint-rs/src/main.rs"
+      in: engine
+      message: "klint-rs is a library too — only the binary entrypoint may exit."
 
   maxLines:
     - limit: 500
-      in: [core, rules, plugins, cli, engine]
+      in: [core, rules, plugins, cli, engine, engine-tests]
       message: "This file is too long — split it into focused modules."
 
   maxCommentDensity:
     - limit: 5
-      in: [core, rules, plugins, cli, engine]
+      in: [core, rules, plugins, cli, engine, engine-tests]
       message: "Too much of this file is comments — encode intent in names and small functions, not prose."
 
   maxCommentBlock:
     - limit: 2
-      in: [core, rules, plugins, cli, engine]
+      in: [core, rules, plugins, cli, engine, engine-tests]
       message: "Comment block too tall — extract a well-named function instead of stacking comment lines."
