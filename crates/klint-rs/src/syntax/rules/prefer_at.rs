@@ -35,7 +35,7 @@ fn walk_prefer_at(node: Node<'_>, source: &[u8], records: &mut Vec<PreferAtRecor
         walk_prefer_at(child, source, records);
     }
 }
-fn prefer_at_record(node: Node<'_>, source: &[u8]) -> Option<PreferAtRecord> {
+pub(crate) fn prefer_at_record(node: Node<'_>, source: &[u8]) -> Option<PreferAtRecord> {
     let object = node.child_by_field_name("object")?;
     let index = node.child_by_field_name("index")?;
     if index.kind() != "binary_expression" {

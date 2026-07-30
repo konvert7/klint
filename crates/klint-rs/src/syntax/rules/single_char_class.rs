@@ -52,7 +52,10 @@ struct CharClass {
     inner: String,
 }
 
-fn single_char_class_record(node: Node<'_>, source: &[u8]) -> Option<SingleCharClassRecord> {
+pub(crate) fn single_char_class_record(
+    node: Node<'_>,
+    source: &[u8],
+) -> Option<SingleCharClassRecord> {
     let regex = raw_node_text(node, source)?;
     let pattern_end = regex.rfind('/')?;
     let pattern = regex.get(1..pattern_end)?;

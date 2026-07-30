@@ -48,7 +48,7 @@ fn walk_json_parse_calls(
     }
 }
 
-fn is_json_parse_call(node: Node<'_>, source: &[u8]) -> bool {
+pub(crate) fn is_json_parse_call(node: Node<'_>, source: &[u8]) -> bool {
     if node.kind() != "call_expression" {
         return false;
     }

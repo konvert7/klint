@@ -47,7 +47,7 @@ fn walk_prefer_nullish_coalescing_assign(
     }
 }
 
-fn prefer_nullish_coalescing_assign_record(
+pub(crate) fn prefer_nullish_coalescing_assign_record(
     node: Node<'_>,
     source: &[u8],
 ) -> Option<PreferNullishCoalescingAssignRecord> {

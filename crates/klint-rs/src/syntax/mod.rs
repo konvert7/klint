@@ -1,7 +1,9 @@
 mod architecture;
 mod rules;
 
-pub use architecture::{ImportRecord, JsxElementRecord, scan_imports, scan_jsx_elements};
+pub use architecture::{
+    CommentRecord, ImportRecord, JsxElementRecord, scan_imports, scan_jsx_elements,
+};
 pub(crate) use architecture::{
     scan_comments_from_tree, scan_imports_from_tree, scan_jsx_elements_from_tree,
 };
@@ -15,54 +17,18 @@ pub use rules::{
     scan_string_match, scan_sync_in_async, scan_unguarded_json_parse,
 };
 pub(crate) use rules::{
-    scan_consecutive_array_push_from_tree, scan_nested_template_literals_from_tree,
-    scan_prefer_at_from_tree, scan_prefer_nullish_coalescing_assign_from_tree,
-    scan_prefer_string_raw_from_tree, scan_prefer_string_raw_regexp_from_tree,
-    scan_prefer_string_replaceall_from_tree, scan_single_char_classes_from_tree,
-    scan_string_match_from_tree, scan_sync_in_async_from_tree, scan_unguarded_json_parse_from_tree,
+    find_nested_template_literals, is_async_function_like, is_function_like, is_json_parse_call,
+    prefer_at_record, prefer_nullish_coalescing_assign_record, prefer_string_raw_record,
+    prefer_string_raw_regexp_record, prefer_string_replaceall_record, scan_statement_run,
+    single_char_class_record, string_match_record, sync_call_name,
 };
 
-use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::path::Path;
 use tree_sitter::{Language, Node, Parser, Tree};
 
-/// Parses each file at most once per run and lets every rule/arch scan that
-/// needs an AST for that file reuse the same parse instead of independently
-/// re-parsing the same source. `Tree` clones are cheap (tree-sitter
-/// refcounts the underlying tree), so misses are memoized and hits just
-/// clone out of the cache. Backed by a `Mutex` (rather than `RefCell`) so
-/// the same cache can be shared across the threads that run rule/arch
-/// checks concurrently — `Tree` is `Send + Sync`, so this is sound.
-#[derive(Default)]
-pub(crate) struct TreeCache {
-    cache: Mutex<BTreeMap<PathBuf, Tree>>,
-}
-
-impl TreeCache {
-    pub(crate) fn new() -> Self {
-        Self::default()
-    }
-
-    pub(crate) fn get_or_parse(&self, file: &Path, content: &str) -> Option<Tree> {
-        if let Some(tree) = self
-            .cache
-            .lock()
-            .expect("tree cache lock poisoned")
-            .get(file)
-        {
-            return Some(tree.clone());
-        }
-        let tree = parse_tree(file, content)?;
-        self.cache
-            .lock()
-            .expect("tree cache lock poisoned")
-            .insert(file.to_path_buf(), tree.clone());
-        Some(tree)
-    }
-}
-
-fn parse_tree(path: &Path, content: &str) -> Option<Tree> {
+/// Parses one file's source. The engine walks each file exactly once, so
+/// there is no cache to miss — every call here is work that has to happen.
+pub(crate) fn parse_source(path: &Path, content: &str) -> Option<Tree> {
     let mut parser = Parser::new();
     parser.set_language(&language_for_path(path)).ok()?;
     parser.parse(content, None)

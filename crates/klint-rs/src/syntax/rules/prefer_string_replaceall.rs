@@ -45,7 +45,7 @@ fn walk_prefer_string_replaceall(
         walk_prefer_string_replaceall(child, source, records);
     }
 }
-fn prefer_string_replaceall_record(
+pub(crate) fn prefer_string_replaceall_record(
     node: Node<'_>,
     source: &[u8],
 ) -> Option<PreferStringReplaceAllRecord> {

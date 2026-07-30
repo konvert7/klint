@@ -50,21 +50,21 @@ fn walk_sync_calls(
         walk_sync_calls(child, next_nearest_function_is_async, source, records);
     }
 }
-fn is_function_like(node: Node<'_>) -> bool {
+pub(crate) fn is_function_like(node: Node<'_>) -> bool {
     matches!(
         node.kind(),
         "function_declaration" | "function_expression" | "arrow_function" | "method_definition"
     )
 }
 
-fn is_async_function_like(node: Node<'_>, source: &[u8]) -> bool {
+pub(crate) fn is_async_function_like(node: Node<'_>, source: &[u8]) -> bool {
     let Ok(text) = node.utf8_text(source) else {
         return false;
     };
     text.trim_start().starts_with("async ")
 }
 
-fn sync_call_name(node: Node<'_>, source: &[u8]) -> Option<String> {
+pub(crate) fn sync_call_name(node: Node<'_>, source: &[u8]) -> Option<String> {
     if node.kind() != "call_expression" {
         return None;
     }

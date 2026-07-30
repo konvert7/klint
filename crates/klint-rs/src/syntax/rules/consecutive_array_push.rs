@@ -44,7 +44,7 @@ fn walk_statement_containers(
     }
 }
 
-fn scan_statement_run(
+pub(crate) fn scan_statement_run(
     node: Node<'_>,
     source: &[u8],
     records: &mut Vec<ConsecutiveArrayPushRecord>,

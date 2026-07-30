@@ -43,7 +43,10 @@ fn walk_prefer_string_raw(node: Node<'_>, source: &[u8], records: &mut Vec<Prefe
     }
 }
 
-fn prefer_string_raw_record(node: Node<'_>, source: &[u8]) -> Option<PreferStringRawRecord> {
+pub(crate) fn prefer_string_raw_record(
+    node: Node<'_>,
+    source: &[u8],
+) -> Option<PreferStringRawRecord> {
     let raw = raw_node_text(node, source)?;
     if !raw.contains("\\\\") {
         return None;

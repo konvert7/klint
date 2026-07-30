@@ -38,7 +38,7 @@ fn walk_string_match(node: Node<'_>, source: &[u8], records: &mut Vec<StringMatc
         walk_string_match(child, source, records);
     }
 }
-fn string_match_record(node: Node<'_>, source: &[u8]) -> Option<StringMatchRecord> {
+pub(crate) fn string_match_record(node: Node<'_>, source: &[u8]) -> Option<StringMatchRecord> {
     let function = node.child_by_field_name("function")?;
     if function.kind() != "member_expression" {
         return None;

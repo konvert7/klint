@@ -1,6 +1,7 @@
-use super::layers::{in_prefixes, resolve_layer_prefixes};
+use super::layers::{in_prefixes, resolve_layer_mask, resolve_layer_prefixes};
 use super::resolve::{
-    PythonContext, index_rust_crate_roots, index_swift_modules, load_path_aliases, resolve_import,
+    AliasEntry, PythonContext, index_rust_crate_roots, index_swift_modules, load_path_aliases,
+    resolve_import,
 };
 use super::*;
 use crate::files::{
@@ -8,120 +9,141 @@ use crate::files::{
     supports_import_scan,
 };
 use crate::output::Violation;
-use crate::syntax::{TreeCache, scan_imports_from_tree};
-use std::collections::BTreeMap;
+use crate::syntax::scan_imports_from_tree;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
+use tree_sitter::Node;
 
-pub(super) fn run_arch_import_rules(
-    arch: &ArchConfig,
-    files: &[PathBuf],
-    file_contents: &BTreeMap<PathBuf, String>,
-    tree_cache: &TreeCache,
-    root: &Path,
-) -> Vec<Violation> {
-    let mut violations = Vec::new();
-    let Some(rules) = &arch.imports else {
-        return violations;
-    };
-    let aliases = load_path_aliases(root);
-    let python = PythonContext::index(root, files);
-    let swift_modules = index_swift_modules(root, files);
-    let rust_crate_roots = index_rust_crate_roots(files);
+/// Project-wide module indexes, built once per run rather than once per rule.
+pub(super) struct ResolveContext {
+    aliases: Vec<AliasEntry>,
+    python: PythonContext,
+    swift_modules: BTreeMap<String, PathBuf>,
+    rust_crate_roots: BTreeSet<PathBuf>,
+}
 
-    for rule in rules {
-        if rule.deny.is_none() && rule.allow.is_none() && rule.deny_packages.is_none() {
-            continue;
-        }
-        let allow_type_only = rule.type_only.as_deref() == Some("allow");
-        let deny_packages = rule
-            .deny_packages
-            .as_ref()
-            .map(StringOrVec::items)
-            .unwrap_or_default();
-
-        let severity = rule.severity.as_deref().unwrap_or("error");
-        let from_files = resolve_layer_files(&rule.from, arch.layers.as_ref(), root, files);
-        let deny_prefixes = rule
-            .deny
-            .as_ref()
-            .map(|deny| resolve_layer_prefixes(deny, arch.layers.as_ref(), root));
-        let allow_prefixes = rule
-            .allow
-            .as_ref()
-            .map(|allow| resolve_layer_prefixes(allow, arch.layers.as_ref(), root));
-
-        for file in from_files {
-            if !supports_import_scan(&file) {
-                continue;
-            }
-            let Some(content) = file_contents.get(&file) else {
-                continue;
-            };
-            let Some(tree) = tree_cache.get_or_parse(&file, content) else {
-                continue;
-            };
-            let imports = scan_imports_from_tree(&file, tree.root_node(), content.as_bytes());
-
-            for import in imports {
-                if allow_type_only && import.is_type_only {
-                    continue;
-                }
-                let Some(resolved) = resolve_import(
-                    &file,
-                    root,
-                    &import.specifier,
-                    &aliases,
-                    &python,
-                    &swift_modules,
-                    &rust_crate_roots,
-                ) else {
-                    if denies_package(&file, &import.specifier, &deny_packages) {
-                        violations.push(Violation {
-                            file: relative_path(root, &file),
-                            line: import.line,
-                            rule: "arch/imports".to_string(),
-                            message: rule
-                                .message
-                                .as_deref()
-                                .unwrap_or("Import of a denied package")
-                                .to_string(),
-                            severity: severity.to_string(),
-                            fix: None,
-                        });
-                    }
-                    continue;
-                };
-
-                let message = if let Some(prefixes) = &deny_prefixes {
-                    if !in_prefixes(&resolved, prefixes) {
-                        continue;
-                    }
-                    rule.message
-                        .as_deref()
-                        .unwrap_or("Import crosses a denied boundary")
-                } else if let Some(prefixes) = &allow_prefixes {
-                    if in_prefixes(&resolved, prefixes) {
-                        continue;
-                    }
-                    rule.message
-                        .as_deref()
-                        .unwrap_or("Import is not in the allowed list")
-                } else {
-                    continue;
-                };
-
-                violations.push(Violation {
-                    file: relative_path(root, &file),
-                    line: import.line,
-                    rule: "arch/imports".to_string(),
-                    message: message.to_string(),
-                    severity: severity.to_string(),
-                    fix: None,
-                });
-            }
+impl ResolveContext {
+    pub(super) fn build(root: &Path, files: &[PathBuf]) -> Self {
+        Self {
+            aliases: load_path_aliases(root),
+            python: PythonContext::index(root, files),
+            swift_modules: index_swift_modules(root, files),
+            rust_crate_roots: index_rust_crate_roots(files),
         }
     }
-    violations
+}
+
+pub(super) struct ImportPass {
+    scope: Vec<bool>,
+    allow_type_only: bool,
+    deny_packages: Vec<String>,
+    deny_prefixes: Option<Vec<PathBuf>>,
+    allow_prefixes: Option<Vec<PathBuf>>,
+    message: Option<String>,
+    severity: String,
+}
+
+pub(super) fn plan_import_passes(
+    arch: &ArchConfig,
+    files: &[PathBuf],
+    root: &Path,
+) -> Vec<ImportPass> {
+    let Some(rules) = &arch.imports else {
+        return Vec::new();
+    };
+
+    rules
+        .iter()
+        .filter(|rule| rule.deny.is_some() || rule.allow.is_some() || rule.deny_packages.is_some())
+        .map(|rule| ImportPass {
+            scope: resolve_layer_mask(&rule.from, arch.layers.as_ref(), root, files),
+            allow_type_only: rule.type_only.as_deref() == Some("allow"),
+            deny_packages: rule
+                .deny_packages
+                .as_ref()
+                .map(StringOrVec::items)
+                .unwrap_or_default(),
+            deny_prefixes: rule
+                .deny
+                .as_ref()
+                .map(|deny| resolve_layer_prefixes(deny, arch.layers.as_ref(), root)),
+            allow_prefixes: rule
+                .allow
+                .as_ref()
+                .map(|allow| resolve_layer_prefixes(allow, arch.layers.as_ref(), root)),
+            message: rule.message.clone(),
+            severity: rule.severity.as_deref().unwrap_or("error").to_string(),
+        })
+        .collect()
+}
+
+impl ImportPass {
+    pub(super) fn covers(&self, file_index: usize, file: &Path) -> bool {
+        self.scope.get(file_index).copied().unwrap_or(false) && supports_import_scan(file)
+    }
+
+    pub(super) fn scan(
+        &self,
+        file: &Path,
+        root: &Path,
+        node: Node<'_>,
+        source: &[u8],
+        context: &ResolveContext,
+    ) -> Vec<Violation> {
+        let mut violations = Vec::new();
+        for import in scan_imports_from_tree(file, node, source) {
+            if self.allow_type_only && import.is_type_only {
+                continue;
+            }
+            let Some(resolved) = resolve_import(
+                file,
+                root,
+                &import.specifier,
+                &context.aliases,
+                &context.python,
+                &context.swift_modules,
+                &context.rust_crate_roots,
+            ) else {
+                if denies_package(file, &import.specifier, &self.deny_packages) {
+                    violations.push(self.violation(
+                        file,
+                        root,
+                        import.line,
+                        "Import of a denied package",
+                    ));
+                }
+                continue;
+            };
+
+            let message = if let Some(prefixes) = &self.deny_prefixes {
+                if !in_prefixes(&resolved, prefixes) {
+                    continue;
+                }
+                "Import crosses a denied boundary"
+            } else if let Some(prefixes) = &self.allow_prefixes {
+                if in_prefixes(&resolved, prefixes) {
+                    continue;
+                }
+                "Import is not in the allowed list"
+            } else {
+                continue;
+            };
+
+            violations.push(self.violation(file, root, import.line, message));
+        }
+        violations
+    }
+
+    fn violation(&self, file: &Path, root: &Path, line: usize, fallback: &str) -> Violation {
+        Violation {
+            file: relative_path(root, file),
+            line,
+            rule: "arch/imports".to_string(),
+            message: self.message.as_deref().unwrap_or(fallback).to_string(),
+            severity: self.severity.clone(),
+            fix: None,
+        }
+    }
 }
 
 fn denies_package(file: &Path, specifier: &str, entries: &[String]) -> bool {

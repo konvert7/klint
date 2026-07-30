@@ -10,6 +10,7 @@ use tree_sitter::{Node, Parser};
 
 use crate::syntax::{SourceLanguage, language_for_path, source_language_for_path};
 
+pub use comments::CommentRecord;
 pub(crate) use comments::scan_comments_from_tree;
 use javascript::walk_imports;
 pub(crate) use jsx::scan_jsx_elements_from_tree;

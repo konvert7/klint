@@ -1,6 +1,6 @@
-use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
 
 pub(crate) fn resolve_files(root: &Path, include: &[String]) -> Result<Vec<PathBuf>, String> {
     let mut files = Vec::new();
@@ -17,12 +17,43 @@ pub(crate) fn resolve_files(root: &Path, include: &[String]) -> Result<Vec<PathB
     Ok(files)
 }
 
-pub(crate) fn read_files(files: &[PathBuf]) -> Result<BTreeMap<PathBuf, String>, String> {
-    let mut contents = BTreeMap::new();
-    for file in files {
-        let content = fs::read_to_string(file)
-            .map_err(|err| format!("klint-rs: failed to read {}: {err}", file.display()))?;
-        contents.insert(file.clone(), content);
+/// Reads every file into a `Vec` positionally aligned with `files`, so the
+/// engine indexes contents rather than looking them up by path. Reads run
+/// across threads because they are independent and I/O-bound.
+pub(crate) fn read_files(files: &[PathBuf]) -> Result<Vec<String>, String> {
+    let next = AtomicUsize::new(0);
+    let workers = std::thread::available_parallelism()
+        .map_or(1, |count| count.get())
+        .min(files.len().max(1));
+
+    let claimed = std::thread::scope(|scope| {
+        (0..workers)
+            .map(|_| {
+                scope.spawn(|| {
+                    let mut read = Vec::new();
+                    loop {
+                        let index = next.fetch_add(1, AtomicOrdering::Relaxed);
+                        let Some(file) = files.get(index) else {
+                            return read;
+                        };
+                        read.push((
+                            index,
+                            fs::read_to_string(file).map_err(|err| {
+                                format!("klint-rs: failed to read {}: {err}", file.display())
+                            }),
+                        ));
+                    }
+                })
+            })
+            .collect::<Vec<_>>()
+            .into_iter()
+            .flat_map(|handle| handle.join().expect("file read thread panicked"))
+            .collect::<Vec<_>>()
+    });
+
+    let mut contents = vec![String::new(); files.len()];
+    for (index, result) in claimed {
+        contents[index] = result?;
     }
     Ok(contents)
 }

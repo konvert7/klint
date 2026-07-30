@@ -45,7 +45,7 @@ fn walk_prefer_string_raw_regexp(
         walk_prefer_string_raw_regexp(child, source, records);
     }
 }
-fn prefer_string_raw_regexp_record(
+pub(crate) fn prefer_string_raw_regexp_record(
     node: Node<'_>,
     source: &[u8],
 ) -> Option<PreferStringRawRegexpRecord> {

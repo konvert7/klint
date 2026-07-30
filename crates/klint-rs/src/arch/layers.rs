@@ -15,12 +15,14 @@ pub(super) fn resolve_layer_prefixes(
         .collect()
 }
 
-pub(super) fn resolve_layer_files(
+/// Which of `all_files` the scope covers, indexed by position so a pass can
+/// test applicability without re-walking prefixes per file.
+pub(super) fn resolve_layer_mask(
     scope: &StringOrVec,
     layers: Option<&BTreeMap<String, Vec<String>>>,
     root: &Path,
     all_files: &[PathBuf],
-) -> Vec<PathBuf> {
+) -> Vec<bool> {
     let globs = resolve_globs(scope, layers);
     let include_prefixes: Vec<PathBuf> = globs
         .iter()
@@ -35,7 +37,7 @@ pub(super) fn resolve_layer_files(
 
     all_files
         .iter()
-        .filter(|file| {
+        .map(|file| {
             include_prefixes
                 .iter()
                 .any(|prefix| path_in_prefix(file, prefix))
@@ -43,7 +45,6 @@ pub(super) fn resolve_layer_files(
                     .iter()
                     .any(|prefix| path_in_prefix(file, prefix))
         })
-        .cloned()
         .collect()
 }
 

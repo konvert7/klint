@@ -1,168 +1,176 @@
+use super::layers::resolve_layer_mask;
 use super::*;
 use crate::files::{normalize_path, relative_path};
 use crate::output::Violation;
-use crate::syntax::{TreeCache, is_jsx_path, scan_jsx_elements_from_tree};
-use std::collections::BTreeMap;
+use crate::syntax::{is_jsx_path, scan_jsx_elements_from_tree};
 use std::path::{Path, PathBuf};
+use tree_sitter::Node;
 
-struct PatternScan<'a> {
-    rule_name: &'a str,
-    pattern: &'a str,
-    message: &'a str,
-    severity: &'a str,
+/// A `forbidden` or `singleton` rule bound to the files it covers. Exactly one
+/// of `matcher`/`jsx_targets` is set — jsx-element rules take precedence in the
+/// config, and a rule with neither never becomes a pass.
+pub(super) struct PatternPass {
+    rule_name: &'static str,
+    scope: Vec<bool>,
+    matcher: Option<LineMatcher>,
+    jsx_targets: Option<Vec<String>>,
+    message: String,
+    severity: String,
 }
 
-struct ElementScan<'a> {
-    rule_name: &'a str,
-    message: &'a str,
-    severity: &'a str,
-}
-
-pub(super) fn run_arch_forbidden_rules(
+pub(super) fn plan_forbidden_passes(
     arch: &ArchConfig,
     files: &[PathBuf],
-    file_contents: &BTreeMap<PathBuf, String>,
-    tree_cache: &TreeCache,
     root: &Path,
-) -> Vec<Violation> {
-    let mut violations = Vec::new();
+) -> Vec<PatternPass> {
     let Some(rules) = &arch.forbidden else {
-        return violations;
+        return Vec::new();
     };
 
-    for rule in rules {
-        let scoped_files = resolve_layer_files(&rule.in_scope, arch.layers.as_ref(), root, files);
-        if let Some(tags) = &rule.jsx_element {
-            scan_jsx_elements_for_targets(
-                &scoped_files,
-                tags,
-                file_contents,
-                tree_cache,
-                root,
-                ElementScan {
-                    rule_name: "arch/forbidden",
-                    message: &rule.message,
-                    severity: rule.severity.as_deref().unwrap_or("error"),
-                },
-                &mut violations,
-            );
-            continue;
-        }
-
-        let Some(pattern) = &rule.pattern else {
-            continue;
-        };
-        scan_lines_for_pattern(
-            &scoped_files,
-            file_contents,
-            root,
-            PatternScan {
-                rule_name: "arch/forbidden",
-                pattern,
-                message: &rule.message,
-                severity: rule.severity.as_deref().unwrap_or("error"),
-            },
-            &mut violations,
-        );
-    }
-    violations
+    rules
+        .iter()
+        .filter_map(|rule| {
+            let scope = resolve_layer_mask(&rule.in_scope, arch.layers.as_ref(), root, files);
+            build_pass(
+                "arch/forbidden",
+                scope,
+                rule.jsx_element.as_ref(),
+                rule.pattern.as_deref(),
+                &rule.message,
+                rule.severity.as_deref(),
+            )
+        })
+        .collect()
 }
 
-pub(super) fn run_arch_singleton_rules(
+pub(super) fn plan_singleton_passes(
     arch: &ArchConfig,
     files: &[PathBuf],
-    file_contents: &BTreeMap<PathBuf, String>,
-    tree_cache: &TreeCache,
     root: &Path,
-) -> Vec<Violation> {
-    let mut violations = Vec::new();
+) -> Vec<PatternPass> {
     let Some(rules) = &arch.singleton else {
-        return violations;
+        return Vec::new();
     };
 
-    for rule in rules {
-        let only_file = normalize_path(&root.join(&rule.only));
-        let scoped_files = match &rule.in_scope {
-            Some(scope) => resolve_layer_files(scope, arch.layers.as_ref(), root, files),
-            None => files.to_vec(),
-        };
-        let checked_files = scoped_files
-            .into_iter()
-            .filter(|file| file != &only_file)
-            .collect::<Vec<_>>();
-
-        if let Some(tags) = &rule.jsx_element {
-            scan_jsx_elements_for_targets(
-                &checked_files,
-                tags,
-                file_contents,
-                tree_cache,
-                root,
-                ElementScan {
-                    rule_name: "arch/singleton",
-                    message: &rule.message,
-                    severity: rule.severity.as_deref().unwrap_or("error"),
-                },
-                &mut violations,
-            );
-            continue;
-        }
-
-        let Some(pattern) = &rule.pattern else {
-            continue;
-        };
-        scan_lines_for_pattern(
-            &checked_files,
-            file_contents,
-            root,
-            PatternScan {
-                rule_name: "arch/singleton",
-                pattern,
-                message: &rule.message,
-                severity: rule.severity.as_deref().unwrap_or("error"),
-            },
-            &mut violations,
-        );
-    }
-    violations
+    rules
+        .iter()
+        .filter_map(|rule| {
+            let only_file = normalize_path(&root.join(&rule.only));
+            let mut scope = match &rule.in_scope {
+                Some(in_scope) => resolve_layer_mask(in_scope, arch.layers.as_ref(), root, files),
+                None => vec![true; files.len()],
+            };
+            for (index, file) in files.iter().enumerate() {
+                if file == &only_file {
+                    scope[index] = false;
+                }
+            }
+            build_pass(
+                "arch/singleton",
+                scope,
+                rule.jsx_element.as_ref(),
+                rule.pattern.as_deref(),
+                &rule.message,
+                rule.severity.as_deref(),
+            )
+        })
+        .collect()
 }
 
-fn scan_jsx_elements_for_targets(
-    files: &[PathBuf],
-    targets: &StringOrVec,
-    file_contents: &BTreeMap<PathBuf, String>,
-    tree_cache: &TreeCache,
-    root: &Path,
-    scan: ElementScan<'_>,
-    violations: &mut Vec<Violation>,
-) {
-    let target_names = targets.items();
-    for file in files {
-        // Only jsx-path files can ever contain a jsx node, so skip the rest
-        // rather than asking the cache to parse them for nothing.
-        if !is_jsx_path(file) {
-            continue;
-        }
-        let Some(content) = file_contents.get(file) else {
-            continue;
-        };
-        let Some(tree) = tree_cache.get_or_parse(file, content) else {
-            continue;
-        };
-        let elements = scan_jsx_elements_from_tree(tree.root_node(), content.as_bytes());
+fn build_pass(
+    rule_name: &'static str,
+    scope: Vec<bool>,
+    jsx_element: Option<&StringOrVec>,
+    pattern: Option<&str>,
+    message: &str,
+    severity: Option<&str>,
+) -> Option<PatternPass> {
+    let (matcher, jsx_targets) = match (jsx_element, pattern) {
+        (Some(targets), _) => (None, Some(targets.items())),
+        (None, Some(pattern)) => (Some(LineMatcher::build(pattern)), None),
+        (None, None) => return None,
+    };
 
-        for element in elements {
-            if !target_names.contains(&element.tag_name) {
-                continue;
-            }
-            violations.push(Violation {
-                file: relative_path(root, file),
-                line: element.line,
-                rule: scan.rule_name.to_string(),
-                message: scan.message.to_string(),
-                severity: scan.severity.to_string(),
-                fix: None,
-            });
+    Some(PatternPass {
+        rule_name,
+        scope,
+        matcher,
+        jsx_targets,
+        message: message.to_string(),
+        severity: severity.unwrap_or("error").to_string(),
+    })
+}
+
+impl PatternPass {
+    pub(super) fn covers(&self, file_index: usize, file: &Path) -> bool {
+        if !self.scope.get(file_index).copied().unwrap_or(false) {
+            return false;
+        }
+        // Only jsx-path files can hold a jsx node, so skip the rest rather
+        // than asking for a parse that cannot match.
+        self.jsx_targets.is_none() || is_jsx_path(file)
+    }
+
+    pub(super) fn needs_tree(&self) -> bool {
+        self.jsx_targets.is_some()
+    }
+
+    pub(super) fn scan(
+        &self,
+        file: &Path,
+        root: &Path,
+        tree_root: Option<Node<'_>>,
+        source: &[u8],
+        content: &str,
+    ) -> Vec<Violation> {
+        match (&self.jsx_targets, &self.matcher) {
+            (Some(targets), _) => self.scan_elements(file, root, tree_root, source, targets),
+            (None, Some(matcher)) => self.scan_lines(file, root, content, matcher),
+            (None, None) => Vec::new(),
+        }
+    }
+
+    fn scan_elements(
+        &self,
+        file: &Path,
+        root: &Path,
+        tree_root: Option<Node<'_>>,
+        source: &[u8],
+        targets: &[String],
+    ) -> Vec<Violation> {
+        let Some(tree_root) = tree_root else {
+            return Vec::new();
+        };
+        scan_jsx_elements_from_tree(tree_root, source)
+            .into_iter()
+            .filter(|element| targets.contains(&element.tag_name))
+            .map(|element| self.violation(file, root, element.line))
+            .collect()
+    }
+
+    fn scan_lines(
+        &self,
+        file: &Path,
+        root: &Path,
+        content: &str,
+        matcher: &LineMatcher,
+    ) -> Vec<Violation> {
+        content
+            .lines()
+            .enumerate()
+            .filter(|(_, line)| matcher.is_match(line))
+            .map(|(index, _)| self.violation(file, root, index + 1))
+            .collect()
+    }
+
+    fn violation(&self, file: &Path, root: &Path, line: usize) -> Violation {
+        Violation {
+            file: relative_path(root, file),
+            line,
+            rule: self.rule_name.to_string(),
+            message: self.message.clone(),
+            severity: self.severity.clone(),
+            fix: None,
         }
     }
 }
@@ -192,34 +200,6 @@ impl LineMatcher {
         match self {
             Self::Literal(pattern) => line.contains(pattern.as_str()),
             Self::Regex(regex) => regex.is_match(line),
-        }
-    }
-}
-
-fn scan_lines_for_pattern(
-    files: &[PathBuf],
-    file_contents: &BTreeMap<PathBuf, String>,
-    root: &Path,
-    scan: PatternScan<'_>,
-    violations: &mut Vec<Violation>,
-) {
-    let matcher = LineMatcher::build(scan.pattern);
-    for file in files {
-        let Some(content) = file_contents.get(file) else {
-            continue;
-        };
-
-        for (index, line) in content.lines().enumerate() {
-            if matcher.is_match(line) {
-                violations.push(Violation {
-                    file: relative_path(root, file),
-                    line: index + 1,
-                    rule: scan.rule_name.to_string(),
-                    message: scan.message.to_string(),
-                    severity: scan.severity.to_string(),
-                    fix: None,
-                });
-            }
         }
     }
 }

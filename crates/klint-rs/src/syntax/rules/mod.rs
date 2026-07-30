@@ -22,17 +22,17 @@ pub use string_match::scan_string_match;
 pub use sync_in_async::scan_sync_in_async;
 pub use unguarded_json_parse::scan_unguarded_json_parse;
 
-pub(crate) use consecutive_array_push::scan_consecutive_array_push_from_tree;
-pub(crate) use nested_template_literals::scan_nested_template_literals_from_tree;
-pub(crate) use prefer_at::scan_prefer_at_from_tree;
-pub(crate) use prefer_nullish_coalescing_assign::scan_prefer_nullish_coalescing_assign_from_tree;
-pub(crate) use prefer_string_raw::scan_prefer_string_raw_from_tree;
-pub(crate) use prefer_string_raw_regexp::scan_prefer_string_raw_regexp_from_tree;
-pub(crate) use prefer_string_replaceall::scan_prefer_string_replaceall_from_tree;
-pub(crate) use single_char_class::scan_single_char_classes_from_tree;
-pub(crate) use string_match::scan_string_match_from_tree;
-pub(crate) use sync_in_async::scan_sync_in_async_from_tree;
-pub(crate) use unguarded_json_parse::scan_unguarded_json_parse_from_tree;
+pub(crate) use consecutive_array_push::scan_statement_run;
+pub(crate) use nested_template_literals::find_nested_template_literals;
+pub(crate) use prefer_at::prefer_at_record;
+pub(crate) use prefer_nullish_coalescing_assign::prefer_nullish_coalescing_assign_record;
+pub(crate) use prefer_string_raw::prefer_string_raw_record;
+pub(crate) use prefer_string_raw_regexp::prefer_string_raw_regexp_record;
+pub(crate) use prefer_string_replaceall::prefer_string_replaceall_record;
+pub(crate) use single_char_class::single_char_class_record;
+pub(crate) use string_match::string_match_record;
+pub(crate) use sync_in_async::{is_async_function_like, is_function_like, sync_call_name};
+pub(crate) use unguarded_json_parse::is_json_parse_call;
 
 use super::{language_for_path, raw_node_text};
 

@@ -41,7 +41,10 @@ fn walk_template_literals(node: Node<'_>, records: &mut Vec<NestedTemplateLitera
     }
 }
 
-fn find_nested_template_literals(node: Node<'_>, records: &mut Vec<NestedTemplateLiteralRecord>) {
+pub(crate) fn find_nested_template_literals(
+    node: Node<'_>,
+    records: &mut Vec<NestedTemplateLiteralRecord>,
+) {
     if is_tagged_template_call(node) {
         return;
     }
@@ -59,7 +62,7 @@ fn find_nested_template_literals(node: Node<'_>, records: &mut Vec<NestedTemplat
     }
 }
 
-fn is_tagged_template_call(node: Node<'_>) -> bool {
+pub(crate) fn is_tagged_template_call(node: Node<'_>) -> bool {
     if node.kind() != "call_expression" {
         return false;
     }
