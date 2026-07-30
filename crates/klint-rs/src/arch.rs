@@ -886,7 +886,7 @@ fn denies_package(file: &Path, specifier: &str, entries: &[String]) -> bool {
 fn package_separator(file: &Path) -> Option<char> {
     if is_javascript_like_source(file) {
         Some('/')
-    } else if is_python_source(file) {
+    } else if is_python_source(file) || is_swift_source(file) {
         Some('.')
     } else {
         None
@@ -1003,7 +1003,7 @@ fn scan_lines_for_pattern(
 
 #[cfg(test)]
 mod tests {
-    use super::{first_comment_block_overrun, matches_package};
+    use super::{Path, first_comment_block_overrun, matches_package, package_separator};
 
     #[test]
     fn matches_npm_packages_by_slash_segment() {
@@ -1022,6 +1022,17 @@ mod tests {
         assert!(matches_package("google.cloud.storage", &entries, '.'));
         assert!(!matches_package("oscrypto", &entries, '.'));
         assert!(!matches_package("google.protobuf", &entries, '.'));
+    }
+
+    #[test]
+    fn separates_swift_specifiers_by_dot() {
+        assert_eq!(
+            package_separator(Path::new("Sources/App/Core/Auth.swift")),
+            Some('.')
+        );
+        let entries = vec!["UIKit".to_string()];
+        assert!(matches_package("UIKit", &entries, '.'));
+        assert!(!matches_package("UIKitten", &entries, '.'));
     }
 
     #[test]

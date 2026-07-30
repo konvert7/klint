@@ -1043,6 +1043,44 @@ arch:
     }
   });
 
+  test("--engine rust blocks denied Swift system frameworks", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["Sources"]
+rules: {}
+arch:
+  layers:
+    core: ["Sources/App/Core/**"]
+  imports:
+    - from: core
+      deny-packages: ["UIKit", "Foundation"]
+      message: "Core must stay free of UI and platform frameworks"
+`,
+      {
+        "Sources/App/Core/Auth.swift":
+          "import UIKit\nimport Foundation\nimport SwiftUI\nimport UIKitten\nimport Session\n",
+        "Sources/App/Core/Session.swift": "public struct Session {}\n",
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{ file: string; line: number; message: string }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(rust.code).toBe(2);
+      expect(payload.summary).toEqual({ errors: 2, warnings: 0 });
+      expect(payload.violations.map((violation) => violation.line)).toEqual([1, 2]);
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine rust rejects unknown plugins", () => {
     const dir = setupFixture(
       `

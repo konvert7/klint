@@ -291,6 +291,17 @@ arch:
       message: "Jobs must go through the http client and config"
 ```
 
+Swift splits on dots as well and matches at module granularity, which makes system frameworks —
+exactly the imports that never resolve to a project file — the natural target:
+
+```yaml
+arch:
+  imports:
+    - from: ["Sources/App/Core/**"]
+      deny-packages: ["UIKit", "Foundation"]
+      message: "Core must stay free of UI and platform frameworks"
+```
+
 The specifier comes off the AST rather than a
 text scan, so static imports and dynamic `import()` are both caught while a mention inside a comment
 or string is not. `type-only: allow` exempts `import type` here too. `deny-packages` composes with

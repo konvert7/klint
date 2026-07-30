@@ -27,7 +27,7 @@ Architecture rules:
 
 | Area | Notes |
 |------|-------|
-| `arch.imports` | Supports TypeScript/JavaScript static imports, dynamic imports, re-export specifiers (`export … from`), TS path aliases, allow/deny mode, `deny-packages` for npm and `node:` specifiers (matching the TS engine), and type-only allowance. Supports Python relative imports, resolvable absolute project imports, every target of a multi-target statement, `importlib.import_module`/`__import__` dynamic imports, `if TYPE_CHECKING:` blocks as type-only allowance, and `deny-packages` against pip packages and stdlib modules matched per dotted segment; unresolved Python package imports are otherwise ignored. Supports Swift `import_declaration` nodes — plain, attributed (`@_exported`, `@testable`), keyword-qualified (`import struct Module.Type`), and submodule paths — when the module resolves to discovered project Swift files; imports written inside comments produce no record, and unresolved system/package imports are ignored. |
+| `arch.imports` | Supports TypeScript/JavaScript static imports, dynamic imports, re-export specifiers (`export … from`), TS path aliases, allow/deny mode, `deny-packages` for npm and `node:` specifiers (matching the TS engine), and type-only allowance. Supports Python relative imports, resolvable absolute project imports, every target of a multi-target statement, `importlib.import_module`/`__import__` dynamic imports, `if TYPE_CHECKING:` blocks as type-only allowance, and `deny-packages` against pip packages and stdlib modules matched per dotted segment; unresolved Python package imports are otherwise ignored. Supports Swift `import_declaration` nodes — plain, attributed (`@_exported`, `@testable`), keyword-qualified (`import struct Module.Type`), and submodule paths — when the module resolves to discovered project Swift files; imports written inside comments produce no record, `deny-packages` reaches unresolved Swift modules such as system frameworks at module granularity, and otherwise unresolved system/package imports are ignored. |
 | `arch.forbidden` | Supports literal pattern checks for TypeScript/JavaScript, Python, and Swift files. JSX element checks are TypeScript/JavaScript only. |
 | `arch.singleton` | Supports literal pattern checks for TypeScript/JavaScript, Python, and Swift files. JSX element checks are TypeScript/JavaScript only. |
 
@@ -122,6 +122,11 @@ The Swift grammar names block comments `multiline_comment` rather than
 `comment`, so the comment scanner matches both kinds; `arch.maxCommentDensity`
 and `arch.maxCommentBlock` treat `///` as a doc-comment in Swift, where
 TypeScript reserves triple slashes for `/// <reference>` directives.
+
+`deny-packages` splits Swift specifiers on dots. Because the recorded specifier
+is the module — the first `simple_identifier` — matching is at module
+granularity, which covers the intended target of system frameworks such as
+`Foundation` and `UIKit`.
 
 Swift cases live in `tests/rust-engine-cli.test.ts` and in Rust unit tests, never
 in the golden harness — the TypeScript engine cannot parse Swift, so no golden
