@@ -8,7 +8,7 @@ use crate::syntax::{
     scan_jsx_elements_from_tree,
 };
 use serde::Deserialize;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -378,7 +378,7 @@ fn run_arch_import_rules(
         return violations;
     };
     let aliases = load_path_aliases(root);
-    let python_roots = infer_python_source_roots(root, files);
+    let python = PythonContext::index(root, files);
     let swift_modules = index_swift_modules(root, files);
 
     for rule in rules {
@@ -434,7 +434,7 @@ fn run_arch_import_rules(
                     root,
                     &import.specifier,
                     &aliases,
-                    &python_roots,
+                    &python,
                     &swift_modules,
                 ) else {
                     if is_javascript_like_source(&file)
@@ -530,7 +530,7 @@ fn resolve_import(
     root: &Path,
     specifier: &str,
     aliases: &[AliasEntry],
-    python_roots: &[PathBuf],
+    python: &PythonContext,
     swift_modules: &BTreeMap<String, PathBuf>,
 ) -> Option<PathBuf> {
     if !is_bare_specifier(specifier) {
@@ -540,7 +540,7 @@ fn resolve_import(
     }
 
     resolve_alias(specifier, aliases)
-        .or_else(|| resolve_python_module(specifier, python_roots))
+        .or_else(|| resolve_python_module(specifier, python))
         .or_else(|| resolve_swift_module(specifier, swift_modules))
 }
 
@@ -557,6 +557,23 @@ fn resolve_alias(specifier: &str, aliases: &[AliasEntry]) -> Option<PathBuf> {
             None
         }
     })
+}
+
+/// Where absolute Python imports may resolve from, plus the directories that
+/// hold discovered `.py` files — PEP 420 namespace packages carry no
+/// `__init__.py`, so a directory is a package when the scan found sources in it.
+struct PythonContext {
+    source_roots: Vec<PathBuf>,
+    package_dirs: BTreeSet<PathBuf>,
+}
+
+impl PythonContext {
+    fn index(root: &Path, files: &[PathBuf]) -> Self {
+        Self {
+            source_roots: infer_python_source_roots(root, files),
+            package_dirs: index_python_package_dirs(root, files),
+        }
+    }
 }
 
 fn infer_python_source_roots(root: &Path, files: &[PathBuf]) -> Vec<PathBuf> {
@@ -579,20 +596,43 @@ fn infer_python_source_roots(root: &Path, files: &[PathBuf]) -> Vec<PathBuf> {
     roots
 }
 
-fn resolve_python_module(specifier: &str, python_roots: &[PathBuf]) -> Option<PathBuf> {
+fn index_python_package_dirs(root: &Path, files: &[PathBuf]) -> BTreeSet<PathBuf> {
+    let root = normalize_path(root);
+    let mut dirs = BTreeSet::new();
+    for file in files.iter().filter(|file| is_python_source(file)) {
+        let mut current = normalize_path(file);
+        while let Some(parent) = current.parent() {
+            if parent == root || !parent.starts_with(&root) {
+                break;
+            }
+            let parent = parent.to_path_buf();
+            if !dirs.insert(parent.clone()) {
+                break;
+            }
+            current = parent;
+        }
+    }
+    dirs
+}
+
+fn resolve_python_module(specifier: &str, python: &PythonContext) -> Option<PathBuf> {
     let module_path = specifier.replace('.', "/");
-    python_roots.iter().find_map(|source_root| {
+    python.source_roots.iter().find_map(|source_root| {
         let file = normalize_path(&source_root.join(format!("{module_path}.py")));
         if file.exists() {
             return Some(file);
         }
 
-        let package = normalize_path(&source_root.join(&module_path).join("__init__.py"));
+        let directory = normalize_path(&source_root.join(&module_path));
+        let package = directory.join("__init__.py");
         if package.exists() {
-            Some(package)
-        } else {
-            None
+            return Some(package);
         }
+
+        python
+            .package_dirs
+            .contains(&directory)
+            .then_some(directory)
     })
 }
 

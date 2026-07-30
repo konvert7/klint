@@ -426,8 +426,11 @@ report per target rather than only the first one. Dynamic imports count too:
 `importlib.import_module("app.lib.auth")` and `__import__("app.lib.auth")` are
 read off the AST, including a renamed `from importlib import import_module as
 load`. A same-named call that is not bound to `importlib` — `self.import_module(…)` —
-is not an import and is left alone. External packages that do not resolve to
-project files, such as `requests`, are ignored. This is architecture
+is not an import and is left alone. A package import resolves through
+`<module>.py`, `<module>/__init__.py`, or a `<module>/` directory holding
+scanned `.py` files, so PEP 420 namespace packages with no `__init__.py` are
+covered. External packages that do not resolve to project files, such as
+`requests`, are ignored. This is architecture
 enforcement, not full packaging or virtual-environment analysis.
 
 ### Swift Architecture Checks

@@ -790,6 +790,51 @@ arch:
     }
   });
 
+  test("--engine rust resolves Python namespace packages that carry no __init__.py", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["src"]
+rules: {}
+arch:
+  layers:
+    jobs: ["src/app/jobs/**"]
+    lib: ["src/app/lib/**"]
+  imports:
+    - from: jobs
+      deny: lib
+      message: "Jobs must not import lib directly"
+`,
+      {
+        "src/app/jobs/worker.py": "from app.lib import auth\nimport app.lib\n",
+        "src/app/lib/auth.py": "class Key:\n    pass\n",
+      }
+    );
+
+    try {
+      const rust = runCliArgs(dir, ["--engine", "rust", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+      const payload = parseJson(rust) as {
+        violations: Array<{
+          file: string;
+          line: number;
+          rule: string;
+          message: string;
+          severity: string;
+          fix: unknown;
+        }>;
+        summary: { errors: number; warnings: number };
+      };
+
+      expect(rust.code).toBe(2);
+      expect(payload.summary).toEqual({ errors: 2, warnings: 0 });
+      expect(payload.violations.map((violation) => violation.line)).toEqual([1, 2]);
+      expect(rust.stderr).toBe("");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine rust rejects unknown plugins", () => {
     const dir = setupFixture(
       `

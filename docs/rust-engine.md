@@ -87,9 +87,10 @@ off the AST as well: `importlib.import_module("…")` and `__import__("…")`,
 including `import importlib as il` and `from importlib import import_module as
 load` bindings — a call to a same-named method that is not bound to `importlib`
 is not treated as an import. Absolute imports resolve against the project root
-and direct child directories containing Python files, checking `<module>.py` and
-`<module>/__init__.py`. Unresolved package imports such as `import requests` are
-ignored. TypeScript/Sonar syntax rules are still restricted to
+and direct child directories containing Python files, checking `<module>.py`,
+`<module>/__init__.py`, and — for PEP 420 namespace packages — a `<module>/`
+directory that the scan found `.py` files under. Unresolved package imports such
+as `import requests` are ignored. TypeScript/Sonar syntax rules are still restricted to
 TypeScript/JavaScript-like files.
 
 PyPI packaging is a later distribution step. Land it after the Rust engine has
