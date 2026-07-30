@@ -678,5 +678,50 @@
         "warnings": 0
       }
     }
+  },
+  {
+    "name": "include excludes files and directories across engines",
+    "config": {
+      "include": [
+        "src",
+        "!**/*.generated.ts",
+        "!src/lib/legacy.ts",
+        "!**/vendor/**"
+      ],
+      "rules": {},
+      "arch": {
+        "forbidden": [
+          {
+            "pattern": "console.log(",
+            "in": [
+              "src/**"
+            ],
+            "message": "Use logger"
+          }
+        ]
+      }
+    },
+    "files": {
+      "src/lib/service.ts": "export function run() {\n  console.log(\"run\");\n}\n",
+      "src/lib/legacy.ts": "export function old() {\n  console.log(\"old\");\n}\n",
+      "src/lib/schema.generated.ts": "export function gen() {\n  console.log(\"gen\");\n}\n",
+      "src/vendor/dep.ts": "export function dep() {\n  console.log(\"dep\");\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/lib/service.ts",
+          "line": 2,
+          "rule": "arch/forbidden",
+          "message": "Use logger",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
   }
 ]

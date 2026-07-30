@@ -85,20 +85,22 @@ fn collect_source_files(
         let path = entry.path();
         if path.is_dir() {
             let rel = relative_path(root, &path);
-            if excludes.iter().any(|pattern| {
-                match_pattern(&rel, pattern) || match_pattern(&format!("{rel}/"), pattern)
-            }) {
+            if is_excluded(&rel, excludes) || is_excluded(&format!("{rel}/"), excludes) {
                 continue;
             }
             collect_source_files(&path, root, include_pattern, excludes, files)?;
         } else if is_supported_source(&path) {
             let rel = relative_path(root, &path);
-            if match_pattern(&rel, include_pattern) {
+            if match_pattern(&rel, include_pattern) && !is_excluded(&rel, excludes) {
                 files.push(normalize_path(&path));
             }
         }
     }
     Ok(())
+}
+
+fn is_excluded(rel: &str, excludes: &[&str]) -> bool {
+    excludes.iter().any(|pattern| match_pattern(rel, pattern))
 }
 
 fn is_supported_source(path: &Path) -> bool {
@@ -336,6 +338,33 @@ mod tests {
             .map(|file| relative_path(&root, file))
             .collect::<Vec<_>>();
         assert_eq!(rel_files, vec!["src/a.ts"]);
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn resolve_files_excludes_individual_files_not_only_directories() {
+        let root = temp_root("exclude-file-glob");
+        create_dir_all(root.join("src/jobs")).expect("create src dirs");
+        write(root.join("src/jobs/worker.py"), "y = 1\n").expect("write worker");
+        write(root.join("src/jobs/worker.test.py"), "y = 2\n").expect("write worker test");
+        write(root.join("src/jobs/keep.py"), "y = 3\n").expect("write keep");
+
+        let files = resolve_files(
+            &root,
+            &[
+                "src".to_string(),
+                "!**/*.test.py".to_string(),
+                "!src/jobs/worker.py".to_string(),
+            ],
+        )
+        .expect("resolve files");
+
+        let rel_files = files
+            .iter()
+            .map(|file| relative_path(&root, file))
+            .collect::<Vec<_>>();
+        assert_eq!(rel_files, vec!["src/jobs/keep.py"]);
 
         let _ = fs::remove_dir_all(root);
     }

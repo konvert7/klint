@@ -102,4 +102,37 @@ describe("runner file resolution debug", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  test("excludes individual files, not only directories", () => {
+    const root = mkdtempSync(join(tmpdir(), "klint-runner-exclude-file-"));
+    mkdirSync(join(root, "src", "jobs"), { recursive: true });
+    writeFileSync(join(root, "src", "jobs", "keep.ts"), "export const a = 1;\n");
+    writeFileSync(join(root, "src", "jobs", "worker.ts"), "export const b = 2;\n");
+    writeFileSync(join(root, "src", "jobs", "worker.test.ts"), "export const c = 3;\n");
+
+    const seen: string[][] = [];
+    const rule: KlintRule = {
+      meta: { description: "capture files", examples: [] },
+      check(ctx) {
+        seen.push(ctx.files.map((file) => file.replaceAll("\\", "/")));
+      },
+    };
+
+    try {
+      runKlint(
+        {
+          root,
+          include: ["src", "!**/*.test.ts", "!src/jobs/worker.ts"],
+          rules: { capture: "error" },
+        },
+        { capture: rule }
+      );
+
+      expect(seen).toHaveLength(1);
+      expect(seen[0]).toHaveLength(1);
+      expect(seen[0][0]).toEndWith("/src/jobs/keep.ts");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

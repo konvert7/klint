@@ -1331,6 +1331,45 @@ arch:
     }
   });
 
+  test("--engine compare honors file and directory include exclusions", () => {
+    const dir = setupNamedFixture(
+      `
+include: ["src", "!**/*.generated.ts", "!src/lib/legacy.ts", "!**/vendor/**"]
+rules: {}
+arch:
+  forbidden:
+    - pattern: "console.log("
+      in: "src/**"
+      message: "Use logger"
+`,
+      {
+        "src/lib/service.ts": `console.log("keep");\n`,
+        "src/lib/legacy.ts": `console.log("excluded by path");\n`,
+        "src/lib/schema.generated.ts": `console.log("excluded by glob");\n`,
+        "src/vendor/dep.ts": `console.log("excluded by directory");\n`,
+      }
+    );
+
+    try {
+      const ts = runCliArgs(dir, ["--engine", "ts", "--json"]);
+      const compare = runCliArgs(dir, ["--engine", "compare", "--json"], {
+        KLINT_RUST_BIN: rustBin,
+      });
+
+      expect(compare.code).toBe(2);
+      expect(compare.code).toBe(ts.code);
+      expect(parseJson(compare)).toEqual(parseJson(ts));
+      expect(compare.stderr).toBe("");
+
+      const payload = parseJson(compare) as {
+        violations: Array<{ file: string }>;
+      };
+      expect(payload.violations.map((v) => v.file)).toEqual(["src/lib/service.ts"]);
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
   test("--engine compare supports no-string-match parity", () => {
     const dir = setupFixture(
       `

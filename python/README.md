@@ -62,10 +62,14 @@ arch:
     jobs: ["src/app/jobs/**"]
 ```
 
-`include` selects which paths are scanned. Prefix an entry with `!` to prune a
-directory from the walk — for example `["src", "!**/.venv/**"]`. Exclusions
-match directories, not individual files, so `!src/jobs/worker.py` has no
-effect. `arch.layers` gives names to file groups so rules can talk about
+`include` selects which paths are scanned. Prefix an entry with `!` to exclude,
+either a whole directory or individual files:
+
+```yaml
+include: ["src", "!**/.venv/**", "!**/*_test.py", "!src/jobs/legacy.py"]
+```
+
+`arch.layers` gives names to file groups so rules can talk about
 architecture instead of repeating globs. `root` optionally sets the directory
 that `include` paths and reported file names resolve against.
 
