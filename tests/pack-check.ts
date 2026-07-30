@@ -17,6 +17,8 @@ try {
     "package/package.json",
     "package/core/native-binary.ts",
     "package/skill/klint-rules/SKILL.md",
+    "package/klint.schema.json",
+    "package/klint.schema.yaml",
   ]);
 
   assertExcludes(mainList, [

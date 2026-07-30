@@ -14,7 +14,9 @@
     "plugins",
     "skill",
     "tools",
-    "README.md"
+    "README.md",
+    "klint.schema.json",
+    "klint.schema.yaml"
   ],
   "engines": {
     "bun": ">=1.3.0"

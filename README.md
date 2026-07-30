@@ -209,11 +209,23 @@ arch:
 
 `klint.config.json` is still supported for backwards compatibility.
 
+### Editor support
+
+The package ships `klint.schema.json` and `klint.schema.yaml`, so the recommended
+setup points at the installed copy:
+
+```yaml
+$schema: ./node_modules/@konvert7/klint/klint.schema.json
+```
+
+That file is installed alongside klint itself, so it cannot drift — upgrading klint
+upgrades the schema with it. Both the inline `$schema` key above and the
+`# yaml-language-server: $schema=…` modeline work; when both are present the modeline
+wins. `klint.config.json` files are handled by the editor's built-in JSON support.
+
 ### Pinning the schema version
 
-The `# yaml-language-server:` comment above points your editor at the schema shipped
-inside the package, which always matches the installed klint. To pin a specific
-published schema instead, set `$schema` to a version-tagged URL:
+To pin a specific published schema instead, set `$schema` to a version-tagged URL:
 
 ```yaml
 $schema: https://raw.githubusercontent.com/konvert7/klint/refs/tags/v0.29.0/klint.schema.json
@@ -221,8 +233,12 @@ $schema: https://raw.githubusercontent.com/konvert7/klint/refs/tags/v0.29.0/klin
 
 When the tagged version differs from the installed klint, the run reports a
 `klint/schema-version` warning naming both versions and the URL to move to. It is a
-warning, not an error — the exit code is unaffected. Local paths such as
-`./klint.schema.json` carry no version and are never checked.
+warning, not an error — the exit code is unaffected. Local paths carry no version and
+are never checked, which is why the installed copy above never warns.
+
+This check runs when klint runs. Editors validate the config's *shape* against the
+schema, but have no way to compare it against the installed klint, so the warning
+appears in klint's output rather than as an editor diagnostic.
 
 `klint --version` prints the installed version.
 
