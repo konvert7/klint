@@ -1,3 +1,10 @@
+# [0.29.0](https://github.com/konvert7/klint/compare/v0.28.0...v0.29.0) (2026-07-30)
+
+
+### Features
+
+* **comments:** add option to ignore patterns from comment density ([7e862d2](https://github.com/konvert7/klint/commit/7e862d2f165df66a622e8caf0e796ea2e46fd937))
+
 # [0.28.0](https://github.com/konvert7/klint/compare/v0.27.0...v0.28.0) (2026-07-30)
 
 
