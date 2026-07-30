@@ -1,3 +1,27 @@
+# [0.28.0](https://github.com/konvert7/klint/compare/v0.27.0...v0.28.0) (2026-07-30)
+
+
+### Bug Fixes
+
+* enhance Python import handling to support multi-target imports and relative imports ([0343541](https://github.com/konvert7/klint/commit/03435410ed024f4f8be5ecf04eb7d48994474e34))
+* **python:** resolve namespace packages without __init__.py ([87ccfdc](https://github.com/konvert7/klint/commit/87ccfdc521016b5a562e4b2f1e33a544b3cbf679))
+
+
+### Features
+
+* add deny-packages rule to block specific npm packages and node: builtins ([d3fbca7](https://github.com/konvert7/klint/commit/d3fbca7d4cd74bbf7ad3e89bd8f70d37b25a38e1))
+* **arch:** enhance deny-packages to support Python modules and stdlib ([bcd0346](https://github.com/konvert7/klint/commit/bcd0346697f339467f3caccb503af8e0bc2b9dc4))
+* **arch:** extend deny-packages to Swift modules ([bb5270a](https://github.com/konvert7/klint/commit/bb5270a5cf8dfe8e51bb56af72056bf56de73590))
+* **arch:** treat re-export specifiers as imports in both engines ([30e6055](https://github.com/konvert7/klint/commit/30e60552b1286c53e92fc03d9fb7827faf8673bb))
+* **python:** enhance import handling for type-only references ([71a24a6](https://github.com/konvert7/klint/commit/71a24a623fe8f97f7e1ede8282b2b3ee96858cb6))
+* **rust:** scan Rust sources with tree-sitter ([b1ae100](https://github.com/konvert7/klint/commit/b1ae10010c13490250204b5a82f814f5c0b977c6))
+* **swift:** parse Swift with tree-sitter instead of a line scan ([b476526](https://github.com/konvert7/klint/commit/b476526d0fc913517beb5be10dac2208e1e1cfae))
+
+
+### Performance Improvements
+
+* **engine:** enhance file reading and processing with parallelism ([da49e60](https://github.com/konvert7/klint/commit/da49e60351734d175951e6bdc2a5a2451b5f9dc6))
+
 # [0.27.0](https://github.com/konvert7/klint/compare/v0.26.0...v0.27.0) (2026-07-25)
 
 
