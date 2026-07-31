@@ -98,8 +98,25 @@ jobs:
       - name: Pack check
         run: bun run pack:check
 
+      - name: Setup Python (linux wheel smoke)
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Stage Python wheel (linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: bun tests/stage-python-wheel.ts --source target/release/klint-rs
+
+      - name: Smoke Python wheel (linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: bun tests/smoke-python-wheel.ts
+
   native:
     name: native (${{ matrix.package }})
+    # Cross-platform release artifacts feed the release job; the test matrix
+    # already release-builds and smokes native packaging per-OS on PRs.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -163,6 +180,9 @@ jobs:
 
   python-wheel:
     name: python wheel (${{ matrix.package }})
+    # Full platform wheels are release artifacts; PRs get a single linux wheel
+    # smoke folded into the test job instead of the whole matrix.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ${{ matrix.os }}
 
     strategy:
