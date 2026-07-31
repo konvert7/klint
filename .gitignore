@@ -7,4 +7,9 @@ python/klint/_bin/*
 python/build/
 python/dist/
 python/*.egg-info/
+nuget/binaries/
+nuget/bin/
+nuget/obj/
+nuget/*.nupkg
+klint.sln
 .DS_Store

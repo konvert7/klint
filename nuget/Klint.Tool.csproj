@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>klint</AssemblyName>
+    <RootNamespace>Konvert7.Klint</RootNamespace>
+
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>klint</ToolCommandName>
+    <PackageId>Konvert7.Klint</PackageId>
+    <Version>0.0.0</Version>
+
+    <Authors>Konvert7</Authors>
+    <Description>Architecture-as-Code linting for TypeScript, Python, Swift, Rust, and C# projects, delivered as a .NET tool wrapping the native klint engine.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://klint.dev</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/konvert7/klint</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>architecture;architecture-as-code;linter;csharp;rust</PackageTags>
+    <IncludeSymbols>false</IncludeSymbols>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <!-- Native binaries staged per RID by tests/stage-nuget-binary.ts; copied
+         into the tool output so PackAsTool bundles them beside the shim. -->
+    <None Include="binaries/**/*"
+          CopyToOutputDirectory="PreserveNewest"
+          Link="binaries/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>
