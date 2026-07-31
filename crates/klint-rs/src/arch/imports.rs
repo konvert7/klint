@@ -5,8 +5,8 @@ use super::resolve::{
 };
 use super::*;
 use crate::files::{
-    is_javascript_like_source, is_python_source, is_rust_source, is_swift_source, relative_path,
-    supports_import_scan,
+    is_csharp_source, is_javascript_like_source, is_python_source, is_rust_source, is_swift_source,
+    relative_path, supports_import_scan,
 };
 use crate::output::Violation;
 use crate::syntax::scan_imports_from_tree;
@@ -156,7 +156,7 @@ fn denies_package(file: &Path, specifier: &str, entries: &[String]) -> bool {
 fn package_separator(file: &Path) -> Option<&'static str> {
     if is_javascript_like_source(file) {
         Some("/")
-    } else if is_python_source(file) || is_swift_source(file) {
+    } else if is_python_source(file) || is_swift_source(file) || is_csharp_source(file) {
         Some(".")
     } else if is_rust_source(file) {
         Some("::")

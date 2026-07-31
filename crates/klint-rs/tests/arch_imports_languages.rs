@@ -94,6 +94,48 @@ arch:
 }
 
 #[test]
+fn deny_packages_flags_csharp_namespace_imports() {
+    let root = temp_root("deny-packages-csharp");
+    create_dir_all(root.join("src/Web")).expect("create web dirs");
+    write(
+        root.join("klint.yaml"),
+        r#"
+include: ["src"]
+rules: {}
+arch:
+  imports:
+    - from: src/**
+      deny-packages: [Newtonsoft]
+      message: "Use System.Text.Json instead of Newtonsoft"
+"#,
+    )
+    .expect("write config");
+    write(
+        root.join("src/Web/HomeController.cs"),
+        "using System;\nusing Newtonsoft.Json;\n",
+    )
+    .expect("write csharp source");
+
+    let output = run(RunOptions {
+        config_dir: root.clone(),
+    })
+    .expect("valid config should run");
+
+    assert_eq!(
+        output.violations,
+        vec![Violation {
+            file: "src/Web/HomeController.cs".to_string(),
+            line: 2,
+            rule: "arch/imports".to_string(),
+            message: "Use System.Text.Json instead of Newtonsoft".to_string(),
+            severity: "error".to_string(),
+            fix: None,
+        }]
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn imports_deny_mode_flags_python_relative_imports() {
     let root = temp_root("imports-python-relative");
     create_dir_all(root.join("src/jobs")).expect("create jobs dirs");

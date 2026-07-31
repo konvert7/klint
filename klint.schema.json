@@ -819,7 +819,7 @@
                 ]
               },
               "deny-packages": {
-                "description": "Package specifier(s) the source is not allowed to import — npm packages, `node:` builtins, Python pip packages and stdlib modules, Swift system frameworks, and external Rust crates, which `deny`/`allow` cannot reach because they never resolve to a project file. Matching is per segment: `/` in TypeScript/JavaScript, so `next` also covers `next/headers` while `nextra` is unaffected; `.` in Python and Swift, so `os` also covers `os.path` while `oscrypto` is unaffected; and `::` in Rust, so `tokio` also covers `tokio::sync::Mutex` while `tokio_util` is unaffected. Python, Swift, and Rust sources are checked by the Rust engine.",
+                "description": "Package specifier(s) the source is not allowed to import — npm packages, `node:` builtins, Python pip packages and stdlib modules, Swift system frameworks, external Rust crates, and C# namespaces or NuGet packages, which `deny`/`allow` cannot reach because they never resolve to a project file. Matching is per segment: `/` in TypeScript/JavaScript, so `next` also covers `next/headers` while `nextra` is unaffected; `.` in Python, Swift, and C#, so `os` also covers `os.path` while `oscrypto` is unaffected; and `::` in Rust, so `tokio` also covers `tokio::sync::Mutex` while `tokio_util` is unaffected. Python, Swift, Rust, and C# sources are checked by the Rust engine.",
                 "anyOf": [
                   {
                     "type": "string"
