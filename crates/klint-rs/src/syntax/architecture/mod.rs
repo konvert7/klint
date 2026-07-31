@@ -1,4 +1,5 @@
 mod comments;
+mod csharp;
 mod javascript;
 mod jsx;
 mod python;
@@ -12,6 +13,7 @@ use crate::syntax::{SourceLanguage, language_for_path, source_language_for_path}
 
 pub use comments::CommentRecord;
 pub(crate) use comments::scan_comments_from_tree;
+use csharp::{walk_csharp_imports, walk_csharp_namespaces};
 use javascript::walk_imports;
 pub(crate) use jsx::scan_jsx_elements_from_tree;
 pub use jsx::{JsxElementRecord, scan_jsx_elements};
@@ -54,9 +56,29 @@ pub(crate) fn scan_imports_from_tree(
         SourceLanguage::Python => imports.extend(scan_python_imports(root, source)),
         SourceLanguage::Swift => walk_swift_imports(root, source, &mut imports),
         SourceLanguage::Rust => walk_rust_imports(root, source, &mut imports),
+        SourceLanguage::CSharp => walk_csharp_imports(root, source, &mut imports),
         SourceLanguage::JavaScriptLike => walk_imports(root, source, &mut imports),
     }
     imports
+}
+
+/// Every fully-qualified namespace declared in a C# source. Parsed on demand
+/// because the resolver builds its namespace index before the engine's per-file
+/// walk produces any trees.
+pub(crate) fn scan_csharp_namespaces(content: &str) -> Vec<String> {
+    let mut parser = Parser::new();
+    if parser
+        .set_language(&language_for_path(Path::new("_.cs")))
+        .is_err()
+    {
+        return Vec::new();
+    }
+    let Some(tree) = parser.parse(content, None) else {
+        return Vec::new();
+    };
+    let mut names = Vec::new();
+    walk_csharp_namespaces(tree.root_node(), content.as_bytes(), &mut names);
+    names
 }
 
 fn first_string_child(node: Node<'_>) -> Option<Node<'_>> {

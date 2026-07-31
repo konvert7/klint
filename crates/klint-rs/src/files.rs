@@ -126,11 +126,16 @@ pub(crate) fn is_rust_source(path: &Path) -> bool {
     matches!(path.extension().and_then(|ext| ext.to_str()), Some("rs"))
 }
 
+pub(crate) fn is_csharp_source(path: &Path) -> bool {
+    matches!(path.extension().and_then(|ext| ext.to_str()), Some("cs"))
+}
+
 pub(crate) fn supports_import_scan(path: &Path) -> bool {
     is_javascript_like_source(path)
         || is_python_source(path)
         || is_swift_source(path)
         || is_rust_source(path)
+        || is_csharp_source(path)
 }
 
 pub(crate) fn normalize_path(path: &Path) -> PathBuf {

@@ -446,7 +446,7 @@ arch:
       in: ["src/**"]
 ```
 
-Set `countDocComments: true` on either rule to count doc-comments toward the limit as well. Both rules run in the TS and Rust engines; Python (`#`) and Swift (`//`, `/* */`) files are enforced by the Rust engine.
+Set `countDocComments: true` on either rule to count doc-comments toward the limit as well. Both rules run in the TS and Rust engines; Python (`#`), Swift (`//`, `/* */`), and C# (`//`, `/* */`) files are enforced by the Rust engine.
 
 Some comments are machinery rather than prose — markers a build or codegen step reads, region pragmas — and counting them makes both limits measure the wrong thing. `ignore` exempts them, on either rule:
 
@@ -462,33 +462,33 @@ An ignored line still counts in the density denominator — it is a physical lin
 
 ### Language Support
 
-klint scans TypeScript/JavaScript, Python, Swift, and Rust. Every architecture rule is enforced from the same `klint.yaml`, but what a rule can *see* depends on what the language actually has.
+klint scans TypeScript/JavaScript, Python, Swift, Rust, and C#. Every architecture rule is enforced from the same `klint.yaml`, but what a rule can *see* depends on what the language actually has.
 
-| | TypeScript / JavaScript | Python | Swift | Rust |
-|---|---|---|---|---|
-| **Engines** | `ts`, `rust` | `rust` | `rust` | `rust` |
-| **Parser** | TypeScript compiler API (TS engine), tree-sitter (Rust engine) | tree-sitter | tree-sitter | tree-sitter |
-| `arch.imports` — static | ✅ | ✅ | ✅ | ✅ `use` |
-| `arch.imports` — dynamic | ✅ `import()` | ✅ `importlib.import_module`, `__import__` | — | — |
-| `arch.imports` — re-exports | ✅ `export … from` | — | ✅ `@_exported import` | ✅ `pub use` |
-| `arch.imports` — multi-target | — | ✅ `import a, b` | — | ✅ `use a::{b, c}` |
-| `type-only: allow` | ✅ `import type` | ✅ `if TYPE_CHECKING:` | — | — |
-| Path aliases | ✅ `tsconfig.json` `paths` | — | — | — |
-| Module resolution | relative paths + alias chains | relative, absolute, and PEP 420 namespace packages | module name against project dirs and file stems | `crate::`/`self::`/`super::` against the directory tree |
-| `deny-packages` | ✅ `/` segments | ✅ `.` segments | ✅ `.` segments, module granularity | ✅ `::` segments |
-| `arch.forbidden` / `singleton` — `pattern` | ✅ | ✅ | ✅ | ✅ |
-| `arch.forbidden` / `singleton` — `jsx-element` | ✅ | — | — | — |
-| `arch.maxLines` | ✅ | ✅ | ✅ | ✅ |
-| `arch.maxCommentDensity` / `maxCommentBlock` | ✅ `//`, `/* */`, `/** */` docs | ✅ `#` | ✅ `//`, `/* */`, `///` and `/** */` docs | ✅ `//`, `/* */`, `///` and `//!` docs |
-| Built-in rules and plugins | ✅ | ✗ | ✗ | ✗ |
-| Custom rules (`klint.rules.ts`) | ✅ | ✗ | ✗ | ✗ |
-| Type-aware rules | ✅ | ✗ | ✗ | ✗ |
+| | TypeScript / JavaScript | Python | Swift | Rust | C# |
+|---|---|---|---|---|---|
+| **Engines** | `ts`, `rust` | `rust` | `rust` | `rust` | `rust` |
+| **Parser** | TypeScript compiler API (TS engine), tree-sitter (Rust engine) | tree-sitter | tree-sitter | tree-sitter | tree-sitter |
+| `arch.imports` — static | ✅ | ✅ | ✅ | ✅ `use` | ✅ `using` |
+| `arch.imports` — dynamic | ✅ `import()` | ✅ `importlib.import_module`, `__import__` | — | — | — |
+| `arch.imports` — re-exports | ✅ `export … from` | — | ✅ `@_exported import` | ✅ `pub use` | — |
+| `arch.imports` — multi-target | — | ✅ `import a, b` | — | ✅ `use a::{b, c}` | — |
+| `type-only: allow` | ✅ `import type` | ✅ `if TYPE_CHECKING:` | — | — | — |
+| Path aliases | ✅ `tsconfig.json` `paths` | — | — | — | — |
+| Module resolution | relative paths + alias chains | relative, absolute, and PEP 420 namespace packages | module name against project dirs and file stems | `crate::`/`self::`/`super::` against the directory tree | `using` namespace against project namespace declarations |
+| `deny-packages` | ✅ `/` segments | ✅ `.` segments | ✅ `.` segments, module granularity | ✅ `::` segments | ✅ `.` segments |
+| `arch.forbidden` / `singleton` — `pattern` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `arch.forbidden` / `singleton` — `jsx-element` | ✅ | — | — | — | — |
+| `arch.maxLines` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `arch.maxCommentDensity` / `maxCommentBlock` | ✅ `//`, `/* */`, `/** */` docs | ✅ `#` | ✅ `//`, `/* */`, `///` and `/** */` docs | ✅ `//`, `/* */`, `///` and `//!` docs | ✅ `//`, `/* */`, `///` and `/** */` docs |
+| Built-in rules and plugins | ✅ | ✗ | ✗ | ✗ | ✗ |
+| Custom rules (`klint.rules.ts`) | ✅ | ✗ | ✗ | ✗ | ✗ |
+| Type-aware rules | ✅ | ✗ | ✗ | ✗ | ✗ |
 
 **✅** supported · **—** the language has no equivalent construct · **✗** not supported yet
 
-A dash is not a gap. Swift has no dynamic import expression, no `import type`, and one module per declaration; Rust has no dynamic import and no type-only import. Those rows can never be filled. The `✗` rows are real limits: the rule set and custom rules are written against the TypeScript AST, and type-aware rules need a type checker that only the TS engine has.
+A dash is not a gap. Swift has no dynamic import expression, no `import type`, and one module per declaration; Rust has no dynamic import and no type-only import; C# has no dynamic `using`, no type-only import, and one namespace per `using`. Those rows can never be filled. The `✗` rows are real limits: the rule set and custom rules are written against the TypeScript AST, and type-aware rules need a type checker that only the TS engine has.
 
-Imports are read off the AST in every language, so a specifier written inside a comment or a string is never an import — including nested Swift block comments. Only file discovery differs: the TS engine walks `.ts`/`.tsx`/`.js`/`.jsx`/`.mts`/`.cts`, so Python, Swift, and Rust files reach klint through the Rust engine, which `auto` mode selects for them automatically.
+Imports are read off the AST in every language, so a specifier written inside a comment or a string is never an import — including nested Swift block comments. Only file discovery differs: the TS engine walks `.ts`/`.tsx`/`.js`/`.jsx`/`.mts`/`.cts`, so Python, Swift, Rust, and C# files reach klint through the Rust engine, which `auto` mode selects for them automatically.
 
 ### Python Architecture Checks
 
@@ -628,6 +628,53 @@ not a Cargo build graph or `#[path]` attribute resolver.
 
 Comment budget rules apply to Rust too, where both `///` and `//!` count as
 doc-comments.
+
+### C# Architecture Checks
+
+The Rust engine can apply architecture rules to C# projects:
+
+```yaml
+include: ["src"]
+
+rules: {}
+
+arch:
+  layers:
+    web: ["src/Web/**"]
+    data: ["src/Data/**"]
+    config: ["src/Config/**"]
+
+  imports:
+    - from: web
+      deny: data
+      message: "Web must use app services, not import the data layer directly"
+    - from: web
+      deny-packages: ["Newtonsoft"]
+      message: "Use System.Text.Json instead of Newtonsoft"
+
+  forbidden:
+    - pattern: "Console.WriteLine("
+      in: web
+      message: "Use the logger"
+```
+
+C# import checks read `using` declarations off the AST, covering `using System;`,
+qualified namespaces such as `using System.Collections.Generic;`, `using static
+System.Math;`, `global using System.Linq;`, and aliases such as `using Json =
+Newtonsoft.Json;` — an alias resolves to its target namespace, not the alias
+name. Because the specifier comes from the parse tree, a `using` written inside a
+`//` or `/* */` comment is not an import.
+
+C# namespaces are decoupled from disk layout, so klint indexes the `namespace`
+declarations across the project — block and file-scoped alike — and resolves a
+`using` against that index. Namespaces that no project file declares, such as
+`System`, are ignored by `deny`/`allow` and are the target of `deny-packages`
+instead, which matches on `.` segments so `Newtonsoft` denies `Newtonsoft.Json`
+but never `NewtonsoftShim`. This is architecture enforcement, not a full MSBuild
+or NuGet restore graph.
+
+Comment budget rules apply to C# too, where `///` XML doc comments count as
+doc-comments alongside `/** */`.
 
 ## Built-in Rules
 

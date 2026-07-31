@@ -1,4 +1,7 @@
-use crate::files::{is_python_source, is_rust_source, is_swift_source, normalize_path};
+use crate::files::{
+    is_csharp_source, is_python_source, is_rust_source, is_swift_source, normalize_path,
+};
+use crate::syntax::scan_csharp_namespaces;
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -61,14 +64,32 @@ pub(super) fn load_path_aliases(root: &Path) -> Vec<AliasEntry> {
         .collect()
 }
 
+/// Project-wide module indexes, built once per run rather than once per rule.
+pub(super) struct ResolveContext {
+    aliases: Vec<AliasEntry>,
+    python: PythonContext,
+    swift_modules: BTreeMap<String, PathBuf>,
+    rust_crate_roots: BTreeSet<PathBuf>,
+    csharp: CSharpContext,
+}
+
+impl ResolveContext {
+    pub(super) fn build(root: &Path, files: &[PathBuf]) -> Self {
+        Self {
+            aliases: load_path_aliases(root),
+            python: PythonContext::index(root, files),
+            swift_modules: index_swift_modules(root, files),
+            rust_crate_roots: index_rust_crate_roots(files),
+            csharp: CSharpContext::index(files),
+        }
+    }
+}
+
 pub(super) fn resolve_import(
     file: &Path,
     root: &Path,
     specifier: &str,
-    aliases: &[AliasEntry],
-    python: &PythonContext,
-    swift_modules: &BTreeMap<String, PathBuf>,
-    rust_crate_roots: &BTreeSet<PathBuf>,
+    context: &ResolveContext,
 ) -> Option<PathBuf> {
     if !is_bare_specifier(specifier) {
         return Some(normalize_path(
@@ -76,10 +97,11 @@ pub(super) fn resolve_import(
         ));
     }
 
-    resolve_alias(specifier, aliases)
-        .or_else(|| resolve_python_module(specifier, python))
-        .or_else(|| resolve_swift_module(specifier, swift_modules))
-        .or_else(|| resolve_rust_module(specifier, file, rust_crate_roots))
+    resolve_alias(specifier, &context.aliases)
+        .or_else(|| resolve_python_module(specifier, &context.python))
+        .or_else(|| resolve_swift_module(specifier, &context.swift_modules))
+        .or_else(|| resolve_rust_module(specifier, file, &context.rust_crate_roots))
+        .or_else(|| resolve_csharp_namespace(specifier, file, &context.csharp))
 }
 
 /// The `src` directory of every crate the scan found, keyed off the crate root
@@ -284,6 +306,43 @@ fn resolve_swift_module(
     swift_modules: &BTreeMap<String, PathBuf>,
 ) -> Option<PathBuf> {
     swift_modules.get(specifier).cloned()
+}
+
+/// Maps each declared C# namespace to a file that declares it, so a
+/// `using Foo.Bar` resolves even though C# namespaces are decoupled from disk
+/// layout. Building it requires reading the sources — unlike Python/Swift/Rust,
+/// no path convention recovers the namespace — so this is the one index that
+/// parses files rather than inferring from names.
+pub(super) struct CSharpContext {
+    namespaces: BTreeMap<String, PathBuf>,
+}
+
+impl CSharpContext {
+    pub(super) fn index(files: &[PathBuf]) -> Self {
+        let mut namespaces = BTreeMap::new();
+        for file in files.iter().filter(|file| is_csharp_source(file)) {
+            let Ok(content) = fs::read_to_string(file) else {
+                continue;
+            };
+            for namespace in scan_csharp_namespaces(&content) {
+                namespaces
+                    .entry(namespace)
+                    .or_insert_with(|| normalize_path(file));
+            }
+        }
+        Self { namespaces }
+    }
+}
+
+fn resolve_csharp_namespace(
+    specifier: &str,
+    file: &Path,
+    csharp: &CSharpContext,
+) -> Option<PathBuf> {
+    if !is_csharp_source(file) {
+        return None;
+    }
+    csharp.namespaces.get(specifier).cloned()
 }
 
 pub(super) fn is_bare_specifier(specifier: &str) -> bool {

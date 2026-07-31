@@ -5,7 +5,8 @@ pub use architecture::{
     CommentRecord, ImportRecord, JsxElementRecord, scan_imports, scan_jsx_elements,
 };
 pub(crate) use architecture::{
-    scan_comments_from_tree, scan_imports_from_tree, scan_jsx_elements_from_tree,
+    scan_comments_from_tree, scan_csharp_namespaces, scan_imports_from_tree,
+    scan_jsx_elements_from_tree,
 };
 pub use rules::{
     ConsecutiveArrayPushRecord, NestedTemplateLiteralRecord, PreferAtRecord,
@@ -40,6 +41,7 @@ enum SourceLanguage {
     Python,
     Swift,
     Rust,
+    CSharp,
 }
 
 fn language_for_path(path: &Path) -> Language {
@@ -47,6 +49,7 @@ fn language_for_path(path: &Path) -> Language {
         SourceLanguage::Python => tree_sitter_python::LANGUAGE.into(),
         SourceLanguage::Swift => tree_sitter_swift::LANGUAGE.into(),
         SourceLanguage::Rust => tree_sitter_rust::LANGUAGE.into(),
+        SourceLanguage::CSharp => tree_sitter_c_sharp::LANGUAGE.into(),
         SourceLanguage::JavaScriptLike => {
             if is_jsx_path(path) {
                 tree_sitter_typescript::LANGUAGE_TSX.into()
@@ -62,6 +65,7 @@ fn source_language_for_path(path: &Path) -> SourceLanguage {
         Some("py") => SourceLanguage::Python,
         Some("swift") => SourceLanguage::Swift,
         Some("rs") => SourceLanguage::Rust,
+        Some("cs") => SourceLanguage::CSharp,
         _ => SourceLanguage::JavaScriptLike,
     }
 }

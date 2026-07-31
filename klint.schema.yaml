@@ -596,12 +596,12 @@ properties:
                     type: string
             deny-packages:
               description: "Package specifier(s) the source is not allowed to import — npm packages, `node:` builtins, Python pip
-                packages and stdlib modules, Swift system frameworks, and external Rust crates, which `deny`/`allow`
-                cannot reach because they never resolve to a project file. Matching is per segment: `/` in
-                TypeScript/JavaScript, so `next` also covers `next/headers` while `nextra` is unaffected; `.` in Python
-                and Swift, so `os` also covers `os.path` while `oscrypto` is unaffected; and `::` in Rust, so `tokio`
-                also covers `tokio::sync::Mutex` while `tokio_util` is unaffected. Python, Swift, and Rust sources are
-                checked by the Rust engine."
+                packages and stdlib modules, Swift system frameworks, external Rust crates, and C# namespaces or NuGet
+                packages, which `deny`/`allow` cannot reach because they never resolve to a project file. Matching is
+                per segment: `/` in TypeScript/JavaScript, so `next` also covers `next/headers` while `nextra` is
+                unaffected; `.` in Python, Swift, and C#, so `os` also covers `os.path` while `oscrypto` is unaffected;
+                and `::` in Rust, so `tokio` also covers `tokio::sync::Mutex` while `tokio_util` is unaffected. Python,
+                Swift, Rust, and C# sources are checked by the Rust engine."
               anyOf:
                 - type: string
                 - type: array
@@ -880,10 +880,11 @@ properties:
                 lines (code + comments + blanks), the same count `maxLines` uses. A file above this ratio is a
                 violation.
             countDocComments:
-              description: "Count doc-comments toward the limit. Doc-comments are `/** … */` JSDoc blocks (TS/JS), `///` (Swift), and
-                `///` or `//!` (Rust); ordinary `//`, `/* */`, and `#` comments are always counted. Defaults to false,
-                so documentation is exempt and only explanatory/inline comments are capped. Has no effect on Python:
-                docstrings are string expressions rather than comments, so they never count toward either limit."
+              description: "Count doc-comments toward the limit. Doc-comments are `/** … */` JSDoc blocks (TS/JS), `///` (Swift and
+                C#), and `///` or `//!` (Rust); ordinary `//`, `/* */`, and `#` comments are always counted. Defaults to
+                false, so documentation is exempt and only explanatory/inline comments are capped. Has no effect on
+                Python: docstrings are string expressions rather than comments, so they never count toward either
+                limit."
               type: boolean
             ignore:
               description: Comment lines matching these patterns are structural, not prose — marker comments a build or codegen step
@@ -947,10 +948,11 @@ properties:
                 this — e.g. a tall comment stacked above a statement — is a violation, reported at the first offending
                 line.
             countDocComments:
-              description: "Count doc-comments toward the limit. Doc-comments are `/** … */` JSDoc blocks (TS/JS), `///` (Swift), and
-                `///` or `//!` (Rust); ordinary `//`, `/* */`, and `#` comments are always counted. Defaults to false,
-                so documentation is exempt and only explanatory/inline comments are capped. Has no effect on Python:
-                docstrings are string expressions rather than comments, so they never count toward either limit."
+              description: "Count doc-comments toward the limit. Doc-comments are `/** … */` JSDoc blocks (TS/JS), `///` (Swift and
+                C#), and `///` or `//!` (Rust); ordinary `//`, `/* */`, and `#` comments are always counted. Defaults to
+                false, so documentation is exempt and only explanatory/inline comments are capped. Has no effect on
+                Python: docstrings are string expressions rather than comments, so they never count toward either
+                limit."
               type: boolean
             ignore:
               description: Comment lines matching these patterns are structural, not prose — marker comments a build or codegen step
