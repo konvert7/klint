@@ -1,3 +1,10 @@
+# [0.33.0](https://github.com/konvert7/klint/compare/v0.32.0...v0.33.0) (2026-07-31)
+
+
+### Features
+
+* **nuget:** distribute klint as a .NET tool via NuGet ([9b648bf](https://github.com/konvert7/klint/commit/9b648bf663f5efbe6856e7d6b0ae4b73154f440e))
+
 # [0.32.0](https://github.com/konvert7/klint/compare/v0.31.0...v0.32.0) (2026-07-31)
 
 
