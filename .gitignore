@@ -11,4 +11,5 @@ nuget/binaries/
 nuget/bin/
 nuget/obj/
 nuget/*.nupkg
+klint.sln
 .DS_Store
