@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/konvert7/klint/refs/tags/v0.31.0/klint.schema.json",
+  "$id": "https://raw.githubusercontent.com/konvert7/klint/refs/tags/v0.32.0/klint.schema.json",
   "type": "object",
   "properties": {
     "$schema": {

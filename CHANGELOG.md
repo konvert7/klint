@@ -1,3 +1,12 @@
+# [0.32.0](https://github.com/konvert7/klint/compare/v0.31.0...v0.32.0) (2026-07-31)
+
+
+### Features
+
+* **csharp:** recognize and parse C# sources in the Rust engine ([01be683](https://github.com/konvert7/klint/commit/01be6832141eba4af897b81099ee1110bb5add12))
+* **csharp:** resolve C# using imports across layer boundaries ([f4a0f83](https://github.com/konvert7/klint/commit/f4a0f835d09397655631da6d21506ace982afa17))
+* **csharp:** scan C# using directives and enforce deny-packages ([8bbfd97](https://github.com/konvert7/klint/commit/8bbfd97070437088ae7de8bc6e1e80b30cc1feab))
+
 # [0.31.0](https://github.com/konvert7/klint/compare/v0.30.0...v0.31.0) (2026-07-30)
 
 
