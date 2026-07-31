@@ -5,7 +5,8 @@ pub use architecture::{
     CommentRecord, ImportRecord, JsxElementRecord, scan_imports, scan_jsx_elements,
 };
 pub(crate) use architecture::{
-    scan_comments_from_tree, scan_imports_from_tree, scan_jsx_elements_from_tree,
+    scan_comments_from_tree, scan_csharp_namespaces, scan_imports_from_tree,
+    scan_jsx_elements_from_tree,
 };
 pub use rules::{
     ConsecutiveArrayPushRecord, NestedTemplateLiteralRecord, PreferAtRecord,

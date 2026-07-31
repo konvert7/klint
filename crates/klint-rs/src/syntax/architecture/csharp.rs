@@ -36,6 +36,38 @@ fn csharp_import_record(node: Node<'_>, source: &[u8]) -> Option<ImportRecord> {
     })
 }
 
+/// Every fully-qualified namespace a file declares. Block and file-scoped
+/// declarations both expose the namespace under the `name` field; a block
+/// namespace nested inside another contributes the ancestors too, so
+/// `namespace A { namespace B {} }` declares both `A` and `A.B` — which is what
+/// a `using A.B` must resolve against.
+pub(super) fn walk_csharp_namespaces(node: Node<'_>, source: &[u8], out: &mut Vec<String>) {
+    walk_namespaces_with_prefix(node, source, "", out);
+}
+
+fn walk_namespaces_with_prefix(node: Node<'_>, source: &[u8], prefix: &str, out: &mut Vec<String>) {
+    let mut child_prefix = prefix.to_string();
+    if matches!(
+        node.kind(),
+        "namespace_declaration" | "file_scoped_namespace_declaration"
+    ) && let Some(name) = node
+        .child_by_field_name("name")
+        .and_then(|name| raw_node_text(name, source))
+    {
+        child_prefix = if prefix.is_empty() {
+            name
+        } else {
+            format!("{prefix}.{name}")
+        };
+        out.push(child_prefix.clone());
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        walk_namespaces_with_prefix(child, source, &child_prefix, out);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::syntax::ImportRecord;
@@ -84,6 +116,20 @@ mod tests {
                     is_dynamic: false,
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn collects_file_scoped_and_nested_namespaces() {
+        assert_eq!(
+            crate::syntax::scan_csharp_namespaces("namespace App.Web;\nclass C {}\n"),
+            vec!["App.Web".to_string()]
+        );
+        assert_eq!(
+            crate::syntax::scan_csharp_namespaces(
+                "namespace App\n{\n    namespace Core\n    {\n        class C {}\n    }\n}\n"
+            ),
+            vec!["App".to_string(), "App.Core".to_string()]
         );
     }
 

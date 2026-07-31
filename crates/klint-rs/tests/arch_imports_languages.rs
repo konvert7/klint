@@ -94,6 +94,110 @@ arch:
 }
 
 #[test]
+fn imports_deny_mode_flags_csharp_namespace_across_layers() {
+    let root = temp_root("imports-csharp-deny");
+    create_dir_all(root.join("src/Web")).expect("create web dirs");
+    create_dir_all(root.join("src/Data")).expect("create data dirs");
+    write(
+        root.join("klint.yaml"),
+        r#"
+include: ["src"]
+rules: {}
+arch:
+  layers:
+    web: ["src/Web/**"]
+    data: ["src/Data/**"]
+  imports:
+    - from: web
+      deny: data
+      message: "Web must not import data directly"
+"#,
+    )
+    .expect("write config");
+    write(
+        root.join("src/Web/HomeController.cs"),
+        "using System;\nusing App.Data;\n",
+    )
+    .expect("write web source");
+    write(
+        root.join("src/Data/Repository.cs"),
+        "namespace App.Data;\nclass Repository {}\n",
+    )
+    .expect("write data source");
+
+    let output = run(RunOptions {
+        config_dir: root.clone(),
+    })
+    .expect("valid config should run");
+
+    assert_eq!(
+        output.violations,
+        vec![Violation {
+            file: "src/Web/HomeController.cs".to_string(),
+            line: 2,
+            rule: "arch/imports".to_string(),
+            message: "Web must not import data directly".to_string(),
+            severity: "error".to_string(),
+            fix: None,
+        }]
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn imports_allow_mode_flags_csharp_namespace_outside_allowlist() {
+    // Non-vacuous: an unresolved `using` would produce no violation, so a broken
+    // namespace resolver turns this test red rather than passing silently.
+    let root = temp_root("imports-csharp-allow");
+    create_dir_all(root.join("src/Web")).expect("create web dirs");
+    create_dir_all(root.join("src/Shared")).expect("create shared dirs");
+    write(
+        root.join("klint.yaml"),
+        r#"
+include: ["src"]
+rules: {}
+arch:
+  layers:
+    web: ["src/Web/**"]
+    shared: ["src/Shared/**"]
+  imports:
+    - from: web
+      allow: [web]
+      message: "Web may only import Web"
+"#,
+    )
+    .expect("write config");
+    write(
+        root.join("src/Web/HomeController.cs"),
+        "using App.Shared;\n",
+    )
+    .expect("write web source");
+    write(
+        root.join("src/Shared/Logger.cs"),
+        "namespace App.Shared;\nclass Logger {}\n",
+    )
+    .expect("write shared source");
+
+    let output = run(RunOptions {
+        config_dir: root.clone(),
+    })
+    .expect("valid config should run");
+
+    assert_eq!(
+        output.violations,
+        vec![Violation {
+            file: "src/Web/HomeController.cs".to_string(),
+            line: 1,
+            rule: "arch/imports".to_string(),
+            message: "Web may only import Web".to_string(),
+            severity: "error".to_string(),
+            fix: None,
+        }]
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn deny_packages_flags_csharp_namespace_imports() {
     let root = temp_root("deny-packages-csharp");
     create_dir_all(root.join("src/Web")).expect("create web dirs");

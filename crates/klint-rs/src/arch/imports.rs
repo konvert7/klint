@@ -1,8 +1,5 @@
 use super::layers::{in_prefixes, resolve_layer_mask, resolve_layer_prefixes};
-use super::resolve::{
-    AliasEntry, PythonContext, index_rust_crate_roots, index_swift_modules, load_path_aliases,
-    resolve_import,
-};
+use super::resolve::{ResolveContext, resolve_import};
 use super::*;
 use crate::files::{
     is_csharp_source, is_javascript_like_source, is_python_source, is_rust_source, is_swift_source,
@@ -10,28 +7,8 @@ use crate::files::{
 };
 use crate::output::Violation;
 use crate::syntax::scan_imports_from_tree;
-use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use tree_sitter::Node;
-
-/// Project-wide module indexes, built once per run rather than once per rule.
-pub(super) struct ResolveContext {
-    aliases: Vec<AliasEntry>,
-    python: PythonContext,
-    swift_modules: BTreeMap<String, PathBuf>,
-    rust_crate_roots: BTreeSet<PathBuf>,
-}
-
-impl ResolveContext {
-    pub(super) fn build(root: &Path, files: &[PathBuf]) -> Self {
-        Self {
-            aliases: load_path_aliases(root),
-            python: PythonContext::index(root, files),
-            swift_modules: index_swift_modules(root, files),
-            rust_crate_roots: index_rust_crate_roots(files),
-        }
-    }
-}
 
 pub(super) struct ImportPass {
     scope: Vec<bool>,
@@ -95,15 +72,7 @@ impl ImportPass {
             if self.allow_type_only && import.is_type_only {
                 continue;
             }
-            let Some(resolved) = resolve_import(
-                file,
-                root,
-                &import.specifier,
-                &context.aliases,
-                &context.python,
-                &context.swift_modules,
-                &context.rust_crate_roots,
-            ) else {
+            let Some(resolved) = resolve_import(file, root, &import.specifier, context) else {
                 if denies_package(file, &import.specifier, &self.deny_packages) {
                     violations.push(self.violation(
                         file,

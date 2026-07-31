@@ -13,9 +13,10 @@ use std::path::{Path, PathBuf};
 use tree_sitter::Node;
 
 use comments::{CommentLines, CommentPass, plan_block_passes, plan_density_passes};
-use imports::{ImportPass, ResolveContext, plan_import_passes};
+use imports::{ImportPass, plan_import_passes};
 use layers::resolve_layer_mask;
 use patterns::{PatternPass, plan_forbidden_passes, plan_singleton_passes};
+use resolve::ResolveContext;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct ArchConfig {
