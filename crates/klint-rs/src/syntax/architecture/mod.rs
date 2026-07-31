@@ -54,6 +54,7 @@ pub(crate) fn scan_imports_from_tree(
         SourceLanguage::Python => imports.extend(scan_python_imports(root, source)),
         SourceLanguage::Swift => walk_swift_imports(root, source, &mut imports),
         SourceLanguage::Rust => walk_rust_imports(root, source, &mut imports),
+        SourceLanguage::CSharp => {}
         SourceLanguage::JavaScriptLike => walk_imports(root, source, &mut imports),
     }
     imports

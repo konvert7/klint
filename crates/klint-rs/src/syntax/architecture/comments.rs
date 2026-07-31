@@ -60,14 +60,15 @@ fn walk_comments(
 }
 
 /// A `/** */` JSDoc block, but not the empty `/**/` comment. Mirrors the TS
-/// engine. Swift also documents with `///`, where TypeScript reserves triple
-/// slashes for `/// <reference>` directives rather than documentation. Rust
-/// marks `///` and `//!` in the tree itself, so its doc comments are read off
-/// the node rather than guessed from the text.
+/// engine. Swift and C# also document with `///` — C# uses it for XML doc
+/// comments — where TypeScript reserves triple slashes for `/// <reference>`
+/// directives rather than documentation. Rust marks `///` and `//!` in the tree
+/// itself, so its doc comments are read off the node rather than guessed from
+/// the text.
 fn is_doc_comment(language: SourceLanguage, node: Node<'_>, text: &str) -> bool {
     match language {
         SourceLanguage::Rust => has_rust_doc_marker(node),
-        SourceLanguage::Swift if text.starts_with("///") => true,
+        SourceLanguage::Swift | SourceLanguage::CSharp if text.starts_with("///") => true,
         _ => text.starts_with("/**") && text != "/**/",
     }
 }
@@ -167,6 +168,33 @@ mod tests {
                 CommentRecord {
                     start_line: 5,
                     end_line: 5,
+                    is_doc: false,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn classifies_csharp_xml_doc_and_ordinary_comments() {
+        assert_eq!(
+            comments(
+                "Program.cs",
+                "/// <summary>doc</summary>\n// plain\n/* block */\nint x = 1;\n",
+            ),
+            vec![
+                CommentRecord {
+                    start_line: 1,
+                    end_line: 1,
+                    is_doc: true,
+                },
+                CommentRecord {
+                    start_line: 2,
+                    end_line: 2,
+                    is_doc: false,
+                },
+                CommentRecord {
+                    start_line: 3,
+                    end_line: 3,
                     is_doc: false,
                 },
             ]
