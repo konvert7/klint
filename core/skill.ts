@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { lstatSync, readFileSync, readlinkSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import type { Violation } from "./types";
 
@@ -12,11 +12,14 @@ export const AGENT_SKILL_DIRS = {
 
 export type AgentKey = keyof typeof AGENT_SKILL_DIRS;
 
+export const CANONICAL_SKILL_DIR = ".agents/skills";
 export const SKILL_DIR_NAME = "klint-rules";
 export const SKILL_FILE_NAME = "SKILL.md";
 export const RECEIPT_FILE_NAME = ".klint-skill.json";
 
 const STALE_RULE = "klint/skill-stale";
+const LEGACY_RULE = "klint/skill-legacy-link";
+const LEGACY_TARGET = "node_modules";
 
 export interface SkillReceipt {
   version: string;
@@ -34,7 +37,38 @@ export function agentSkillDirs(agents?: readonly AgentKey[]): string[] {
   return [...new Set(selected)];
 }
 
-export function skillStalenessAdvisories({
+export function skillAdvisories({
+  configDir,
+  installed,
+  shippedSkillPath,
+}: {
+  configDir: string;
+  installed: string;
+  shippedSkillPath: string;
+}): Array<Omit<Violation, "fix">> {
+  return [
+    ...legacyLinkAdvisories(configDir),
+    ...stalenessAdvisories({ configDir, installed, shippedSkillPath }),
+  ];
+}
+
+function legacyLinkAdvisories(configDir: string): Array<Omit<Violation, "fix">> {
+  return agentSkillDirs().flatMap((dir) => {
+    const target = symlinkTarget(join(configDir, dir, SKILL_DIR_NAME));
+    if (target === undefined || !target.includes(LEGACY_TARGET)) return [];
+    return [
+      {
+        file: `${dir}/${SKILL_DIR_NAME}`,
+        line: 1,
+        rule: LEGACY_RULE,
+        severity: "warn",
+        message: `this skill is a symlink into ${LEGACY_TARGET} (${target}), which breaks as soon as dependencies are reinstalled — run: klint install-skill`,
+      },
+    ];
+  });
+}
+
+function stalenessAdvisories({
   configDir,
   installed,
   shippedSkillPath,
@@ -46,9 +80,16 @@ export function skillStalenessAdvisories({
   const shipped = readShippedHash(shippedSkillPath);
   if (shipped === undefined) return [];
 
-  return agentSkillDirs().flatMap((dir) => {
-    const receipt = readReceipt(join(configDir, dir, SKILL_DIR_NAME, RECEIPT_FILE_NAME));
+  const reported = new Set<string>();
+  return realSkillDirsFirst(configDir).flatMap((dir) => {
+    const skillDir = join(configDir, dir, SKILL_DIR_NAME);
+    const canonical = resolveSkillDir(skillDir);
+    if (canonical === undefined || reported.has(canonical)) return [];
+
+    const receipt = readReceipt(join(skillDir, RECEIPT_FILE_NAME));
     if (receipt === undefined || receipt.sha256 === shipped) return [];
+
+    reported.add(canonical);
     return [staleAdvisory(dir, receipt.version, installed)];
   });
 }
@@ -65,6 +106,33 @@ function staleAdvisory(
     severity: "warn",
     message: `this klint-rules skill was installed from klint ${installedFrom} and no longer matches klint ${installed} — reinstall it with: klint install-skill`,
   };
+}
+
+function realSkillDirsFirst(configDir: string): string[] {
+  const dirs = agentSkillDirs();
+  const linked = new Set(
+    dirs.filter(
+      (dir) => symlinkTarget(join(configDir, dir, SKILL_DIR_NAME)) !== undefined
+    )
+  );
+  return [...dirs.filter((dir) => !linked.has(dir)), ...linked];
+}
+
+function symlinkTarget(path: string): string | undefined {
+  try {
+    if (!lstatSync(path).isSymbolicLink()) return undefined;
+    return readlinkSync(path);
+  } catch {
+    return undefined;
+  }
+}
+
+function resolveSkillDir(path: string): string | undefined {
+  try {
+    return realpathSync(path);
+  } catch {
+    return undefined;
+  }
 }
 
 function readShippedHash(shippedSkillPath: string): string | undefined {

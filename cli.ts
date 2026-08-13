@@ -17,7 +17,7 @@ import { runAutoEngine, runCompareEngine, runRustEngine } from "./cli/rust-engin
 import { applyFixes } from "./core/fixer";
 import { runKlint } from "./core/runner";
 import { schemaVersionAdvisory } from "./core/schema-version";
-import { skillStalenessAdvisories } from "./core/skill";
+import { skillAdvisories } from "./core/skill";
 import type { ArchConfig, KlintConfig, KlintRule, RuleConfigValue } from "./core/types";
 
 interface CliOptions {
@@ -103,7 +103,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
       configFile: usingYaml ? "klint.yaml" : "klint.config.json",
       configText,
     }),
-    ...skillStalenessAdvisories({
+    ...skillAdvisories({
       configDir,
       installed,
       shippedSkillPath: SHIPPED_SKILL_PATH,

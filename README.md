@@ -108,7 +108,7 @@ Rules give agents room to move quickly because the unsafe moves are blocked stru
 
 ```sh
 klint [--config <dir>] [--rules <file>] [--engine ts|rust|compare|auto] [--fix] [--json]
-klint install-skill [--agents <list>] [--symlink | --copy]
+klint install-skill [--agents <list>] [--symlink | --copy] [--force]
 ```
 
 | Flag | Description |
@@ -122,19 +122,44 @@ klint install-skill [--agents <list>] [--symlink | --copy]
 `klint install-skill` installs the bundled rule-authoring skill for agent environments:
 
 ```sh
-klint install-skill --agents claude,opencode,cursor,codex --copy
+klint install-skill
 ```
 
 The skill is embedded in the native engine, so this works from every distribution — the npm package, the PyPI wheel, the NuGet tool, and the standalone binary — not just Node projects.
 
-A copied skill gets a `.klint-skill.json` receipt recording the klint version and the SHA-256 of the skill it came from. Every later run compares that hash against the skill the installed klint ships and raises a `klint/skill-stale` warning when they diverge:
+### Shared layout (default)
+
+By default the skill lives in exactly one place and every other agent directory points at it:
 
 ```
-.claude/skills/klint-rules/SKILL.md:1  warn  klint/skill-stale
+.agents/skills/klint-rules/         real skill + .klint-skill.json receipt
+.claude/skills/klint-rules  ->      ../../.agents/skills/klint-rules
+.cursor/skills/klint-rules  ->      ../../.agents/skills/klint-rules
+```
+
+`.agents/skills` is where opencode and Codex already read from, so it doubles as the hub. One source of truth means one file to diff, one receipt, and one warning when it drifts. The links are relative and stay inside the repo — nothing points into `node_modules`, so reinstalling dependencies can never break them.
+
+Pass `--copy` instead to give every agent directory its own independent copy and receipt.
+
+### Staleness and legacy links
+
+Each installed skill carries a `.klint-skill.json` receipt recording the klint version and the SHA-256 of the skill it came from. Every later run compares that hash against the skill the installed klint ships:
+
+```
+.agents/skills/klint-rules/SKILL.md:1  warn  klint/skill-stale
   this klint-rules skill was installed from klint 0.32.0 and no longer matches klint 0.33.0 — reinstall it with: klint install-skill
 ```
 
-`--symlink` is available only from the npm package, where a package directory exists to point at. A symlinked skill tracks updates on its own and gets no receipt or staleness warning. Hand-copied or edited skills have no receipt either, so they are never flagged.
+In the shared layout this fires once, not once per symlink. Hand-copied or edited skills have no receipt, so they are never flagged — and `install-skill` refuses to overwrite them unless you pass `--force`.
+
+Earlier versions symlinked into `node_modules/@konvert7/klint`, which breaks the moment dependencies are reinstalled. klint now reports those:
+
+```
+.claude/skills/klint-rules:1  warn  klint/skill-legacy-link
+  this skill is a symlink into node_modules (../../node_modules/@konvert7/klint/skill/klint-rules), which breaks as soon as dependencies are reinstalled — run: klint install-skill
+```
+
+Running `klint install-skill` replaces those links with the shared layout, including links whose target is already gone. No `--force` needed — a symlink holds no content to lose.
 
 ## Engines
 

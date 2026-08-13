@@ -86,8 +86,8 @@ fn install_skill_command(args: &[String]) -> i32 {
 
     match install_skill(&request) {
         Ok(installed) => {
-            for dir in installed {
-                println!("klint: installed the klint-rules skill into {dir}");
+            for line in installed {
+                println!("klint: {line}");
             }
             0
         }
@@ -102,6 +102,8 @@ fn parse_install_args(args: &[String]) -> Result<InstallRequest, String> {
     let root =
         std::env::current_dir().map_err(|err| format!("klint-rs: failed to resolve cwd: {err}"))?;
     let mut agents: Vec<String> = Vec::new();
+    let mut shared = true;
+    let mut force = false;
     let mut i = 0;
 
     while i < args.len() {
@@ -121,13 +123,17 @@ fn parse_install_args(args: &[String]) -> Result<InstallRequest, String> {
                 );
                 i += 2;
             }
-            "--copy" => {
+            "--symlink" | "--shared" => {
+                shared = true;
                 i += 1;
             }
-            "--symlink" => {
-                return Err(
-                    "klint-rs: --symlink needs a package directory to point at — this build embeds the skill and installs a copy, then warns when the copy falls behind".to_string(),
-                );
+            "--copy" => {
+                shared = false;
+                i += 1;
+            }
+            "--force" => {
+                force = true;
+                i += 1;
             }
             other => {
                 return Err(format!(
@@ -137,12 +143,17 @@ fn parse_install_args(args: &[String]) -> Result<InstallRequest, String> {
         }
     }
 
-    Ok(InstallRequest { root, agents })
+    Ok(InstallRequest {
+        root,
+        agents,
+        shared,
+        force,
+    })
 }
 
 fn print_help() {
     println!(
-        "klint-rs — shadow Rust architecture engine\n\nUsage: klint-rs [--config <dir>] [--json] [--version]\n       klint-rs install-skill [--agents <list>] [--copy]\n\n  install-skill    copy the embedded klint-rules skill into agent config directories\n                   --agents <list>  comma-separated: {} (default: all)",
+        "klint-rs — shadow Rust architecture engine\n\nUsage: klint-rs [--config <dir>] [--json] [--version]\n       klint-rs install-skill [--agents <list>] [--symlink | --copy] [--force]\n\n  install-skill    install the embedded klint-rules skill into agent config directories\n                   --agents <list>  comma-separated: {} (default: all)\n                   --symlink        one skill in .agents/skills, others symlink to it (default)\n                   --copy           an independent copy in every agent directory\n                   --force          replace a skill directory klint did not install",
         known_agent_names()
     );
 }

@@ -1,3 +1,5 @@
+pub(crate) mod install;
+
 use crate::output::Violation;
 use crate::version::reported_version;
 use serde::{Deserialize, Serialize};
@@ -5,11 +7,14 @@ use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const SKILL_MARKDOWN: &str = include_str!("../../../skill/klint-rules/SKILL.md");
+const SKILL_MARKDOWN: &str = include_str!("../../../../skill/klint-rules/SKILL.md");
 const SKILL_DIR_NAME: &str = "klint-rules";
 const SKILL_FILE_NAME: &str = "SKILL.md";
 const RECEIPT_FILE_NAME: &str = ".klint-skill.json";
+const CANONICAL_SKILL_DIR: &str = ".agents/skills";
 const STALE_RULE: &str = "klint/skill-stale";
+const LEGACY_RULE: &str = "klint/skill-legacy-link";
+const LEGACY_TARGET: &str = "node_modules";
 
 const AGENT_SKILL_DIRS: [(&str, &str); 4] = [
     ("claude", ".claude/skills"),
@@ -24,56 +29,94 @@ struct SkillReceipt {
     sha256: String,
 }
 
-#[derive(Debug)]
-pub struct InstallRequest {
-    pub root: PathBuf,
-    pub agents: Vec<String>,
-}
-
 pub fn shipped_skill_hash() -> String {
     let mut hasher = Sha256::new();
     hasher.update(SKILL_MARKDOWN.as_bytes());
     format!("{:x}", hasher.finalize())
 }
 
-pub fn install_skill(request: &InstallRequest) -> Result<Vec<String>, String> {
-    let mut installed = Vec::new();
-    for dir in agent_dirs_for(&request.agents)? {
-        let destination = request.root.join(&dir).join(SKILL_DIR_NAME);
-        replace_directory(&destination)?;
-        write_skill_files(&destination)?;
-        installed.push(format!("{dir}/{SKILL_DIR_NAME}"));
-    }
-    Ok(installed)
+pub(crate) fn skill_advisories(root: &Path) -> Vec<Violation> {
+    let mut advisories = legacy_link_advisories(root);
+    advisories.extend(stale_skill_advisories(root));
+    advisories
 }
 
-pub(crate) fn stale_skill_advisories(root: &Path) -> Vec<Violation> {
-    let shipped = shipped_skill_hash();
-    let installed = reported_version();
+fn legacy_link_advisories(root: &Path) -> Vec<Violation> {
     unique_agent_dirs()
         .into_iter()
-        .filter_map(|dir| stale_advisory_for(root, &dir, &shipped, &installed))
+        .filter_map(|dir| legacy_advisory_for(root, &dir))
         .collect()
 }
 
-fn stale_advisory_for(root: &Path, dir: &str, shipped: &str, installed: &str) -> Option<Violation> {
-    let skill_dir = root.join(dir).join(SKILL_DIR_NAME);
-    let receipt = read_receipt(&skill_dir.join(RECEIPT_FILE_NAME))?;
-    if receipt.sha256 == shipped {
+fn legacy_advisory_for(root: &Path, dir: &str) -> Option<Violation> {
+    let target = symlink_target(&root.join(dir).join(SKILL_DIR_NAME))?;
+    if !target.contains(LEGACY_TARGET) {
         return None;
     }
 
     Some(Violation {
-        file: format!("{dir}/{SKILL_DIR_NAME}/{SKILL_FILE_NAME}"),
+        file: format!("{dir}/{SKILL_DIR_NAME}"),
         line: 1,
-        rule: STALE_RULE.to_string(),
+        rule: LEGACY_RULE.to_string(),
         message: format!(
-            "this klint-rules skill was installed from klint {} and no longer matches klint {installed} — reinstall it with: klint install-skill",
-            receipt.version
+            "this skill is a symlink into {LEGACY_TARGET} ({target}), which breaks as soon as dependencies are reinstalled — run: klint install-skill"
         ),
         severity: "warn".to_string(),
         fix: None,
     })
+}
+
+fn stale_skill_advisories(root: &Path) -> Vec<Violation> {
+    let shipped = shipped_skill_hash();
+    let installed = reported_version();
+    let mut reported: Vec<PathBuf> = Vec::new();
+
+    real_skill_dirs_first(root)
+        .into_iter()
+        .filter_map(|dir| {
+            let skill_dir = root.join(&dir).join(SKILL_DIR_NAME);
+            let canonical = fs::canonicalize(&skill_dir).ok()?;
+            if reported.contains(&canonical) {
+                return None;
+            }
+
+            let receipt = read_receipt(&skill_dir.join(RECEIPT_FILE_NAME))?;
+            if receipt.sha256 == shipped {
+                return None;
+            }
+
+            reported.push(canonical);
+            Some(stale_advisory(&dir, &receipt.version, &installed))
+        })
+        .collect()
+}
+
+fn stale_advisory(dir: &str, installed_from: &str, installed: &str) -> Violation {
+    Violation {
+        file: format!("{dir}/{SKILL_DIR_NAME}/{SKILL_FILE_NAME}"),
+        line: 1,
+        rule: STALE_RULE.to_string(),
+        message: format!(
+            "this klint-rules skill was installed from klint {installed_from} and no longer matches klint {installed} — reinstall it with: klint install-skill"
+        ),
+        severity: "warn".to_string(),
+        fix: None,
+    }
+}
+
+fn real_skill_dirs_first(root: &Path) -> Vec<String> {
+    let (linked, real): (Vec<String>, Vec<String>) = unique_agent_dirs()
+        .into_iter()
+        .partition(|dir| symlink_target(&root.join(dir).join(SKILL_DIR_NAME)).is_some());
+    real.into_iter().chain(linked).collect()
+}
+
+fn symlink_target(path: &Path) -> Option<String> {
+    let metadata = fs::symlink_metadata(path).ok()?;
+    if !metadata.is_symlink() {
+        return None;
+    }
+    Some(fs::read_link(path).ok()?.to_string_lossy().to_string())
 }
 
 fn read_receipt(path: &Path) -> Option<SkillReceipt> {
@@ -128,42 +171,13 @@ fn deduplicated(dirs: &[&str]) -> Vec<String> {
     unique
 }
 
-fn replace_directory(path: &Path) -> Result<(), String> {
-    match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.is_dir() => {
-            fs::remove_dir_all(path).map_err(|err| failure("remove", path, &err))?;
-        }
-        Ok(_) => fs::remove_file(path).map_err(|err| failure("remove", path, &err))?,
-        Err(_) => {}
-    }
-    fs::create_dir_all(path).map_err(|err| failure("create", path, &err))
-}
-
-fn write_skill_files(destination: &Path) -> Result<(), String> {
-    let skill_path = destination.join(SKILL_FILE_NAME);
-    fs::write(&skill_path, SKILL_MARKDOWN).map_err(|err| failure("write", &skill_path, &err))?;
-
-    let receipt = SkillReceipt {
-        version: reported_version(),
-        sha256: shipped_skill_hash(),
-    };
-    let body = serde_json::to_string_pretty(&receipt)
-        .map_err(|err| format!("klint: failed to serialize the skill receipt: {err}"))?;
-    let receipt_path = destination.join(RECEIPT_FILE_NAME);
-    fs::write(&receipt_path, format!("{body}\n"))
-        .map_err(|err| failure("write", &receipt_path, &err))
-}
-
-fn failure(action: &str, path: &Path, err: &std::io::Error) -> String {
-    format!("klint: failed to {action} {}: {err}", path.display())
-}
-
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
+    use super::install::{InstallRequest, install_skill};
     use super::*;
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    fn temp_root(name: &str) -> PathBuf {
+    pub(crate) fn temp_root(name: &str) -> PathBuf {
         let id = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("clock should be monotonic enough for tests")
@@ -179,6 +193,13 @@ mod tests {
             serde_json::to_string(receipt).expect("receipt should serialize"),
         )
         .expect("write receipt");
+    }
+
+    fn stale_receipt() -> SkillReceipt {
+        SkillReceipt {
+            version: "0.1.0".to_string(),
+            sha256: "0".repeat(64),
+        }
     }
 
     #[test]
@@ -205,7 +226,7 @@ mod tests {
     fn agents_sharing_a_directory_are_installed_once() {
         let dirs = agent_dirs_for(&["codex".to_string(), "opencode".to_string()])
             .expect("known agents should resolve");
-        assert_eq!(dirs, vec![".agents/skills".to_string()]);
+        assert_eq!(dirs, vec![CANONICAL_SKILL_DIR.to_string()]);
     }
 
     #[test]
@@ -230,98 +251,92 @@ mod tests {
     }
 
     #[test]
-    fn install_writes_the_skill_and_a_matching_receipt() {
-        let root = temp_root("install");
-        let installed = install_skill(&InstallRequest {
-            root: root.clone(),
-            agents: vec!["claude".to_string()],
-        })
-        .expect("install should succeed");
-
-        assert_eq!(installed, vec![".claude/skills/klint-rules".to_string()]);
-        let skill_dir = root.join(".claude/skills/klint-rules");
-        assert_eq!(
-            fs::read_to_string(skill_dir.join(SKILL_FILE_NAME)).expect("skill should exist"),
-            SKILL_MARKDOWN
-        );
-        let receipt =
-            read_receipt(&skill_dir.join(RECEIPT_FILE_NAME)).expect("receipt should exist");
-        assert_eq!(receipt.sha256, shipped_skill_hash());
-        assert_eq!(receipt.version, reported_version());
-        let _ = fs::remove_dir_all(root);
-    }
-
-    #[test]
-    fn install_replaces_a_previous_installation() {
-        let root = temp_root("replace");
-        let skill_dir = root.join(".claude/skills").join(SKILL_DIR_NAME);
-        fs::create_dir_all(&skill_dir).expect("create stale dir");
-        fs::write(skill_dir.join("leftover.md"), "old").expect("write leftover");
-
-        install_skill(&InstallRequest {
-            root: root.clone(),
-            agents: vec!["claude".to_string()],
-        })
-        .expect("install should succeed");
-
-        assert!(!skill_dir.join("leftover.md").exists());
-        let _ = fs::remove_dir_all(root);
-    }
-
-    #[test]
-    fn a_fresh_install_produces_no_advisory() {
-        let root = temp_root("fresh");
+    fn a_fresh_shared_install_produces_no_advisory() {
+        let root = temp_root("advisory-fresh");
         install_skill(&InstallRequest {
             root: root.clone(),
             agents: Vec::new(),
+            shared: true,
+            force: false,
         })
         .expect("install should succeed");
 
-        assert!(stale_skill_advisories(&root).is_empty());
+        assert!(skill_advisories(&root).is_empty());
         let _ = fs::remove_dir_all(root);
     }
 
     #[test]
-    fn a_stale_receipt_warns_once_per_directory() {
-        let root = temp_root("stale");
-        let receipt = SkillReceipt {
-            version: "0.1.0".to_string(),
-            sha256: "0".repeat(64),
-        };
-        write_receipt(&root, ".claude/skills", &receipt);
-        write_receipt(&root, ".agents/skills", &receipt);
+    fn a_shared_install_warns_once_when_it_goes_stale() {
+        let root = temp_root("advisory-shared-stale");
+        install_skill(&InstallRequest {
+            root: root.clone(),
+            agents: Vec::new(),
+            shared: true,
+            force: false,
+        })
+        .expect("install should succeed");
+        write_receipt(&root, CANONICAL_SKILL_DIR, &stale_receipt());
 
-        let advisories = stale_skill_advisories(&root);
+        let advisories = skill_advisories(&root);
 
-        assert_eq!(advisories.len(), 2);
+        assert_eq!(advisories.len(), 1);
         assert_eq!(advisories[0].rule, STALE_RULE);
-        assert_eq!(advisories[0].severity, "warn");
-        assert_eq!(advisories[0].file, ".claude/skills/klint-rules/SKILL.md");
-        assert_eq!(advisories[0].line, 1);
         assert!(advisories[0].message.contains("installed from klint 0.1.0"));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn separate_copies_warn_once_each() {
+        let root = temp_root("advisory-copies");
+        for dir in unique_agent_dirs() {
+            write_receipt(&root, &dir, &stale_receipt());
+        }
+
+        assert_eq!(skill_advisories(&root).len(), 3);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn a_legacy_node_modules_link_is_reported() {
+        let root = temp_root("advisory-legacy");
+        let dest = root.join(".claude/skills").join(SKILL_DIR_NAME);
+        fs::create_dir_all(dest.parent().expect("parent exists")).expect("create parent");
+        install::create_symlink(
+            "../../node_modules/@konvert7/klint/skill/klint-rules",
+            &dest,
+        )
+        .expect("create legacy link");
+
+        let advisories = skill_advisories(&root);
+
+        assert_eq!(advisories.len(), 1);
+        assert_eq!(advisories[0].rule, LEGACY_RULE);
+        assert_eq!(advisories[0].severity, "warn");
+        assert_eq!(advisories[0].file, ".claude/skills/klint-rules");
+        assert!(advisories[0].message.contains("node_modules"));
         assert!(advisories[0].message.contains("klint install-skill"));
         let _ = fs::remove_dir_all(root);
     }
 
     #[test]
     fn a_skill_without_a_receipt_is_left_alone() {
-        let root = temp_root("receiptless");
+        let root = temp_root("advisory-receiptless");
         let skill_dir = root.join(".claude/skills").join(SKILL_DIR_NAME);
         fs::create_dir_all(&skill_dir).expect("create skill dir");
         fs::write(skill_dir.join(SKILL_FILE_NAME), "hand written").expect("write skill");
 
-        assert!(stale_skill_advisories(&root).is_empty());
+        assert!(skill_advisories(&root).is_empty());
         let _ = fs::remove_dir_all(root);
     }
 
     #[test]
     fn an_unreadable_receipt_is_left_alone() {
-        let root = temp_root("corrupt");
+        let root = temp_root("advisory-corrupt");
         let skill_dir = root.join(".claude/skills").join(SKILL_DIR_NAME);
         fs::create_dir_all(&skill_dir).expect("create skill dir");
         fs::write(skill_dir.join(RECEIPT_FILE_NAME), "{ not json").expect("write receipt");
 
-        assert!(stale_skill_advisories(&root).is_empty());
+        assert!(skill_advisories(&root).is_empty());
         let _ = fs::remove_dir_all(root);
     }
 }

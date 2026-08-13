@@ -16,8 +16,9 @@ use engine::run_engine;
 use files::{read_files, resolve_files};
 pub use output::{JsonOutput, Summary, Violation};
 use rules::plan_rule_passes;
-use skill::stale_skill_advisories;
-pub use skill::{InstallRequest, install_skill, known_agent_names};
+pub use skill::install::{InstallRequest, install_skill};
+pub use skill::known_agent_names;
+use skill::skill_advisories;
 pub use version::reported_version;
 use version::schema_version_advisory;
 
@@ -45,7 +46,7 @@ pub fn run(options: RunOptions) -> Result<JsonOutput, String> {
 
     let mut violations = run_engine(&rule_passes, arch_plan.as_ref(), &files, &contents, &root);
     violations.extend(schema_version_advisory(raw.schema.as_deref(), &config_path));
-    violations.extend(stale_skill_advisories(&options.config_dir));
+    violations.extend(skill_advisories(&options.config_dir));
 
     Ok(output::output_from_violations(violations))
 }
