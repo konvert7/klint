@@ -72,10 +72,13 @@ fn resolves_to_the_skill(destination: &Path) -> bool {
 }
 
 fn remove_unusable_link(destination: &Path) {
-    if fs::symlink_metadata(destination).is_err() {
-        return;
+    if fs::symlink_metadata(destination).is_ok() {
+        let _ = remove_link(destination);
     }
-    let _ = fs::remove_file(destination).or_else(|_| fs::remove_dir(destination));
+}
+
+fn remove_link(path: &Path) -> std::io::Result<()> {
+    fs::remove_file(path).or_else(|_| fs::remove_dir(path))
 }
 
 fn relative_to_parent(target: &str, hub: &str) -> String {
@@ -108,7 +111,7 @@ fn prepare_destination(destination: &Path, target: &str, force: bool) -> Result<
     };
 
     if !metadata.is_dir() {
-        fs::remove_file(destination).map_err(|err| failure("remove", destination, &err))
+        remove_link(destination).map_err(|err| failure("remove", destination, &err))
     } else if force || destination.join(RECEIPT_FILE_NAME).exists() {
         fs::remove_dir_all(destination).map_err(|err| failure("remove", destination, &err))
     } else {

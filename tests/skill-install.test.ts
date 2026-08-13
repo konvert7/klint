@@ -181,6 +181,10 @@ describe("install-skill across distributions", () => {
     });
   }
 
+  function expectInstalled(result: SpawnSyncReturns<string>): void {
+    expect(result.status, result.stderr || result.stdout).toBe(0);
+  }
+
   function expectSharedLayout(root: string): void {
     expect(lstatSync(skillPath(root, CANONICAL_SKILL_DIR)).isDirectory()).toBe(true);
     expect(
@@ -247,8 +251,8 @@ describe("install-skill across distributions", () => {
   test("both engines write the same receipt hash", () => {
     const nativeRoot = tempRoot();
     const bunRoot = tempRoot();
-    expect(installViaNative(nativeRoot, []).status).toBe(0);
-    expect(installViaBun(bunRoot, []).status).toBe(0);
+    expectInstalled(installViaNative(nativeRoot, []));
+    expectInstalled(installViaBun(bunRoot, []));
 
     const shipped = skillHash(readFileSync(SHIPPED_SKILL_PATH));
     for (const root of [nativeRoot, bunRoot]) {
@@ -265,7 +269,7 @@ describe("install-skill across distributions", () => {
 
   test("--copy gives every agent directory its own receipt", () => {
     const root = tempRoot();
-    expect(installViaNative(root, ["--copy"]).status).toBe(0);
+    expectInstalled(installViaNative(root, ["--copy"]));
 
     for (const dir of agentSkillDirs()) {
       expect(lstatSync(skillPath(root, dir)).isDirectory()).toBe(true);
@@ -282,7 +286,7 @@ describe("install-skill across distributions", () => {
       const root = tempRoot();
       for (const dir of agentSkillDirs()) linkSkill(root, dir, target);
 
-      expect(install(root, []).status).toBe(0);
+      expectInstalled(install(root, []));
 
       expectSharedLayout(root);
       expect(advisoriesFor(root)).toEqual([]);
@@ -313,7 +317,7 @@ describe("install-skill across distributions", () => {
       mkdirSync(dirname(path), { recursive: true });
       writeFileSync(path, "hand written");
 
-      expect(install(root, ["--force"]).status).toBe(0);
+      expectInstalled(install(root, ["--force"]));
 
       expect(readFileSync(path, "utf-8")).toBe(readFileSync(SHIPPED_SKILL_PATH, "utf-8"));
       rmSync(root, { force: true, recursive: true });
@@ -323,7 +327,7 @@ describe("install-skill across distributions", () => {
   test("no install path ever points into node_modules", () => {
     for (const install of [installViaNative, installViaBun]) {
       const root = tempRoot();
-      expect(install(root, []).status).toBe(0);
+      expectInstalled(install(root, []));
 
       for (const dir of [".claude/skills", ".cursor/skills"]) {
         expect(readlinkSync(skillPath(root, dir))).not.toContain("node_modules");
