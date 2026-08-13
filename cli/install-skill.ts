@@ -109,15 +109,30 @@ async function linkToHub(
   const dest = resolve(process.cwd(), target);
   await prepareDestination(dest, target, force);
 
-  const linkPath = relative(dirname(dest), resolve(process.cwd(), hub));
+  const absoluteHub = resolve(process.cwd(), hub);
+  const linkPath = relative(dirname(dest), absoluteHub);
+  if (await linkResolves(linkPath, dest, "dir")) return `linked ${target} -> ${linkPath}`;
+  if (await linkResolves(absoluteHub, dest, "junction"))
+    return `linked ${target} -> ${hub}`;
+
+  await cp(skillSrc, dest, { recursive: true });
+  await writeReceipt(dest, skillSrc);
+  return `installed ${target} (symlinks unavailable here)`;
+}
+
+async function linkResolves(
+  linkTarget: string,
+  dest: string,
+  type: "dir" | "junction"
+): Promise<boolean> {
   try {
-    await symlink(linkPath, dest, process.platform === "win32" ? "junction" : "dir");
-    return `linked ${target} -> ${linkPath}`;
+    await symlink(linkTarget, dest, type);
+    if (existsSync(join(dest, SKILL_FILE_NAME))) return true;
   } catch {
-    await cp(skillSrc, dest, { recursive: true });
-    await writeReceipt(dest, skillSrc);
-    return `installed ${target} (symlinks unavailable here)`;
+    /* try the next strategy */
   }
+  await rm(dest, { force: true, recursive: true });
+  return false;
 }
 
 async function prepareDestination(

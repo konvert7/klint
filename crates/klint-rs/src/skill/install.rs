@@ -58,18 +58,34 @@ fn link_to_hub(request: &InstallRequest, target: &str, hub: &str) -> Result<Stri
     prepare_destination(&destination, target, request.force)?;
 
     let link_path = relative_to_parent(target, hub);
-    match create_symlink(&link_path, &destination) {
-        Ok(()) => Ok(format!("linked {target} -> {link_path}")),
-        Err(_) => {
-            write_skill_files(&destination)?;
-            Ok(format!("installed {target} (symlinks unavailable here)"))
-        }
+    if create_symlink(&link_path, &destination).is_ok() && resolves_to_the_skill(&destination) {
+        return Ok(format!("linked {target} -> {link_path}"));
     }
+
+    remove_unusable_link(&destination);
+    write_skill_files(&destination)?;
+    Ok(format!("installed {target} (symlinks unavailable here)"))
+}
+
+fn resolves_to_the_skill(destination: &Path) -> bool {
+    destination.join(SKILL_FILE_NAME).exists()
+}
+
+fn remove_unusable_link(destination: &Path) {
+    if fs::symlink_metadata(destination).is_err() {
+        return;
+    }
+    let _ = fs::remove_file(destination).or_else(|_| fs::remove_dir(destination));
 }
 
 fn relative_to_parent(target: &str, hub: &str) -> String {
     let depth = target.matches('/').count();
-    format!("{}{hub}", "../".repeat(depth))
+    let link_path = format!("{}{hub}", "../".repeat(depth));
+    if cfg!(windows) {
+        link_path.replace('/', "\\")
+    } else {
+        link_path
+    }
 }
 
 #[cfg(unix)]
@@ -137,35 +153,84 @@ mod tests {
         }
     }
 
+    fn assert_migrated(dest: &Path) {
+        assert_eq!(
+            fs::read_to_string(dest.join(SKILL_FILE_NAME)).expect("skill should resolve"),
+            SKILL_MARKDOWN
+        );
+        if let Ok(target) = fs::read_link(dest) {
+            assert!(!target.to_string_lossy().contains("node_modules"));
+            assert_eq!(
+                target,
+                PathBuf::from(relative_to_parent(
+                    ".claude/skills/klint-rules",
+                    &format!("{CANONICAL_SKILL_DIR}/{SKILL_DIR_NAME}")
+                ))
+            );
+        }
+    }
+
+    #[test]
+    fn the_link_target_uses_this_platforms_separator() {
+        let link_path =
+            relative_to_parent(".claude/skills/klint-rules", ".agents/skills/klint-rules");
+
+        if cfg!(windows) {
+            assert_eq!(link_path, "..\\..\\.agents\\skills\\klint-rules");
+            assert!(!link_path.contains('/'));
+        } else {
+            assert_eq!(link_path, "../../.agents/skills/klint-rules");
+        }
+    }
+
+    #[test]
+    fn a_link_that_does_not_resolve_falls_back_to_a_copy() {
+        let root = temp_root("unresolvable");
+        let dest = root.join(".claude/skills/klint-rules");
+        fs::create_dir_all(dest.parent().expect("parent exists")).expect("create parent");
+        create_symlink("../../nowhere/klint-rules", &dest).expect("create broken link");
+
+        assert!(!resolves_to_the_skill(&dest));
+        remove_unusable_link(&dest);
+        assert!(fs::symlink_metadata(&dest).is_err());
+
+        write_skill_files(&dest).expect("fallback copy should succeed");
+        assert!(resolves_to_the_skill(&dest));
+        let _ = fs::remove_dir_all(root);
+    }
+
     #[test]
     fn shared_mode_keeps_one_real_skill_and_links_the_rest() {
         let root = temp_root("shared");
         let report = install_skill(&request(&root, true, false)).expect("install should succeed");
 
-        assert_eq!(
-            report,
-            vec![
-                "installed .agents/skills/klint-rules".to_string(),
-                "linked .claude/skills/klint-rules -> ../../.agents/skills/klint-rules".to_string(),
-                "linked .cursor/skills/klint-rules -> ../../.agents/skills/klint-rules".to_string(),
-            ]
-        );
+        let hub = format!("{CANONICAL_SKILL_DIR}/{SKILL_DIR_NAME}");
+        let link = relative_to_parent(".claude/skills/klint-rules", &hub);
+        assert_eq!(report[0], format!("installed {hub}"));
         assert!(
-            fs::symlink_metadata(root.join(".agents/skills/klint-rules"))
+            fs::symlink_metadata(root.join(&hub))
                 .expect("hub should exist")
                 .is_dir()
         );
-        for linked in [".claude/skills/klint-rules", ".cursor/skills/klint-rules"] {
-            assert!(
-                fs::symlink_metadata(root.join(linked))
-                    .expect("link should exist")
-                    .is_symlink()
-            );
+
+        for (index, linked) in [".claude/skills/klint-rules", ".cursor/skills/klint-rules"]
+            .into_iter()
+            .enumerate()
+        {
+            let path = root.join(linked);
             assert_eq!(
-                fs::read_to_string(root.join(linked).join(SKILL_FILE_NAME))
-                    .expect("link should resolve"),
+                fs::read_to_string(path.join(SKILL_FILE_NAME)).expect("skill should resolve"),
                 SKILL_MARKDOWN
             );
+            let expected = if fs::symlink_metadata(&path)
+                .expect("entry should exist")
+                .is_symlink()
+            {
+                format!("linked {linked} -> {link}")
+            } else {
+                format!("installed {linked} (symlinks unavailable here)")
+            };
+            assert_eq!(report[index + 1], expected);
         }
         let _ = fs::remove_dir_all(root);
     }
@@ -218,10 +283,7 @@ mod tests {
 
         install_skill(&request(&root, true, false)).expect("install should succeed");
 
-        assert_eq!(
-            fs::read_link(&dest).expect("link should exist"),
-            PathBuf::from("../../.agents/skills/klint-rules")
-        );
+        assert_migrated(&dest);
         let _ = fs::remove_dir_all(root);
     }
 
@@ -234,10 +296,7 @@ mod tests {
 
         install_skill(&request(&root, true, false)).expect("install should succeed");
 
-        assert_eq!(
-            fs::read_link(&dest).expect("link should exist"),
-            PathBuf::from("../../.agents/skills/klint-rules")
-        );
+        assert_migrated(&dest);
         let _ = fs::remove_dir_all(root);
     }
 

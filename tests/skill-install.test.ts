@@ -7,6 +7,7 @@ import {
   mkdtempSync,
   readFileSync,
   readlinkSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -186,11 +187,24 @@ describe("install-skill across distributions", () => {
       existsSync(join(skillPath(root, CANONICAL_SKILL_DIR), RECEIPT_FILE_NAME))
     ).toBe(true);
     for (const dir of [".claude/skills", ".cursor/skills"]) {
-      expect(lstatSync(skillPath(root, dir)).isSymbolicLink()).toBe(true);
-      expect(readlinkSync(skillPath(root, dir))).toBe(HUB_LINK);
       expect(readFileSync(join(skillPath(root, dir), SKILL_FILE_NAME), "utf-8")).toBe(
         readFileSync(SHIPPED_SKILL_PATH, "utf-8")
       );
+      expectPointsAtHub(root, dir);
+    }
+  }
+
+  function expectPointsAtHub(root: string, dir: string): void {
+    const path = skillPath(root, dir);
+    if (!lstatSync(path).isSymbolicLink()) {
+      expect(existsSync(join(path, RECEIPT_FILE_NAME))).toBe(true);
+      return;
+    }
+
+    expect(readlinkSync(path)).not.toContain("node_modules");
+    expect(realpathSync(path)).toBe(realpathSync(skillPath(root, CANONICAL_SKILL_DIR)));
+    if (process.platform !== "win32") {
+      expect(readlinkSync(path)).toBe(HUB_LINK);
     }
   }
 
