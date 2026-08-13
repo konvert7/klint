@@ -1,3 +1,11 @@
+# [0.34.0](https://github.com/konvert7/klint/compare/v0.33.1...v0.34.0) (2026-08-13)
+
+
+### Features
+
+* **prompt:** implement interactive skill installation prompts ([116a6ff](https://github.com/konvert7/klint/commit/116a6ff79d093b0976d1cc5f27efb4e0ba3ac076))
+* **skill:** add GitHub Copilot support in agent skill directories and update documentation ([9871b71](https://github.com/konvert7/klint/commit/9871b713b45810d62eceac3105b742ba1c5925f9))
+
 ## [0.33.1](https://github.com/konvert7/klint/compare/v0.33.0...v0.33.1) (2026-08-13)
 
 
