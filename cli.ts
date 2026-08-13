@@ -12,21 +12,13 @@ import {
   writeDebugEvent,
   writeTextOutput,
 } from "./cli/output";
-import { PACKAGE_ROOT } from "./cli/paths";
+import { installedVersion, SHIPPED_SKILL_PATH } from "./cli/paths";
 import { runAutoEngine, runCompareEngine, runRustEngine } from "./cli/rust-engine";
 import { applyFixes } from "./core/fixer";
 import { runKlint } from "./core/runner";
 import { schemaVersionAdvisory } from "./core/schema-version";
+import { skillStalenessAdvisories } from "./core/skill";
 import type { ArchConfig, KlintConfig, KlintRule, RuleConfigValue } from "./core/types";
-
-async function installedVersion(): Promise<string> {
-  const manifest = await readFile(resolve(PACKAGE_ROOT, "package.json"), "utf-8");
-  try {
-    return (JSON.parse(manifest) as { version?: string }).version ?? "0.0.0";
-  } catch {
-    return "0.0.0";
-  }
-}
 
 interface CliOptions {
   configDir?: string;
@@ -65,7 +57,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
       printHelp();
       process.exit(0);
     } else if (args[i] === "--version" || args[i] === "-V") {
-      process.stdout.write(`klint ${await installedVersion()}\n`);
+      process.stdout.write(`klint ${installedVersion()}\n`);
       process.exit(0);
     }
   }
@@ -103,12 +95,20 @@ export async function main(opts: CliOptions = {}): Promise<void> {
   }
   const root = resolve(configDir, raw.root ?? ".");
 
-  const advisories = schemaVersionAdvisory({
-    schema: raw.$schema,
-    installed: await installedVersion(),
-    configFile: usingYaml ? "klint.yaml" : "klint.config.json",
-    configText,
-  });
+  const installed = installedVersion();
+  const advisories = [
+    ...schemaVersionAdvisory({
+      schema: raw.$schema,
+      installed,
+      configFile: usingYaml ? "klint.yaml" : "klint.config.json",
+      configText,
+    }),
+    ...skillStalenessAdvisories({
+      configDir,
+      installed,
+      shippedSkillPath: SHIPPED_SKILL_PATH,
+    }),
+  ];
 
   if (engine === "rust") {
     runRustEngine({ advisories, fix, json, raw, root, rulesFile, startedAt });

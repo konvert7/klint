@@ -1,24 +1,23 @@
 import { existsSync } from "node:fs";
-import { cp, mkdir, rm, symlink } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import * as clack from "@clack/prompts";
-import { PACKAGE_ROOT } from "./paths";
+import {
+  AGENT_SKILL_DIRS,
+  type AgentKey,
+  RECEIPT_FILE_NAME,
+  SKILL_FILE_NAME,
+  type SkillReceipt,
+  skillHash,
+} from "../core/skill";
+import { installedVersion, PACKAGE_ROOT } from "./paths";
 
 const AGENT_TARGETS = [
   { value: "claude", label: "Claude Code" },
   { value: "opencode", label: "opencode" },
   { value: "cursor", label: "Cursor" },
   { value: "codex", label: "Codex" },
-] as const;
-
-type AgentKey = (typeof AGENT_TARGETS)[number]["value"];
-
-const AGENT_DIRS: Record<AgentKey, string> = {
-  claude: ".claude/skills",
-  opencode: ".agents/skills",
-  cursor: ".cursor/skills",
-  codex: ".agents/skills",
-};
+] as const satisfies ReadonlyArray<{ value: AgentKey; label: string }>;
 
 export async function installSkill(args: string[]): Promise<void> {
   const skillSrc = join(PACKAGE_ROOT, "skill", "klint-rules");
@@ -81,8 +80,10 @@ export async function installSkill(args: string[]): Promise<void> {
 
   const cwd = process.cwd();
   const linkType = process.platform === "win32" ? "junction" : "dir";
-  for (const key of selectedAgents) {
-    const dest = resolve(cwd, AGENT_DIRS[key], "klint-rules");
+  const destinations = new Set(
+    selectedAgents.map((key) => resolve(cwd, AGENT_SKILL_DIRS[key], "klint-rules"))
+  );
+  for (const dest of destinations) {
     await mkdir(dirname(dest), { recursive: true });
     try {
       await rm(dest, { recursive: true, force: true });
@@ -93,10 +94,19 @@ export async function installSkill(args: string[]): Promise<void> {
       await symlink(relative(dirname(dest), skillSrc), dest, linkType);
     } else {
       await cp(skillSrc, dest, { recursive: true });
+      await writeReceipt(dest, skillSrc);
     }
   }
 
   if (process.stdin.isTTY) {
     clack.outro("Done.");
   }
+}
+
+async function writeReceipt(dest: string, skillSrc: string): Promise<void> {
+  const receipt: SkillReceipt = {
+    version: installedVersion(),
+    sha256: skillHash(await readFile(join(skillSrc, SKILL_FILE_NAME))),
+  };
+  await writeFile(join(dest, RECEIPT_FILE_NAME), `${JSON.stringify(receipt, null, 2)}\n`);
 }

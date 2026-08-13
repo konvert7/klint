@@ -1,8 +1,13 @@
-use klint_rs::{RunOptions, run};
+use klint_rs::{InstallRequest, RunOptions, install_skill, known_agent_names, run};
 use std::path::PathBuf;
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
+
+    if args.first().is_some_and(|arg| arg == "install-skill") {
+        std::process::exit(install_skill_command(&args[1..]));
+    }
+
     let options = parse_args(&args).unwrap_or_else(|err| {
         eprintln!("{err}");
         std::process::exit(1);
@@ -61,8 +66,8 @@ fn parse_args(args: &[String]) -> Result<CliOptions, String> {
                 println!("klint-rs {}", klint_rs::reported_version());
                 std::process::exit(0);
             }
-            _ => {
-                i += 1;
+            other => {
+                return Err(format!("klint-rs: unknown argument \"{other}\""));
             }
         }
     }
@@ -70,8 +75,74 @@ fn parse_args(args: &[String]) -> Result<CliOptions, String> {
     Ok(CliOptions { config_dir, json })
 }
 
+fn install_skill_command(args: &[String]) -> i32 {
+    let request = match parse_install_args(args) {
+        Ok(request) => request,
+        Err(err) => {
+            eprintln!("{err}");
+            return 1;
+        }
+    };
+
+    match install_skill(&request) {
+        Ok(installed) => {
+            for dir in installed {
+                println!("klint: installed the klint-rules skill into {dir}");
+            }
+            0
+        }
+        Err(err) => {
+            eprintln!("{err}");
+            1
+        }
+    }
+}
+
+fn parse_install_args(args: &[String]) -> Result<InstallRequest, String> {
+    let root =
+        std::env::current_dir().map_err(|err| format!("klint-rs: failed to resolve cwd: {err}"))?;
+    let mut agents: Vec<String> = Vec::new();
+    let mut i = 0;
+
+    while i < args.len() {
+        match args[i].as_str() {
+            "--agents" => {
+                let Some(value) = args.get(i + 1) else {
+                    return Err(format!(
+                        "klint-rs: --agents requires a comma-separated list of: {}",
+                        known_agent_names()
+                    ));
+                };
+                agents.extend(
+                    value
+                        .split(',')
+                        .map(|agent| agent.trim().to_string())
+                        .filter(|agent| !agent.is_empty()),
+                );
+                i += 2;
+            }
+            "--copy" => {
+                i += 1;
+            }
+            "--symlink" => {
+                return Err(
+                    "klint-rs: --symlink needs a package directory to point at — this build embeds the skill and installs a copy, then warns when the copy falls behind".to_string(),
+                );
+            }
+            other => {
+                return Err(format!(
+                    "klint-rs: unknown install-skill argument \"{other}\""
+                ));
+            }
+        }
+    }
+
+    Ok(InstallRequest { root, agents })
+}
+
 fn print_help() {
     println!(
-        "klint-rs — shadow Rust architecture engine\n\nUsage: klint-rs [--config <dir>] [--json] [--version]"
+        "klint-rs — shadow Rust architecture engine\n\nUsage: klint-rs [--config <dir>] [--json] [--version]\n       klint-rs install-skill [--agents <list>] [--copy]\n\n  install-skill    copy the embedded klint-rules skill into agent config directories\n                   --agents <list>  comma-separated: {} (default: all)",
+        known_agent_names()
     );
 }

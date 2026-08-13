@@ -125,6 +125,17 @@ klint install-skill [--agents <list>] [--symlink | --copy]
 klint install-skill --agents claude,opencode,cursor,codex --copy
 ```
 
+The skill is embedded in the native engine, so this works from every distribution — the npm package, the PyPI wheel, the NuGet tool, and the standalone binary — not just Node projects.
+
+A copied skill gets a `.klint-skill.json` receipt recording the klint version and the SHA-256 of the skill it came from. Every later run compares that hash against the skill the installed klint ships and raises a `klint/skill-stale` warning when they diverge:
+
+```
+.claude/skills/klint-rules/SKILL.md:1  warn  klint/skill-stale
+  this klint-rules skill was installed from klint 0.32.0 and no longer matches klint 0.33.0 — reinstall it with: klint install-skill
+```
+
+`--symlink` is available only from the npm package, where a package directory exists to point at. A symlinked skill tracks updates on its own and gets no receipt or staleness warning. Hand-copied or edited skills have no receipt either, so they are never flagged.
+
 ## Engines
 
 klint currently ships a TypeScript engine and an experimental Rust engine. The Rust path is built for portable architecture checks and syntax-local rules; type-aware checks stay in TypeScript for now.
