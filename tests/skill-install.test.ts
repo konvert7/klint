@@ -15,6 +15,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import {
+  AGENT_SKILL_DIRS,
   agentSkillDirs,
   CANONICAL_SKILL_DIR,
   RECEIPT_FILE_NAME,
@@ -112,6 +113,16 @@ describe("skill advisories", () => {
 
     expect(advisoriesFor(root)).toHaveLength(agentSkillDirs().length);
     rmSync(root, { force: true, recursive: true });
+  });
+
+  test("agents sharing a directory are counted once", () => {
+    expect(agentSkillDirs(["codex", "copilot", "opencode"])).toEqual([
+      CANONICAL_SKILL_DIR,
+    ]);
+  });
+
+  test("copilot reads the directory the hub already lives in", () => {
+    expect(AGENT_SKILL_DIRS.copilot).toBe(CANONICAL_SKILL_DIR);
   });
 
   test("a shared skill warns once, not once per symlink", () => {

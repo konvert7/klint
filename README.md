@@ -139,7 +139,7 @@ By default the skill lives in exactly one place and every other agent directory 
 .cursor/skills/klint-rules  ->      ../../.agents/skills/klint-rules
 ```
 
-`.agents/skills` is where opencode and Codex already read from, so it doubles as the hub. One source of truth means one file to diff, one receipt, and one warning when it drifts. The links are relative and stay inside the repo — nothing points into `node_modules`, so reinstalling dependencies can never break them.
+`.agents/skills` is where opencode, Codex, and GitHub Copilot already read from, so it doubles as the hub. One source of truth means one file to diff, one receipt, and one warning when it drifts. The links are relative and stay inside the repo — nothing points into `node_modules`, so reinstalling dependencies can never break them.
 
 Pass `--copy` instead to give every agent directory its own independent copy and receipt.
 

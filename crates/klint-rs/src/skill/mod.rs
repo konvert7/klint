@@ -16,9 +16,10 @@ const STALE_RULE: &str = "klint/skill-stale";
 const LEGACY_RULE: &str = "klint/skill-legacy-link";
 const LEGACY_TARGET: &str = "node_modules";
 
-const AGENT_SKILL_DIRS: [(&str, &str); 4] = [
+const AGENT_SKILL_DIRS: [(&str, &str); 5] = [
     ("claude", ".claude/skills"),
     ("codex", ".agents/skills"),
+    ("copilot", ".agents/skills"),
     ("cursor", ".cursor/skills"),
     ("opencode", ".agents/skills"),
 ];
@@ -224,8 +225,12 @@ pub(crate) mod tests {
 
     #[test]
     fn agents_sharing_a_directory_are_installed_once() {
-        let dirs = agent_dirs_for(&["codex".to_string(), "opencode".to_string()])
-            .expect("known agents should resolve");
+        let dirs = agent_dirs_for(&[
+            "codex".to_string(),
+            "copilot".to_string(),
+            "opencode".to_string(),
+        ])
+        .expect("known agents should resolve");
         assert_eq!(dirs, vec![CANONICAL_SKILL_DIR.to_string()]);
     }
 

@@ -23,7 +23,7 @@ export function printHelp(): void {
       "  --debug          print file resolution and rule progress to stderr",
       "",
       "  install-skill    install the rule-authoring skill into agent config directories",
-      "                   --agents <list>  comma-separated: claude,opencode,cursor,codex (default: all)",
+      "                   --agents <list>  comma-separated: claude,opencode,cursor,codex,copilot (default: all)",
       "                   --symlink        keep one skill in .agents/skills and symlink the",
       "                                    other agents to it (default)",
       "                   --copy           give every agent directory its own copy",

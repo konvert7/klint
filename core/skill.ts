@@ -6,6 +6,7 @@ import type { Violation } from "./types";
 export const AGENT_SKILL_DIRS = {
   claude: ".claude/skills",
   codex: ".agents/skills",
+  copilot: ".agents/skills",
   cursor: ".cursor/skills",
   opencode: ".agents/skills",
 } as const;

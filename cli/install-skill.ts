@@ -20,6 +20,7 @@ const AGENT_TARGETS = [
   { value: "opencode", label: "opencode" },
   { value: "cursor", label: "Cursor" },
   { value: "codex", label: "Codex" },
+  { value: "copilot", label: "GitHub Copilot" },
 ] as const satisfies ReadonlyArray<{ value: AgentKey; label: string }>;
 
 interface InstallPlan {
