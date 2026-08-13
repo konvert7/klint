@@ -34,8 +34,9 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     process.exit(0);
   }
 
-  if (args[0] === "install-skill") {
-    await installSkill(args.slice(1));
+  const subcommand = args.indexOf("install-skill");
+  if (subcommand !== -1) {
+    await installSkill(args.slice(subcommand + 1));
     return;
   }
 
@@ -59,6 +60,9 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     } else if (args[i] === "--version" || args[i] === "-V") {
       process.stdout.write(`klint ${installedVersion()}\n`);
       process.exit(0);
+    } else {
+      process.stderr.write(`klint: unknown argument "${args[i]}"\n`);
+      process.exit(1);
     }
   }
 

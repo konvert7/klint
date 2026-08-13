@@ -318,6 +318,32 @@ describe("install-skill across distributions", () => {
     }
   });
 
+  test("the subcommand still installs when engine flags precede it", () => {
+    const root = tempRoot();
+    const result = spawnSync(
+      "bun",
+      [join(ROOT, "cli.ts"), "--engine", "auto", "install-skill"],
+      { cwd: root, encoding: "utf-8" }
+    );
+
+    expect(result.status, result.stderr).toBe(0);
+    expectSharedLayout(root);
+    rmSync(root, { force: true, recursive: true });
+  });
+
+  test("the bun CLI rejects an unknown argument instead of silently linting", () => {
+    const root = tempRoot();
+    writeFileSync(join(root, "klint.yaml"), 'include: ["."]\n');
+
+    const result = spawnSync("bun", [join(ROOT, "cli.ts"), "--config", root, "--bogus"], {
+      encoding: "utf-8",
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('unknown argument "--bogus"');
+    rmSync(root, { force: true, recursive: true });
+  });
+
   test("the native engine rejects an unknown agent", () => {
     const root = tempRoot();
     const result = installViaNative(root, ["--agents", "emacs"]);
