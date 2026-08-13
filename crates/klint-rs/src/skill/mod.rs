@@ -148,12 +148,12 @@ fn dir_for_agent(agent: &str) -> Result<&'static str, String> {
         })
 }
 
+pub fn known_agents() -> Vec<&'static str> {
+    AGENT_SKILL_DIRS.iter().map(|(name, _)| *name).collect()
+}
+
 pub fn known_agent_names() -> String {
-    AGENT_SKILL_DIRS
-        .iter()
-        .map(|(name, _)| *name)
-        .collect::<Vec<&str>>()
-        .join(", ")
+    known_agents().join(", ")
 }
 
 fn unique_agent_dirs() -> Vec<String> {

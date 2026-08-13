@@ -127,6 +127,8 @@ klint install-skill
 
 The skill is embedded in the native engine, so this works from every distribution — the npm package, the PyPI wheel, the NuGet tool, and the standalone binary — not just Node projects.
 
+Run on a terminal without `--agents`, `--symlink`, or `--copy`, it asks which agents to install for and how to store the skill. That is true of every distribution: the npm CLI prompts through `@clack/prompts`, and the native engine — which the wheel, the NuGet tool, and the standalone binary all wrap — prompts through `inquire`. Passing any of those flags, or piping stdin (CI, scripts, hooks), skips the questions and uses the defaults.
+
 ### Shared layout (default)
 
 By default the skill lives in exactly one place and every other agent directory points at it:

@@ -17,8 +17,8 @@ use files::{read_files, resolve_files};
 pub use output::{JsonOutput, Summary, Violation};
 use rules::plan_rule_passes;
 pub use skill::install::{InstallRequest, install_skill};
-pub use skill::known_agent_names;
 use skill::skill_advisories;
+pub use skill::{known_agent_names, known_agents};
 pub use version::reported_version;
 use version::schema_version_advisory;
 

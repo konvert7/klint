@@ -1,4 +1,6 @@
-use klint_rs::{InstallRequest, RunOptions, install_skill, known_agent_names, run};
+mod prompt;
+
+use klint_rs::{InstallRequest, RunOptions, install_skill, known_agent_names, known_agents, run};
 use std::path::PathBuf;
 
 fn main() {
@@ -76,13 +78,34 @@ fn parse_args(args: &[String]) -> Result<CliOptions, String> {
 }
 
 fn install_skill_command(args: &[String]) -> i32 {
-    let request = match parse_install_args(args) {
-        Ok(request) => request,
+    let (mut request, decided) = match parse_install_args(args) {
+        Ok(parsed) => parsed,
         Err(err) => {
             eprintln!("{err}");
             return 1;
         }
     };
+
+    if !decided && prompt::stdin_is_a_terminal() {
+        match prompt::ask_install_choices(&known_agents()) {
+            Ok(Some(choices)) if choices.agents.is_empty() => {
+                println!("klint: no agents selected — nothing to install");
+                return 0;
+            }
+            Ok(Some(choices)) => {
+                request.agents = choices.agents;
+                request.shared = choices.shared;
+            }
+            Ok(None) => {
+                println!("klint: cancelled");
+                return 0;
+            }
+            Err(err) => {
+                eprintln!("{err}");
+                return 1;
+            }
+        }
+    }
 
     match install_skill(&request) {
         Ok(installed) => {
@@ -98,12 +121,13 @@ fn install_skill_command(args: &[String]) -> i32 {
     }
 }
 
-fn parse_install_args(args: &[String]) -> Result<InstallRequest, String> {
+fn parse_install_args(args: &[String]) -> Result<(InstallRequest, bool), String> {
     let root =
         std::env::current_dir().map_err(|err| format!("klint-rs: failed to resolve cwd: {err}"))?;
     let mut agents: Vec<String> = Vec::new();
     let mut shared = true;
     let mut force = false;
+    let mut decided = false;
     let mut i = 0;
 
     while i < args.len() {
@@ -121,14 +145,17 @@ fn parse_install_args(args: &[String]) -> Result<InstallRequest, String> {
                         .map(|agent| agent.trim().to_string())
                         .filter(|agent| !agent.is_empty()),
                 );
+                decided = true;
                 i += 2;
             }
             "--symlink" | "--shared" => {
                 shared = true;
+                decided = true;
                 i += 1;
             }
             "--copy" => {
                 shared = false;
+                decided = true;
                 i += 1;
             }
             "--force" => {
@@ -143,17 +170,20 @@ fn parse_install_args(args: &[String]) -> Result<InstallRequest, String> {
         }
     }
 
-    Ok(InstallRequest {
-        root,
-        agents,
-        shared,
-        force,
-    })
+    Ok((
+        InstallRequest {
+            root,
+            agents,
+            shared,
+            force,
+        },
+        decided,
+    ))
 }
 
 fn print_help() {
     println!(
-        "klint-rs — shadow Rust architecture engine\n\nUsage: klint-rs [--config <dir>] [--json] [--version]\n       klint-rs install-skill [--agents <list>] [--symlink | --copy] [--force]\n\n  install-skill    install the embedded klint-rules skill into agent config directories\n                   --agents <list>  comma-separated: {} (default: all)\n                   --symlink        one skill in .agents/skills, others symlink to it (default)\n                   --copy           an independent copy in every agent directory\n                   --force          replace a skill directory klint did not install",
+        "klint-rs — shadow Rust architecture engine\n\nUsage: klint-rs [--config <dir>] [--json] [--version]\n       klint-rs install-skill [--agents <list>] [--symlink | --copy] [--force]\n\n  install-skill    install the embedded klint-rules skill into agent config directories\n                   Asks which agents and how to store the skill when run on a\n                   terminal without --agents/--symlink/--copy.\n                   --agents <list>  comma-separated: {} (default: all)\n                   --symlink        one skill in .agents/skills, others symlink to it (default)\n                   --copy           an independent copy in every agent directory\n                   --force          replace a skill directory klint did not install",
         known_agent_names()
     );
 }
