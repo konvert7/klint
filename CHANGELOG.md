@@ -1,3 +1,14 @@
+## [0.33.1](https://github.com/konvert7/klint/compare/v0.33.0...v0.33.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **cli:** enhance argument handling and add skill installation validation ([815bec8](https://github.com/konvert7/klint/commit/815bec816523cc66e9d71265a9010340c1479b9d))
+* **install:** improve symlink handling and fallback installation for skills ([3e5611d](https://github.com/konvert7/klint/commit/3e5611dfc801ccf4c2a8c8afc5a34748b189a868))
+* **install:** streamline link removal and enhance test assertions for skill installation ([6453331](https://github.com/konvert7/klint/commit/6453331c09bc6e63a599ae5943dfbcd909c58eee))
+* **install:** update skill installation process ([69efa73](https://github.com/konvert7/klint/commit/69efa73734a5d9bfa146ab91cbd0dcde2e342cce))
+* **skill:** implement skill installation for other languages ([4399d12](https://github.com/konvert7/klint/commit/4399d123c033ec2396ee08b6d84ddc9181f205e4))
+
 # [0.33.0](https://github.com/konvert7/klint/compare/v0.32.0...v0.33.0) (2026-07-31)
 
 
