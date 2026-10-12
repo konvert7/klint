@@ -12,6 +12,8 @@
       {
         "assets": [
           "package.json",
+          "crates/klint-rs/Cargo.toml",
+          "Cargo.lock",
           "CHANGELOG.md",
           "klint.schema.json",
           "klint.schema.yaml"

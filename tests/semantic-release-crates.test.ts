@@ -129,4 +129,21 @@ describe("semantic-release crates plugin", () => {
   test("the repository crate passes verification", async () => {
     await verifyConditions({}, { cwd: ROOT, options: { dryRun: true } });
   });
+
+  test("the release commit keeps the crate version current", () => {
+    const config = JSON.parse(readFileSync(join(ROOT, ".releaserc.json"), "utf-8"));
+    const plugins: Array<string | [string, { assets?: string[] }]> = config.plugins;
+    const names = plugins.map((plugin) => (Array.isArray(plugin) ? plugin[0] : plugin));
+    const git = plugins.find(
+      (plugin): plugin is [string, { assets: string[] }] =>
+        Array.isArray(plugin) && plugin[0] === "@semantic-release/git"
+    );
+
+    expect(git?.[1].assets).toEqual(
+      expect.arrayContaining(["crates/klint-rs/Cargo.toml", "Cargo.lock"])
+    );
+    expect(names.indexOf("./tools/semantic-release-crates.js")).toBeLessThan(
+      names.indexOf("@semantic-release/git")
+    );
+  });
 });
