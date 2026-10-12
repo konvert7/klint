@@ -1,45 +1,71 @@
-import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { expect, test } from "bun:test";
+import { readdirSync, readFileSync } from "node:fs";
 import { parse } from "yaml";
 
-const RELEASE_WORKFLOWS = ["native-artifacts", "nuget-release", "python-release"];
+const WORKFLOWS_DIR = new URL("../.github/workflows/", import.meta.url);
 const SEMANTIC_RELEASE_TAGS_ONLY =
   "github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')";
+const PUBLISH_JOBS = ["github-release", "nuget", "python"];
+
+interface Step {
+  run?: string;
+  uses?: string;
+  with?: Record<string, string>;
+}
 
 interface Workflow {
   on: { release?: { types: string[] }; workflow_dispatch?: unknown };
-  jobs: { metadata: { if?: string; steps: Array<{ run?: string }> } };
+  jobs: Record<string, { if?: string; needs?: string[]; steps: Step[] }>;
 }
 
 function workflow(name: string): Workflow {
-  const url = new URL(`../.github/workflows/${name}.yml`, import.meta.url);
-  return parse(readFileSync(url, "utf-8")) as Workflow;
+  return parse(readFileSync(new URL(`${name}.yml`, WORKFLOWS_DIR), "utf-8")) as Workflow;
 }
 
-describe.each(RELEASE_WORKFLOWS)("%s workflow", (name) => {
-  test("runs when semantic-release publishes a release", () => {
-    expect(workflow(name).on.release?.types).toEqual(["published"]);
-  });
+function compilesKlint(step: Step): boolean {
+  return step.run?.includes("cargo build -p klint-rs") ?? false;
+}
 
-  test("can still be run by hand", () => {
-    expect(workflow(name).on.workflow_dispatch).toBeDefined();
-  });
+const packages = workflow("release-packages");
 
-  test("ignores releases that are not semantic-release vX tags", () => {
-    expect(workflow(name).jobs.metadata.if).toBe(SEMANTIC_RELEASE_TAGS_ONLY);
-  });
-
-  test("reads event values from env, not by interpolating them into the script", () => {
-    const scripts = workflow(name).jobs.metadata.steps.map((step) => step.run ?? "");
-    for (const script of scripts) expect(script).not.toContain("${{");
-  });
+test("release-packages is the only workflow semantic-release releases trigger", () => {
+  const triggered = readdirSync(WORKFLOWS_DIR)
+    .map((file) => file.replace(/\.yml$/, ""))
+    .filter((name) => workflow(name).on.release);
+  expect(triggered).toEqual(["release-packages"]);
+  expect(packages.on.release?.types).toEqual(["published"]);
 });
 
-test("native artifacts attach to the semantic-release vX release", () => {
-  const source = readFileSync(
-    new URL("../.github/workflows/native-artifacts.yml", import.meta.url),
-    "utf-8"
-  );
+test("release-packages can still be run by hand", () => {
+  expect(packages.on.workflow_dispatch).toBeDefined();
+});
+
+test("release-packages ignores releases that are not semantic-release vX tags", () => {
+  expect(packages.jobs.metadata.if).toBe(SEMANTIC_RELEASE_TAGS_ONLY);
+});
+
+test("release-packages reads event values from env, not by interpolating them into the script", () => {
+  const scripts = packages.jobs.metadata.steps.map((step) => step.run ?? "");
+  for (const script of scripts) expect(script).not.toContain("${{");
+});
+
+test("only the build job compiles klint; publish jobs reuse its binaries", () => {
+  const compiling = Object.entries(packages.jobs)
+    .filter(([, job]) => job.steps.some(compilesKlint))
+    .map(([name]) => name);
+  expect(compiling).toEqual(["build"]);
+
+  for (const name of PUBLISH_JOBS) {
+    const job = packages.jobs[name];
+    expect(job.needs).toContain("build");
+    expect(
+      job.steps.some((step) => step.uses?.startsWith("actions/download-artifact"))
+    ).toBe(true);
+  }
+});
+
+test("native archives attach to the semantic-release vX release", () => {
+  const source = readFileSync(new URL("release-packages.yml", WORKFLOWS_DIR), "utf-8");
   expect(source).toContain('tag="v$version"');
   expect(source).not.toContain("native-v");
   expect(source).not.toContain("gh release create");

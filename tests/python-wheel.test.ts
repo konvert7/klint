@@ -32,7 +32,7 @@ describe("Python wheel package scaffold", () => {
 
   test("release workflow uses publishable platform wheel tags", () => {
     const workflow = readFileSync(
-      new URL(".github/workflows/python-release.yml", root),
+      new URL(".github/workflows/release-packages.yml", root),
       "utf-8"
     );
 
