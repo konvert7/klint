@@ -107,7 +107,8 @@ Rules give agents room to move quickly because the unsafe moves are blocked stru
 ## CLI
 
 ```sh
-klint [--config <dir>] [--rules <file>] [--engine ts|rust|compare|auto] [--fix] [--json]
+klint [--config <dir>] [--rules <file>] [--engine ts|rust|compare|auto] [--fix] [--json] [--hook]
+klint stats [--config <dir>]
 klint install-skill [--agents <list>] [--symlink | --copy] [--force]
 ```
 
@@ -118,6 +119,7 @@ klint install-skill [--agents <list>] [--symlink | --copy] [--force]
 | `--engine <name>` | Engine mode: `ts` (default), `rust`, `compare`, or `auto` |
 | `--fix` | Apply auto-fixes for fixable violations in-place |
 | `--json` | Emit structured JSON to stdout for agents and CI |
+| `--hook` | Count this run as an agent hook run in `klint stats` |
 
 `klint install-skill` installs the bundled rule-authoring skill for agent environments:
 
@@ -162,6 +164,26 @@ Earlier versions symlinked into `node_modules/@konvert7/klint`, which breaks the
 ```
 
 Running `klint install-skill` replaces those links with the shared layout, including links whose target is already gone. No `--force` needed — a symlink holds no content to lose.
+
+### Stats
+
+Every lint run is recorded in `.klint/stats.json` next to your config. `klint stats` prints the totals:
+
+```
+klint stats (.klint/stats.json)
+
+  runs              42  (hook 30, direct 12)
+  errors prevented  17  (caught by hook 11, direct 6)
+
+  prevented by rule
+    no-floating-promise  9
+    arch/imports         5
+    no-string-match      3
+```
+
+An error counts as prevented once: when a run reports it and a later run no longer does. Errors match by rule, file, and message, so moving code to another line doesn't count as a fix, and running klint again on an unfixed error doesn't count twice. Warnings aren't tracked. A prevented error is credited to the run that first caught it: pass `--hook` from agent hooks, and every other run (an agent's own shell, a person, CI) counts as direct.
+
+`.klint/` contains a `.gitignore` with `*`, so git ignores the whole folder and nothing needs adding to your own `.gitignore`. Set `KLINT_NO_STATS=1` to stop recording. Stats are best effort: a read-only checkout never fails a lint run.
 
 ## Engines
 
@@ -745,13 +767,13 @@ Enable plugin rules with `plugins: [sonar]`, then override individual severities
 
 ## Agent and CI Integration
 
-Agent hooks should run klint with `--json` so violations are machine-readable.
+Agent hooks should run klint with `--json` so violations are machine-readable, and with `--hook` so [`klint stats`](#stats) can tell hook runs apart from direct ones.
 
 ```ts
 // .agents/hooks/klint.ts
 import { runHook } from "./run-hook";
 
-const exitCode = runHook(["bun", "run", "klint", "--", "--json"]);
+const exitCode = runHook(["bun", "run", "klint", "--", "--json", "--hook"]);
 process.exit(exitCode);
 ```
 

@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runKlint } from "../core/runner";
+import type { RunRecorder } from "../core/stats";
 import type { KlintRule, RuleConfigValue, Violation } from "../core/types";
 import {
   emptyJsonPayload,
@@ -25,11 +26,14 @@ import {
   splitRulesForAuto,
 } from "./rust-config";
 
+const RUST_CHILD_ENV = { ...process.env, KLINT_NO_STATS: "1" };
+
 export function runRustEngine({
   advisories,
   fix,
   json,
   raw,
+  record,
   root,
   rulesFile,
   startedAt,
@@ -42,6 +46,7 @@ export function runRustEngine({
     rules?: Record<string, RuleConfigValue>;
     arch?: unknown;
   };
+  record: RunRecorder;
   root: string;
   rulesFile?: string;
   startedAt: number;
@@ -69,18 +74,20 @@ export function runRustEngine({
     result = spawnSync(command.bin, command.args, {
       cwd: PACKAGE_ROOT,
       encoding: "utf-8",
+      env: RUST_CHILD_ENV,
     });
   } finally {
     cleanup();
   }
 
   if (result.stderr) process.stderr.write(result.stderr);
+  const payload = parseJsonPayload(result.stdout);
+  if (isJsonPayload(payload)) record(payload.violations);
   if (json) {
     if (result.stdout) process.stdout.write(withAdvisories(result.stdout, advisories));
     process.exit(result.status ?? 1);
   }
 
-  const payload = parseJsonPayload(result.stdout);
   if (!isJsonPayload(payload)) {
     process.stderr.write("klint: --engine rust failed to parse Rust JSON output\n");
     process.exit(1);
@@ -93,6 +100,7 @@ export function runCompareEngine({
   fix,
   json,
   raw,
+  record,
   root,
   rulesFile,
   tsViolations,
@@ -105,6 +113,7 @@ export function runCompareEngine({
     rules?: Record<string, RuleConfigValue>;
     arch?: unknown;
   };
+  record: RunRecorder;
   root: string;
   rulesFile?: string;
   tsViolations: ReturnType<typeof runKlint>;
@@ -133,6 +142,7 @@ export function runCompareEngine({
     rustResult = spawnSync(rustCommand.bin, rustCommand.args, {
       cwd: PACKAGE_ROOT,
       encoding: "utf-8",
+      env: RUST_CHILD_ENV,
     });
   } finally {
     cleanup();
@@ -159,6 +169,7 @@ export function runCompareEngine({
     process.exit(1);
   }
 
+  record(tsViolations);
   process.stdout.write(withAdvisories(tsResult.stdout, advisories));
   process.exit(tsResult.status);
 }
@@ -197,6 +208,7 @@ export function runAutoEngine({
   fix,
   json,
   raw,
+  record,
   root,
   rulesFile,
   startedAt,
@@ -213,6 +225,7 @@ export function runAutoEngine({
     rules?: Record<string, RuleConfigValue>;
     arch?: unknown;
   };
+  record: RunRecorder;
   root: string;
   rulesFile?: string;
   startedAt: number;
@@ -247,6 +260,7 @@ export function runAutoEngine({
   });
   const tsOutput = toJsonPayload(tsViolations);
   const merged = mergeJsonOutputs(rustOutput, tsOutput);
+  record(merged.violations);
   if (json) {
     process.stdout.write(withAdvisories(JSON.stringify(merged), advisories));
     process.exit(merged.summary.errors > 0 ? 2 : 0);
@@ -289,6 +303,7 @@ function runAutoRustSubset({
     const result = spawnSync(command.bin, command.args, {
       cwd: PACKAGE_ROOT,
       encoding: "utf-8",
+      env: RUST_CHILD_ENV,
     });
     if (result.stderr) process.stderr.write(result.stderr);
     if ((result.status ?? 1) !== 0 && (result.status ?? 1) !== 2) {

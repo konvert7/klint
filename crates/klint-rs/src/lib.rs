@@ -5,6 +5,7 @@ mod files;
 mod output;
 mod rules;
 mod skill;
+mod stats;
 pub mod syntax;
 mod version;
 
@@ -19,6 +20,7 @@ use rules::plan_rule_passes;
 pub use skill::install::{InstallRequest, install_skill};
 use skill::skill_advisories;
 pub use skill::{known_agent_names, known_agents};
+pub use stats::{RunSource, record_run, stats_report};
 pub use version::reported_version;
 use version::schema_version_advisory;
 

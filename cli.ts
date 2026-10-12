@@ -14,10 +14,12 @@ import {
 } from "./cli/output";
 import { installedVersion, SHIPPED_SKILL_PATH } from "./cli/paths";
 import { runAutoEngine, runCompareEngine, runRustEngine } from "./cli/rust-engine";
+import { printStats } from "./cli/stats";
 import { applyFixes } from "./core/fixer";
 import { runKlint } from "./core/runner";
 import { schemaVersionAdvisory } from "./core/schema-version";
 import { skillAdvisories } from "./core/skill";
+import { runRecorder } from "./core/stats";
 import type { ArchConfig, KlintConfig, KlintRule, RuleConfigValue } from "./core/types";
 
 interface CliOptions {
@@ -34,6 +36,11 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     process.exit(0);
   }
 
+  if (args[0] === "stats") {
+    printStats(args.slice(1));
+    return;
+  }
+
   const subcommand = args.indexOf("install-skill");
   if (subcommand !== -1) {
     await installSkill(args.slice(subcommand + 1));
@@ -45,6 +52,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
   let fix = false;
   let json = false;
   let debug = false;
+  let hook = false;
   let engine = process.env.KLINT_ENGINE;
 
   for (let i = 0; i < args.length; i++) {
@@ -53,6 +61,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     else if (args[i] === "--engine" && args[i + 1]) engine = args[++i];
     else if (args[i] === "--fix") fix = true;
     else if (args[i] === "--json") json = true;
+    else if (args[i] === "--hook") hook = true;
     else if (args[i] === "--debug" || args[i] === "-debug") debug = true;
     else if (args[i] === "--help" || args[i] === "-h") {
       printHelp();
@@ -67,6 +76,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
   }
 
   configDir ??= process.cwd();
+  const record = runRecorder(configDir, hook ? "hook" : "direct");
 
   const yamlPath = resolve(configDir, "klint.yaml");
   const jsonPath = resolve(configDir, "klint.config.json");
@@ -115,7 +125,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
   ];
 
   if (engine === "rust") {
-    runRustEngine({ advisories, fix, json, raw, root, rulesFile, startedAt });
+    runRustEngine({ advisories, fix, json, raw, record, root, rulesFile, startedAt });
     return;
   }
   if (
@@ -151,6 +161,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
       fix,
       json,
       raw,
+      record,
       root,
       rulesFile,
       startedAt,
@@ -178,6 +189,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
       fix,
       json,
       raw,
+      record,
       root,
       rulesFile,
       tsViolations: violations,
@@ -186,6 +198,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
   }
 
   if (json) {
+    record(violations);
     const tsResult = toJsonCliResult(violations);
     process.stdout.write(withAdvisories(tsResult.stdout, advisories));
     process.exit(tsResult.status);
@@ -211,6 +224,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
       );
       if (current.every((v) => !v.fix)) break;
     }
+    record(current);
     const unfixed = current.filter((v) => !v.fix).length;
     const msg =
       unfixed > 0
@@ -219,6 +233,7 @@ export async function main(opts: CliOptions = {}): Promise<void> {
     process.stdout.write(`${msg} Finished in ${formatDuration(startedAt)}.\n`);
     process.exit(0);
   }
+  record(violations);
   writeTextOutput([...violations, ...advisories], startedAt);
 }
 

@@ -1,6 +1,9 @@
 mod prompt;
 
-use klint_rs::{InstallRequest, RunOptions, install_skill, known_agent_names, known_agents, run};
+use klint_rs::{
+    InstallRequest, RunOptions, RunSource, install_skill, known_agent_names, known_agents,
+    record_run, run, stats_report,
+};
 use std::path::PathBuf;
 
 fn main() {
@@ -9,6 +12,9 @@ fn main() {
     if args.first().is_some_and(|arg| arg == "install-skill") {
         std::process::exit(install_skill_command(&args[1..]));
     }
+    if args.first().is_some_and(|arg| arg == "stats") {
+        std::process::exit(stats_command(&args[1..]));
+    }
 
     let options = parse_args(&args).unwrap_or_else(|err| {
         eprintln!("{err}");
@@ -16,9 +22,10 @@ fn main() {
     });
 
     match run(RunOptions {
-        config_dir: options.config_dir,
+        config_dir: options.config_dir.clone(),
     }) {
         Ok(output) => {
+            record_run(&options.config_dir, &output.violations, options.source);
             if options.json {
                 println!(
                     "{}",
@@ -39,12 +46,14 @@ fn main() {
 struct CliOptions {
     config_dir: PathBuf,
     json: bool,
+    source: RunSource,
 }
 
 fn parse_args(args: &[String]) -> Result<CliOptions, String> {
     let mut config_dir =
         std::env::current_dir().map_err(|err| format!("klint-rs: failed to resolve cwd: {err}"))?;
     let mut json = false;
+    let mut source = RunSource::Direct;
     let mut i = 0;
 
     while i < args.len() {
@@ -58,6 +67,10 @@ fn parse_args(args: &[String]) -> Result<CliOptions, String> {
             }
             "--json" => {
                 json = true;
+                i += 1;
+            }
+            "--hook" => {
+                source = RunSource::Hook;
                 i += 1;
             }
             "--help" | "-h" | "help" | "h" => {
@@ -74,7 +87,32 @@ fn parse_args(args: &[String]) -> Result<CliOptions, String> {
         }
     }
 
-    Ok(CliOptions { config_dir, json })
+    Ok(CliOptions {
+        config_dir,
+        json,
+        source,
+    })
+}
+
+fn stats_command(args: &[String]) -> i32 {
+    let config_dir = match args {
+        [] => std::env::current_dir(),
+        [flag, dir] if flag == "--config" => Ok(PathBuf::from(dir)),
+        _ => {
+            eprintln!("klint-rs: usage: stats [--config <dir>]");
+            return 1;
+        }
+    };
+    match config_dir {
+        Ok(dir) => {
+            print!("{}", stats_report(&dir));
+            0
+        }
+        Err(err) => {
+            eprintln!("klint-rs: failed to resolve cwd: {err}");
+            1
+        }
+    }
 }
 
 fn install_skill_command(args: &[String]) -> i32 {
@@ -183,7 +221,7 @@ fn parse_install_args(args: &[String]) -> Result<(InstallRequest, bool), String>
 
 fn print_help() {
     println!(
-        "klint-rs — shadow Rust architecture engine\n\nUsage: klint-rs [--config <dir>] [--json] [--version]\n       klint-rs install-skill [--agents <list>] [--symlink | --copy] [--force]\n\n  install-skill    install the embedded klint-rules skill into agent config directories\n                   Asks which agents and how to store the skill when run on a\n                   terminal without --agents/--symlink/--copy.\n                   --agents <list>  comma-separated: {} (default: all)\n                   --symlink        one skill in .agents/skills, others symlink to it (default)\n                   --copy           an independent copy in every agent directory\n                   --force          replace a skill directory klint did not install",
+        "klint-rs — shadow Rust architecture engine\n\nUsage: klint-rs [--config <dir>] [--json] [--hook] [--version]\n       klint-rs stats [--config <dir>]\n       klint-rs install-skill [--agents <list>] [--symlink | --copy] [--force]\n\n  --hook           count this run as an agent hook run in klint stats\n  stats            print runs and errors prevented, in total and per rule, from\n                   .klint/stats.json (set KLINT_NO_STATS=1 to stop recording)\n\n  install-skill    install the embedded klint-rules skill into agent config directories\n                   Asks which agents and how to store the skill when run on a\n                   terminal without --agents/--symlink/--copy.\n                   --agents <list>  comma-separated: {} (default: all)\n                   --symlink        one skill in .agents/skills, others symlink to it (default)\n                   --copy           an independent copy in every agent directory\n                   --force          replace a skill directory klint did not install",
         known_agent_names()
     );
 }
