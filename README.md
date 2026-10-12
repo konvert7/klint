@@ -15,6 +15,12 @@ brew tap konvert7/tap
 brew install klint
 ```
 
+With Cargo (installs the `klint-rs` binary):
+
+```sh
+cargo install klint-rs
+```
+
 For TypeScript projects using Bun:
 
 ```sh

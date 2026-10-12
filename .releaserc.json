@@ -6,6 +6,7 @@
     "@semantic-release/changelog",
     "./tools/semantic-release-native-npm.js",
     "./tools/semantic-release-root-npm.js",
+    "./tools/semantic-release-crates.js",
     [
       "@semantic-release/git",
       {

@@ -13,3 +13,4 @@ nuget/obj/
 nuget/*.nupkg
 klint.sln
 .DS_Store
+crates/klint-rs/skill/

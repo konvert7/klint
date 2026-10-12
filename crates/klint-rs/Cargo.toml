@@ -1,8 +1,16 @@
 [package]
 name = "klint-rs"
-version = "0.0.0"
+version = "0.34.0"
 edition = "2024"
-publish = false
+rust-version = "1.85"
+description = "Architecture-as-Code linter: layer boundaries, import rules and forbidden patterns declared in YAML."
+repository = "https://github.com/konvert7/klint"
+homepage = "https://github.com/konvert7/klint"
+license = "MIT"
+readme = "../../README.md"
+keywords = ["linter", "architecture", "agent", "typescript", "cli"]
+categories = ["command-line-utilities", "development-tools"]
+include = ["/src", "/build.rs", "/skill/SKILL.md"]
 
 [dependencies]
 inquire = "0.9.4"

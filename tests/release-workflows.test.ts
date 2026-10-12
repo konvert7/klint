@@ -44,3 +44,28 @@ test("native artifacts attach to the semantic-release vX release", () => {
   expect(source).not.toContain("native-v");
   expect(source).not.toContain("gh release create");
 });
+
+test("semantic-release publishes the crate with a crates.io trusted publishing token", () => {
+  const ci = parse(
+    readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf-8")
+  ) as {
+    jobs: {
+      release: {
+        permissions: Record<string, string>;
+        steps: Array<{
+          id?: string;
+          uses?: string;
+          run?: string;
+          env?: Record<string, string>;
+        }>;
+      };
+    };
+  };
+  const { permissions, steps } = ci.jobs.release;
+  const auth = steps.find((step) => step.uses === "rust-lang/crates-io-auth-action@v1");
+  const release = steps.find((step) => step.run === "bunx semantic-release");
+
+  expect(permissions["id-token"]).toBe("write");
+  expect(auth?.id).toBe("crates-auth");
+  expect(release?.env?.CARGO_REGISTRY_TOKEN).toContain("steps.crates-auth.outputs.token");
+});

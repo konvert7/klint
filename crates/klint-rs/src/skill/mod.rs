@@ -7,7 +7,7 @@ use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const SKILL_MARKDOWN: &str = include_str!("../../../../skill/klint-rules/SKILL.md");
+const SKILL_MARKDOWN: &str = include_str!(env!("KLINT_SKILL_MARKDOWN"));
 const SKILL_DIR_NAME: &str = "klint-rules";
 const SKILL_FILE_NAME: &str = "SKILL.md";
 const RECEIPT_FILE_NAME: &str = ".klint-skill.json";
