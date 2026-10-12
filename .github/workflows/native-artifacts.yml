@@ -1,6 +1,8 @@
 name: native artifacts
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       version:
@@ -8,7 +10,7 @@ on:
         required: true
         type: string
       publish-release:
-        description: "Create or update a GitHub Release with the native artifacts"
+        description: "Upload the native artifacts to the existing vX GitHub Release"
         required: true
         default: false
         type: boolean
@@ -24,6 +26,7 @@ permissions:
 jobs:
   metadata:
     name: metadata
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     outputs:
       publish-brew: ${{ steps.release.outputs.publish-brew }}
@@ -35,11 +38,23 @@ jobs:
       - name: Resolve artifact metadata
         id: release
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_PUBLISH_BREW: ${{ inputs.publish-brew }}
+          INPUT_PUBLISH_RELEASE: ${{ inputs.publish-release }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          version="${{ inputs.version }}"
+          if [[ "$EVENT_NAME" == "release" ]]; then
+            version="$RELEASE_TAG"
+            publish_brew="true"
+            publish_release="true"
+          else
+            version="$INPUT_VERSION"
+            publish_brew="$INPUT_PUBLISH_BREW"
+            publish_release="$INPUT_PUBLISH_RELEASE"
+          fi
           version="${version#v}"
-          publish_brew="${{ inputs.publish-brew }}"
-          publish_release="${{ inputs.publish-release }}"
 
           if [[ -z "$version" ]]; then
             echo "Native artifact version is required" >&2
@@ -50,7 +65,7 @@ jobs:
             exit 1
           fi
 
-          tag="native-v$version"
+          tag="v$version"
 
           echo "publish-brew=$publish_brew" >> "$GITHUB_OUTPUT"
           echo "publish-release=$publish_release" >> "$GITHUB_OUTPUT"
@@ -233,13 +248,11 @@ jobs:
           tag="${{ needs.metadata.outputs.tag }}"
           version="${{ needs.metadata.outputs.version }}"
 
-          if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" dist/* --clobber
-          else
-            gh release create "$tag" dist/* \
-              --title "native artifacts $version" \
-              --notes "Manual native artifacts for version $version."
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            echo "GitHub Release $tag not found: native artifacts attach to the release semantic-release created" >&2
+            exit 1
           fi
+          gh release upload "$tag" dist/* --clobber
 
       - name: Generate GitHub App Token for Homebrew tap
         if: needs.metadata.outputs.publish-brew == 'true'

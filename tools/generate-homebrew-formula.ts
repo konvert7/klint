@@ -20,10 +20,10 @@ class Klint < Formula
   license "MIT"
 
   if Hardware::CPU.arm?
-    url "https://github.com/konvert7/klint/releases/download/native-v${version}/klint-${version}-darwin-arm64.tar.gz"
+    url "https://github.com/konvert7/klint/releases/download/v${version}/klint-${version}-darwin-arm64.tar.gz"
     sha256 "${options.darwinArm64Sha}"
   else
-    url "https://github.com/konvert7/klint/releases/download/native-v${version}/klint-${version}-darwin-x64.tar.gz"
+    url "https://github.com/konvert7/klint/releases/download/v${version}/klint-${version}-darwin-x64.tar.gz"
     sha256 "${options.darwinX64Sha}"
   end
 

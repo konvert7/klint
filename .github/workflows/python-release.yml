@@ -1,6 +1,8 @@
 name: python release
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       repository:
@@ -22,6 +24,7 @@ permissions:
 jobs:
   metadata:
     name: metadata
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.release.outputs.environment }}
@@ -33,10 +36,20 @@ jobs:
       - name: Resolve release metadata
         id: release
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_REPOSITORY: ${{ inputs.repository }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          version="${{ inputs.version }}"
+          if [[ "$EVENT_NAME" == "release" ]]; then
+            version="$RELEASE_TAG"
+            repository="pypi"
+          else
+            version="$INPUT_VERSION"
+            repository="$INPUT_REPOSITORY"
+          fi
           version="${version#v}"
-          repository="${{ inputs.repository }}"
 
           if [[ -z "$version" ]]; then
             echo "Python release version is required" >&2

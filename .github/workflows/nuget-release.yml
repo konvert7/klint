@@ -1,6 +1,8 @@
 name: nuget-release
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       version:
@@ -13,6 +15,7 @@ permissions:
 
 jobs:
   metadata:
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.release.outputs.version }}
@@ -20,8 +23,16 @@ jobs:
       - name: Resolve release metadata
         id: release
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          version="${{ inputs.version }}"
+          if [[ "$EVENT_NAME" == "release" ]]; then
+            version="$RELEASE_TAG"
+          else
+            version="$INPUT_VERSION"
+          fi
           version="${version#v}"
           if [[ -z "$version" ]]; then
             echo "NuGet release version is required" >&2

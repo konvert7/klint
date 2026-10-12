@@ -16,10 +16,10 @@ describe("Homebrew formula generation", () => {
     expect(formula).not.toContain("on_arm do");
     expect(formula).not.toContain("on_intel do");
     expect(formula).toContain(
-      "https://github.com/konvert7/klint/releases/download/native-v0.1.2/klint-0.1.2-darwin-arm64.tar.gz"
+      "https://github.com/konvert7/klint/releases/download/v0.1.2/klint-0.1.2-darwin-arm64.tar.gz"
     );
     expect(formula).toContain(
-      "https://github.com/konvert7/klint/releases/download/native-v0.1.2/klint-0.1.2-darwin-x64.tar.gz"
+      "https://github.com/konvert7/klint/releases/download/v0.1.2/klint-0.1.2-darwin-x64.tar.gz"
     );
     expect(formula).toContain(`sha256 "${"a".repeat(64)}"`);
     expect(formula).toContain(`sha256 "${"b".repeat(64)}"`);
