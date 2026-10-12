@@ -1,3 +1,10 @@
+## [0.35.1](https://github.com/konvert7/klint/compare/v0.35.0...v0.35.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* build packages once ([b3013e7](https://github.com/konvert7/klint/commit/b3013e7646313a67dd045235ba48ce0ee61da1ac))
+
 # [0.35.0](https://github.com/konvert7/klint/compare/v0.34.0...v0.35.0) (2026-10-12)
 
 
