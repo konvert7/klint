@@ -1,6 +1,6 @@
 [package]
 name = "klint-rs"
-version = "0.34.0"
+version = "0.35.0"
 edition = "2024"
 rust-version = "1.85"
 description = "Architecture-as-Code linter: layer boundaries, import rules and forbidden patterns declared in YAML."

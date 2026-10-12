@@ -1,3 +1,11 @@
+# [0.35.0](https://github.com/konvert7/klint/compare/v0.34.0...v0.35.0) (2026-10-12)
+
+
+### Features
+
+* auto-increase version in crate meta ([6d900de](https://github.com/konvert7/klint/commit/6d900def19dad89accd5ea7cc972db0432a39506))
+* **stats:** add statistics tracking for lint runs ([24f9879](https://github.com/konvert7/klint/commit/24f987929a5ad40c299624753ab4d24fcaa63408))
+
 # [0.34.0](https://github.com/konvert7/klint/compare/v0.33.1...v0.34.0) (2026-08-13)
 
 
