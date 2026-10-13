@@ -1,3 +1,10 @@
+# [0.36.0](https://github.com/konvert7/klint/compare/v0.35.2...v0.36.0) (2026-10-13)
+
+
+### Features
+
+* **stats:** enhance statistics tracking to include violations reported ([a35bf7b](https://github.com/konvert7/klint/commit/a35bf7bcc09b8d00db32c0c4c765c81a4eb10d36))
+
 ## [0.35.2](https://github.com/konvert7/klint/compare/v0.35.1...v0.35.2) (2026-10-13)
 
 
