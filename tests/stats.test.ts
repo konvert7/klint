@@ -86,6 +86,22 @@ describe("nextStats", () => {
     );
     expect(stats.open).toEqual([]);
   });
+
+  test("every reported violation counts, warnings and repeats included", () => {
+    const warning: Violation = { ...error("w"), severity: "warn" };
+    const first = nextStats(emptyStats(), [error("r"), warning], "hook");
+    const second = nextStats(first, [error("r")], "direct");
+
+    expect(second.reported.byRule).toEqual({ r: 2, w: 1 });
+    expect(second.reported.bySource).toEqual({ hook: 2, direct: 1 });
+  });
+
+  test("klint's own advisories are not reported violations", () => {
+    const advisory: Violation = { ...error("klint/skill-stale"), severity: "warn" };
+    const stats = nextStats(emptyStats(), [advisory], "hook");
+
+    expect(stats.reported.bySource).toEqual({ hook: 0, direct: 0 });
+  });
 });
 
 describe("stats storage", () => {
@@ -99,6 +115,19 @@ describe("stats storage", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
+  test("a stats file from before reported counts keeps its history", () => {
+    const dir = mkdtempSync(join(tmpdir(), "klint-stats-legacy-"));
+    const { reported: _added, ...legacy } = emptyStats();
+    legacy.runs = { hook: 4, direct: 2 };
+    mkdirSync(join(dir, ".klint"));
+    writeFileSync(join(dir, ".klint", "stats.json"), JSON.stringify(legacy));
+
+    const stats = readStats(dir);
+    expect(stats.runs).toEqual({ hook: 4, direct: 2 });
+    expect(stats.reported).toEqual({ byRule: {}, bySource: { hook: 0, direct: 0 } });
+    rmSync(dir, { recursive: true, force: true });
+  });
+
   test("a corrupt stats file starts over", () => {
     const dir = mkdtempSync(join(tmpdir(), "klint-stats-corrupt-"));
     mkdirSync(join(dir, ".klint"));
@@ -108,20 +137,24 @@ describe("stats storage", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  test("report lists rules by count, then by name", () => {
+  test("report lists rules by reported, then prevented, then name", () => {
     const stats = emptyStats();
     stats.runs = { hook: 3, direct: 1 };
+    stats.reported.byRule = { "arch/imports": 5, "c-rule": 3, "a-rule": 3 };
+    stats.reported.bySource = { hook: 9, direct: 2 };
     stats.prevented.byRule = { "b-rule": 1, "a-rule": 1, "arch/imports": 2 };
     stats.prevented.bySource = { hook: 3, direct: 1 };
 
     expect(formatStats(stats)).toBe(
       "klint stats (.klint/stats.json)\n\n" +
-        "  runs              4  (hook 3, direct 1)\n" +
-        "  errors prevented  4  (caught by hook 3, direct 1)\n\n" +
-        "  prevented by rule\n" +
-        "    arch/imports  2\n" +
-        "    a-rule        1\n" +
-        "    b-rule        1\n"
+        "  runs                  4  (hook 3, direct 1)\n" +
+        "  violations reported  11  (hook 9, direct 2)\n" +
+        "  errors prevented      4  (caught by hook 3, direct 1)\n\n" +
+        "  by rule         reported  prevented\n" +
+        "    arch/imports         5          2\n" +
+        "    a-rule               3          1\n" +
+        "    c-rule               3          0\n" +
+        "    b-rule               0          1\n"
     );
   });
 });
@@ -137,11 +170,15 @@ describe("klint stats CLI", () => {
     expect(stats.runs).toEqual({ hook: 1, direct: 1 });
     expect(stats.prevented.bySource).toEqual({ hook: 1, direct: 0 });
     expect(Object.values(stats.prevented.byRule)).toEqual([1]);
+    expect(stats.reported.bySource).toEqual({ hook: 1, direct: 0 });
 
     const report = spawnSync("bun", [CLI, "stats", "--config", dir], {
       encoding: "utf-8",
     });
-    expect(report.stdout).toContain("errors prevented  1  (caught by hook 1, direct 0)");
+    expect(report.stdout).toContain("violations reported  1  (hook 1, direct 0)");
+    expect(report.stdout).toContain(
+      "errors prevented     1  (caught by hook 1, direct 0)"
+    );
     rmSync(dir, { recursive: true, force: true });
   });
 
@@ -188,7 +225,7 @@ describe("stats across engines", () => {
     expect(readStats(dir).runs).toEqual({ hook: 1, direct: 1 });
     expect(rustReport.stdout).toBe(tsReport.stdout);
     expect(rustReport.stdout).toContain(
-      "errors prevented  1  (caught by hook 1, direct 0)"
+      "errors prevented     1  (caught by hook 1, direct 0)"
     );
     rmSync(dir, { recursive: true, force: true });
   });

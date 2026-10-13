@@ -6,6 +6,7 @@ export const STATS_DIR = ".klint";
 export const STATS_FILE = "stats.json";
 const SELF_IGNORE = "# Created by klint automatically.\n*\n";
 const STATS_VERSION = 1;
+const KLINT_ADVISORY_PREFIX = "klint/";
 
 export type RunSource = "hook" | "direct";
 
@@ -23,24 +24,41 @@ interface OpenError {
 export interface KlintStats {
   version: typeof STATS_VERSION;
   runs: Record<RunSource, number>;
-  prevented: {
-    byRule: Record<string, number>;
-    bySource: Record<RunSource, number>;
-  };
+  reported: RuleCounts;
+  prevented: RuleCounts;
   open: OpenError[];
+}
+
+interface RuleCounts {
+  byRule: Record<string, number>;
+  bySource: Record<RunSource, number>;
+}
+
+function emptyCounts(): RuleCounts {
+  return { byRule: {}, bySource: { hook: 0, direct: 0 } };
+}
+
+function bump(counts: RuleCounts, rule: string, source: RunSource): void {
+  counts.byRule[rule] = (counts.byRule[rule] ?? 0) + 1;
+  counts.bySource[source] += 1;
 }
 
 export function emptyStats(): KlintStats {
   return {
     version: STATS_VERSION,
     runs: { hook: 0, direct: 0 },
-    prevented: { byRule: {}, bySource: { hook: 0, direct: 0 } },
+    reported: emptyCounts(),
+    prevented: emptyCounts(),
     open: [],
   };
 }
 
 function sameError(a: Omit<OpenError, "caughtBy">, b: Omit<OpenError, "caughtBy">) {
   return a.rule === b.rule && a.file === b.file && a.message === b.message;
+}
+
+function isCodeViolation(violation: CountedViolation): boolean {
+  return !violation.rule.startsWith(KLINT_ADVISORY_PREFIX);
 }
 
 function errorsOf(
@@ -58,14 +76,16 @@ export function nextStats(
 ): KlintStats {
   const stats = structuredClone(previous);
   stats.runs[source] += 1;
+  for (const violation of violations.filter(isCodeViolation)) {
+    bump(stats.reported, violation.rule, source);
+  }
 
   const unmatched = errorsOf(violations);
   const stillOpen: OpenError[] = [];
   for (const error of previous.open) {
     const match = unmatched.findIndex((current) => sameError(current, error));
     if (match === -1) {
-      stats.prevented.byRule[error.rule] = (stats.prevented.byRule[error.rule] ?? 0) + 1;
-      stats.prevented.bySource[error.caughtBy] += 1;
+      bump(stats.prevented, error.rule, error.caughtBy);
       continue;
     }
     unmatched.splice(match, 1);
@@ -78,6 +98,15 @@ export function nextStats(
   return stats;
 }
 
+function isRuleCounts(value: unknown): value is RuleCounts {
+  const candidate = value as Partial<RuleCounts> | undefined;
+  return (
+    typeof candidate?.byRule === "object" &&
+    typeof candidate.bySource?.hook === "number" &&
+    typeof candidate.bySource.direct === "number"
+  );
+}
+
 function isStats(value: unknown): value is KlintStats {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<KlintStats>;
@@ -85,11 +114,14 @@ function isStats(value: unknown): value is KlintStats {
     candidate.version === STATS_VERSION &&
     typeof candidate.runs?.hook === "number" &&
     typeof candidate.runs.direct === "number" &&
-    typeof candidate.prevented?.byRule === "object" &&
-    typeof candidate.prevented.bySource?.hook === "number" &&
-    typeof candidate.prevented.bySource.direct === "number" &&
+    isRuleCounts(candidate.prevented) &&
+    (candidate.reported === undefined || isRuleCounts(candidate.reported)) &&
     Array.isArray(candidate.open)
   );
+}
+
+function withReportedCounts(stats: KlintStats): KlintStats {
+  return { ...stats, reported: stats.reported ?? emptyCounts() };
 }
 
 export function readStats(configDir: string): KlintStats {
@@ -97,7 +129,7 @@ export function readStats(configDir: string): KlintStats {
     const parsed: unknown = JSON.parse(
       readFileSync(join(configDir, STATS_DIR, STATS_FILE), "utf-8")
     );
-    return isStats(parsed) ? parsed : emptyStats();
+    return isStats(parsed) ? withReportedCounts(parsed) : emptyStats();
   } catch {
     return emptyStats();
   }

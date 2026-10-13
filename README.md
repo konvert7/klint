@@ -178,16 +178,19 @@ Every lint run is recorded in `.klint/stats.json` next to your config. `klint st
 ```
 klint stats (.klint/stats.json)
 
-  runs              42  (hook 30, direct 12)
-  errors prevented  17  (caught by hook 11, direct 6)
+  runs                 42  (hook 30, direct 12)
+  violations reported  61  (hook 48, direct 13)
+  errors prevented     17  (caught by hook 11, direct 6)
 
-  prevented by rule
-    no-floating-promise  9
-    arch/imports         5
-    no-string-match      3
+  by rule                reported  prevented
+    no-floating-promise        29          9
+    arch/imports               20          5
+    no-string-match            12          3
 ```
 
-An error counts as prevented once: when a run reports it and a later run no longer does. Errors match by rule, file, and message, so moving code to another line doesn't count as a fix, and running klint again on an unfixed error doesn't count twice. Warnings aren't tracked. A prevented error is credited to the run that first caught it: pass `--hook` from agent hooks, and every other run (an agent's own shell, a person, CI) counts as direct.
+Violations reported counts every error and warning each run shows, so an unfixed error reported by three runs counts three times. That is the measure of how often klint stepped in. klint's own `klint/*` advisories, such as a stale skill, aren't counted.
+
+Errors prevented is stricter: an error counts once, when a run reports it and a later run no longer does. Errors match by rule, file, and message, so moving code to another line doesn't count as a fix, and running klint again on an unfixed error doesn't count twice. Warnings aren't tracked as prevented. A prevented error is credited to the run that first caught it: pass `--hook` from agent hooks, and every other run (an agent's own shell, a person, CI) counts as direct.
 
 `.klint/` contains a `.gitignore` with `*`, so git ignores the whole folder and nothing needs adding to your own `.gitignore`. Set `KLINT_NO_STATS=1` to stop recording. Stats are best effort: a read-only checkout never fails a lint run.
 

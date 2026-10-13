@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
 
@@ -10,6 +10,11 @@ const STATS_DIR: &str = ".klint";
 const STATS_FILE: &str = "stats.json";
 const SELF_IGNORE: &str = "# Created by klint automatically.\n*\n";
 const STATS_VERSION: u32 = 1;
+const KLINT_ADVISORY_PREFIX: &str = "klint/";
+const LABEL_WIDTH: usize = "violations reported".len();
+const RULE_HEADING: &str = "by rule";
+const REPORTED_HEADING: &str = "reported";
+const PREVENTED_HEADING: &str = "prevented";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -39,9 +44,16 @@ impl SourceCounts {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct Prevented {
+struct RuleCounts {
     by_rule: BTreeMap<String, u64>,
     by_source: SourceCounts,
+}
+
+impl RuleCounts {
+    fn bump(&mut self, rule: &str, source: RunSource) {
+        *self.by_rule.entry(rule.to_string()).or_insert(0) += 1;
+        self.by_source.bump(source);
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -65,7 +77,9 @@ impl OpenError {
 struct KlintStats {
     version: u32,
     runs: SourceCounts,
-    prevented: Prevented,
+    #[serde(default)]
+    reported: RuleCounts,
+    prevented: RuleCounts,
     open: Vec<OpenError>,
 }
 
@@ -74,15 +88,26 @@ impl KlintStats {
         Self {
             version: STATS_VERSION,
             runs: SourceCounts::default(),
-            prevented: Prevented::default(),
+            reported: RuleCounts::default(),
+            prevented: RuleCounts::default(),
             open: Vec::new(),
         }
     }
 }
 
+fn is_code_violation(violation: &Violation) -> bool {
+    !violation.rule.starts_with(KLINT_ADVISORY_PREFIX)
+}
+
 fn next_stats(previous: &KlintStats, violations: &[Violation], source: RunSource) -> KlintStats {
     let mut stats = previous.clone();
     stats.runs.bump(source);
+    for violation in violations
+        .iter()
+        .filter(|violation| is_code_violation(violation))
+    {
+        stats.reported.bump(&violation.rule, source);
+    }
 
     let mut unmatched: Vec<&Violation> = violations
         .iter()
@@ -98,14 +123,7 @@ fn next_stats(previous: &KlintStats, violations: &[Violation], source: RunSource
                 unmatched.remove(index);
                 still_open.push(error.clone());
             }
-            None => {
-                *stats
-                    .prevented
-                    .by_rule
-                    .entry(error.rule.clone())
-                    .or_insert(0) += 1;
-                stats.prevented.by_source.bump(error.caught_by);
-            }
+            None => stats.prevented.bump(&error.rule, error.caught_by),
         }
     }
     still_open.extend(unmatched.into_iter().map(|violation| OpenError {
@@ -154,42 +172,104 @@ pub fn record_run(config_dir: &Path, violations: &[Violation], source: RunSource
     );
 }
 
-fn rules_by_count(by_rule: &BTreeMap<String, u64>) -> Vec<(&String, u64)> {
-    let mut rules: Vec<(&String, u64)> =
-        by_rule.iter().map(|(rule, count)| (rule, *count)).collect();
-    rules.sort_by(|(a, x), (b, y)| y.cmp(x).then_with(|| a.cmp(b)));
-    rules
+struct RuleRow<'a> {
+    rule: &'a str,
+    reported: u64,
+    prevented: u64,
+}
+
+fn rule_rows(stats: &KlintStats) -> Vec<RuleRow<'_>> {
+    let rules: BTreeSet<&String> = stats
+        .reported
+        .by_rule
+        .keys()
+        .chain(stats.prevented.by_rule.keys())
+        .collect();
+    let mut rows: Vec<RuleRow> = rules
+        .into_iter()
+        .map(|rule| RuleRow {
+            rule,
+            reported: stats.reported.by_rule.get(rule).copied().unwrap_or(0),
+            prevented: stats.prevented.by_rule.get(rule).copied().unwrap_or(0),
+        })
+        .collect();
+    rows.sort_by(|a, b| {
+        b.reported
+            .cmp(&a.reported)
+            .then_with(|| b.prevented.cmp(&a.prevented))
+            .then_with(|| a.rule.cmp(b.rule))
+    });
+    rows
+}
+
+fn summary_lines(summaries: &[(&str, u64, String)]) -> Vec<String> {
+    let width = summaries
+        .iter()
+        .map(|(_, total, _)| total.to_string().len())
+        .max()
+        .unwrap_or(0);
+    summaries
+        .iter()
+        .map(|(label, total, detail)| {
+            format!("  {label:<LABEL_WIDTH$}  {total:>width$}  ({detail})")
+        })
+        .collect()
+}
+
+fn rule_table(rows: &[RuleRow]) -> Vec<String> {
+    let width = rows
+        .iter()
+        .map(|row| row.rule.chars().count())
+        .chain([RULE_HEADING.len() - 2])
+        .max()
+        .unwrap_or(0);
+    let heading_width = width + 2;
+    let reported_width = REPORTED_HEADING.len();
+    let prevented_width = PREVENTED_HEADING.len();
+    let mut lines = vec![format!(
+        "  {RULE_HEADING:<heading_width$}  {REPORTED_HEADING}  {PREVENTED_HEADING}"
+    )];
+    lines.extend(rows.iter().map(|row| {
+        format!(
+            "    {:<width$}  {:>reported_width$}  {:>prevented_width$}",
+            row.rule, row.reported, row.prevented
+        )
+    }));
+    lines
 }
 
 fn format_stats(stats: &KlintStats) -> String {
-    let rules = rules_by_count(&stats.prevented.by_rule);
-    let width = rules
-        .iter()
-        .map(|(rule, _)| rule.chars().count())
-        .max()
-        .unwrap_or(0);
+    let runs = &stats.runs;
+    let reported = &stats.reported.by_source;
+    let prevented = &stats.prevented.by_source;
     let mut lines = vec![
         format!("klint stats ({STATS_DIR}/{STATS_FILE})"),
         String::new(),
-        format!(
-            "  runs              {}  (hook {}, direct {})",
-            stats.runs.total(),
-            stats.runs.hook,
-            stats.runs.direct
-        ),
-        format!(
-            "  errors prevented  {}  (caught by hook {}, direct {})",
-            stats.prevented.by_source.total(),
-            stats.prevented.by_source.hook,
-            stats.prevented.by_source.direct
-        ),
     ];
-    if !rules.is_empty() {
+    lines.extend(summary_lines(&[
+        (
+            "runs",
+            runs.total(),
+            format!("hook {}, direct {}", runs.hook, runs.direct),
+        ),
+        (
+            "violations reported",
+            reported.total(),
+            format!("hook {}, direct {}", reported.hook, reported.direct),
+        ),
+        (
+            "errors prevented",
+            prevented.total(),
+            format!(
+                "caught by hook {}, direct {}",
+                prevented.hook, prevented.direct
+            ),
+        ),
+    ]));
+    let rows = rule_rows(stats);
+    if !rows.is_empty() {
         lines.push(String::new());
-        lines.push("  prevented by rule".to_string());
-        for (rule, count) in rules {
-            lines.push(format!("    {rule:<width$}  {count}"));
-        }
+        lines.extend(rule_table(&rows));
     }
     format!("{}\n", lines.join("\n"))
 }
@@ -262,21 +342,73 @@ mod tests {
     }
 
     #[test]
-    fn report_lists_rules_by_count_then_name() {
+    fn every_reported_violation_counts_warnings_and_repeats_included() {
+        let mut warning = error("w", "a.ts", "m");
+        warning.severity = "warn".to_string();
+        let first = next_stats(
+            &KlintStats::empty(),
+            &[error("r", "a.ts", "m"), warning],
+            RunSource::Hook,
+        );
+        let second = next_stats(&first, &[error("r", "a.ts", "m")], RunSource::Direct);
+
+        assert_eq!(second.reported.by_rule.get("r"), Some(&2));
+        assert_eq!(second.reported.by_rule.get("w"), Some(&1));
+        assert_eq!(
+            second.reported.by_source,
+            SourceCounts { hook: 2, direct: 1 }
+        );
+    }
+
+    #[test]
+    fn klint_advisories_are_not_reported_violations() {
+        let mut advisory = error("klint/skill-stale", "a.ts", "m");
+        advisory.severity = "warn".to_string();
+        let stats = next_stats(&KlintStats::empty(), &[advisory], RunSource::Hook);
+
+        assert_eq!(stats.reported.by_source.total(), 0);
+    }
+
+    #[test]
+    fn report_lists_rules_by_reported_then_prevented_then_name() {
         let mut stats = KlintStats::empty();
         stats.runs = SourceCounts { hook: 3, direct: 1 };
-        stats.prevented.by_rule.insert("b-rule".to_string(), 1);
-        stats.prevented.by_rule.insert("a-rule".to_string(), 1);
-        stats
-            .prevented
-            .by_rule
-            .insert("arch/imports".to_string(), 2);
+        for (rule, count) in [("arch/imports", 5), ("c-rule", 3), ("a-rule", 3)] {
+            stats.reported.by_rule.insert(rule.to_string(), count);
+        }
+        stats.reported.by_source = SourceCounts { hook: 9, direct: 2 };
+        for (rule, count) in [("b-rule", 1), ("a-rule", 1), ("arch/imports", 2)] {
+            stats.prevented.by_rule.insert(rule.to_string(), count);
+        }
         stats.prevented.by_source = SourceCounts { hook: 3, direct: 1 };
 
         assert_eq!(
             format_stats(&stats),
-            "klint stats (.klint/stats.json)\n\n  runs              4  (hook 3, direct 1)\n  errors prevented  4  (caught by hook 3, direct 1)\n\n  prevented by rule\n    arch/imports  2\n    a-rule        1\n    b-rule        1\n"
+            concat!(
+                "klint stats (.klint/stats.json)\n\n",
+                "  runs                  4  (hook 3, direct 1)\n",
+                "  violations reported  11  (hook 9, direct 2)\n",
+                "  errors prevented      4  (caught by hook 3, direct 1)\n\n",
+                "  by rule         reported  prevented\n",
+                "    arch/imports         5          2\n",
+                "    a-rule               3          1\n",
+                "    c-rule               3          0\n",
+                "    b-rule               0          1\n",
+            )
         );
+    }
+
+    #[test]
+    fn a_stats_file_from_before_reported_counts_keeps_its_history() {
+        let root = temp_root("stats-legacy");
+        fs::create_dir_all(root.join(STATS_DIR)).expect("create stats dir");
+        let legacy = r#"{"version":1,"runs":{"hook":4,"direct":2},"prevented":{"byRule":{},"bySource":{"hook":0,"direct":0}},"open":[]}"#;
+        fs::write(root.join(STATS_DIR).join(STATS_FILE), legacy).expect("write legacy file");
+
+        let stats = read_stats(&root);
+        assert_eq!(stats.runs, SourceCounts { hook: 4, direct: 2 });
+        assert_eq!(stats.reported, RuleCounts::default());
+        fs::remove_dir_all(&root).expect("clean up");
     }
 
     #[test]
