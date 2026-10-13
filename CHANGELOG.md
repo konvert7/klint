@@ -1,3 +1,10 @@
+## [0.35.2](https://github.com/konvert7/klint/compare/v0.35.1...v0.35.2) (2026-10-13)
+
+
+### Bug Fixes
+
+* add missing flags to skill ([e033a13](https://github.com/konvert7/klint/commit/e033a130979585048ffc878c45b1a4afabde74e5))
+
 ## [0.35.1](https://github.com/konvert7/klint/compare/v0.35.0...v0.35.1) (2026-10-12)
 
 
