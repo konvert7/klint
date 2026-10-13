@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { type KlintStats, readStats, STATS_DIR, STATS_FILE } from "../core/stats";
+import type { OptionValues } from "./command";
 
 const RULE_HEADING = "by rule";
 const REPORTED_HEADING = "reported";
@@ -84,11 +85,8 @@ export function formatStats(stats: KlintStats): string {
   return `${lines.join("\n")}\n`;
 }
 
-export function printStats(args: string[]): void {
-  const configFlag = args.indexOf("--config");
+export function printStats(values: OptionValues): void {
   const configDir =
-    configFlag !== -1 && args[configFlag + 1]
-      ? resolve(args[configFlag + 1])
-      : process.cwd();
+    typeof values.config === "string" ? resolve(values.config) : process.cwd();
   process.stdout.write(formatStats(readStats(configDir)));
 }

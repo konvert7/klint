@@ -1,5 +1,7 @@
+mod command;
 mod prompt;
 
+use command::{Dispatch, Group, Leaf, OptionSpec, Values, dispatch};
 use klint_rs::{
     InstallRequest, RunOptions, RunSource, install_skill, known_agent_names, known_agents,
     record_run, run, stats_report,
@@ -8,25 +10,116 @@ use std::path::PathBuf;
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    let code = match dispatch(&klint_command(), &args, "klint-rs") {
+        Dispatch::Exit(code) => code,
+        Dispatch::Run {
+            command: Some("stats"),
+            values,
+        } => stats_command(&values),
+        Dispatch::Run {
+            command: Some(_),
+            values,
+        } => install_skill_command(&values),
+        Dispatch::Run {
+            command: None,
+            values,
+        } => lint_command(&values),
+    };
+    std::process::exit(code);
+}
 
-    if args.first().is_some_and(|arg| arg == "install-skill") {
-        std::process::exit(install_skill_command(&args[1..]));
+fn klint_command() -> Group {
+    Group {
+        summary: "Shadow Rust architecture engine",
+        aliases: &[("h", "help")],
+        default_command: Some(Leaf {
+            summary: "Lints the project",
+            options: vec![
+                OptionSpec::valued(
+                    "config",
+                    "<dir>",
+                    "Directory containing klint.yaml or klint.config.json (default: cwd)",
+                ),
+                OptionSpec::flag("json", "Emit structured JSON to stdout"),
+                OptionSpec::flag("hook", "Count this run as an agent hook run in klint stats"),
+                OptionSpec::flag("version", "Print the installed klint-rs version").short('V'),
+            ],
+            details: Vec::new(),
+        }),
+        commands: vec![
+            (
+                "stats",
+                Leaf {
+                    summary: "Print runs, violations reported and errors prevented, in total and per rule",
+                    options: vec![OptionSpec::valued(
+                        "config",
+                        "<dir>",
+                        "Directory holding .klint/stats.json (default: cwd)",
+                    )],
+                    details: vec!["Set KLINT_NO_STATS=1 to stop recording.".to_string()],
+                },
+            ),
+            (
+                "install-skill",
+                Leaf {
+                    summary: "Install the embedded klint-rules skill into agent config directories",
+                    options: vec![
+                        OptionSpec::valued(
+                            "agents",
+                            "<list>",
+                            format!("Comma-separated: {} (default: all)", known_agent_names()),
+                        ),
+                        OptionSpec::flag(
+                            "symlink",
+                            "Keep one skill in .agents/skills and symlink the others to it (default)",
+                        )
+                        .aliases(&["--shared"]),
+                        OptionSpec::flag("copy", "Give every agent directory its own copy"),
+                        OptionSpec::flag("force", "Replace a skill directory klint did not install"),
+                    ],
+                    details: vec![
+                        "Asks which agents and how to store the skill when run on a terminal without".to_string(),
+                        "--agents, --symlink or --copy.".to_string(),
+                    ],
+                },
+            ),
+        ],
+        details: Vec::new(),
     }
-    if args.first().is_some_and(|arg| arg == "stats") {
-        std::process::exit(stats_command(&args[1..]));
+}
+
+fn config_dir(values: &Values) -> Result<PathBuf, String> {
+    match values.text("config") {
+        Some(dir) => Ok(PathBuf::from(dir)),
+        None => {
+            std::env::current_dir().map_err(|err| format!("klint-rs: failed to resolve cwd: {err}"))
+        }
     }
+}
 
-    let options = parse_args(&args).unwrap_or_else(|err| {
-        eprintln!("{err}");
-        std::process::exit(1);
-    });
-
+fn lint_command(values: &Values) -> i32 {
+    if values.flag("version") {
+        println!("klint-rs {}", klint_rs::reported_version());
+        return 0;
+    }
+    let config_dir = match config_dir(values) {
+        Ok(dir) => dir,
+        Err(err) => {
+            eprintln!("{err}");
+            return 1;
+        }
+    };
+    let source = if values.flag("hook") {
+        RunSource::Hook
+    } else {
+        RunSource::Direct
+    };
     match run(RunOptions {
-        config_dir: options.config_dir.clone(),
+        config_dir: config_dir.clone(),
     }) {
         Ok(output) => {
-            record_run(&options.config_dir, &output.violations, options.source);
-            if options.json {
+            record_run(&config_dir, &output.violations, source);
+            if values.flag("json") {
                 println!(
                     "{}",
                     serde_json::to_string(&output).expect("klint-rs output should be serializable")
@@ -34,96 +127,36 @@ fn main() {
             } else if output.violations.is_empty() {
                 println!("{}", serde_json::json!({ "output": "klint: 0 violations" }));
             }
-            std::process::exit(if output.summary.errors > 0 { 2 } else { 0 });
+            if output.summary.errors > 0 { 2 } else { 0 }
         }
         Err(err) => {
             eprintln!("{err}");
-            std::process::exit(1);
-        }
-    }
-}
-
-struct CliOptions {
-    config_dir: PathBuf,
-    json: bool,
-    source: RunSource,
-}
-
-fn parse_args(args: &[String]) -> Result<CliOptions, String> {
-    let mut config_dir =
-        std::env::current_dir().map_err(|err| format!("klint-rs: failed to resolve cwd: {err}"))?;
-    let mut json = false;
-    let mut source = RunSource::Direct;
-    let mut i = 0;
-
-    while i < args.len() {
-        match args[i].as_str() {
-            "--config" => {
-                let Some(value) = args.get(i + 1) else {
-                    return Err("klint-rs: --config requires a directory".to_string());
-                };
-                config_dir = PathBuf::from(value);
-                i += 2;
-            }
-            "--json" => {
-                json = true;
-                i += 1;
-            }
-            "--hook" => {
-                source = RunSource::Hook;
-                i += 1;
-            }
-            "--help" | "-h" | "help" | "h" => {
-                print_help();
-                std::process::exit(0);
-            }
-            "--version" | "-V" | "version" => {
-                println!("klint-rs {}", klint_rs::reported_version());
-                std::process::exit(0);
-            }
-            other => {
-                return Err(format!("klint-rs: unknown argument \"{other}\""));
-            }
-        }
-    }
-
-    Ok(CliOptions {
-        config_dir,
-        json,
-        source,
-    })
-}
-
-fn stats_command(args: &[String]) -> i32 {
-    let config_dir = match args {
-        [] => std::env::current_dir(),
-        [flag, dir] if flag == "--config" => Ok(PathBuf::from(dir)),
-        _ => {
-            eprintln!("klint-rs: usage: stats [--config <dir>]");
-            return 1;
-        }
-    };
-    match config_dir {
-        Ok(dir) => {
-            print!("{}", stats_report(&dir));
-            0
-        }
-        Err(err) => {
-            eprintln!("klint-rs: failed to resolve cwd: {err}");
             1
         }
     }
 }
 
-fn install_skill_command(args: &[String]) -> i32 {
-    let (mut request, decided) = match parse_install_args(args) {
+fn stats_command(values: &Values) -> i32 {
+    match config_dir(values) {
+        Ok(dir) => {
+            print!("{}", stats_report(&dir));
+            0
+        }
+        Err(err) => {
+            eprintln!("{err}");
+            1
+        }
+    }
+}
+
+fn install_skill_command(values: &Values) -> i32 {
+    let (mut request, decided) = match install_request(values) {
         Ok(parsed) => parsed,
         Err(err) => {
             eprintln!("{err}");
             return 1;
         }
     };
-
     if !decided && prompt::stdin_is_a_terminal() {
         match prompt::ask_install_choices(&known_agents()) {
             Ok(Some(choices)) if choices.agents.is_empty() => {
@@ -159,69 +192,24 @@ fn install_skill_command(args: &[String]) -> i32 {
     }
 }
 
-fn parse_install_args(args: &[String]) -> Result<(InstallRequest, bool), String> {
+fn install_request(values: &Values) -> Result<(InstallRequest, bool), String> {
     let root =
         std::env::current_dir().map_err(|err| format!("klint-rs: failed to resolve cwd: {err}"))?;
-    let mut agents: Vec<String> = Vec::new();
-    let mut shared = true;
-    let mut force = false;
-    let mut decided = false;
-    let mut i = 0;
-
-    while i < args.len() {
-        match args[i].as_str() {
-            "--agents" => {
-                let Some(value) = args.get(i + 1) else {
-                    return Err(format!(
-                        "klint-rs: --agents requires a comma-separated list of: {}",
-                        known_agent_names()
-                    ));
-                };
-                agents.extend(
-                    value
-                        .split(',')
-                        .map(|agent| agent.trim().to_string())
-                        .filter(|agent| !agent.is_empty()),
-                );
-                decided = true;
-                i += 2;
-            }
-            "--symlink" | "--shared" => {
-                shared = true;
-                decided = true;
-                i += 1;
-            }
-            "--copy" => {
-                shared = false;
-                decided = true;
-                i += 1;
-            }
-            "--force" => {
-                force = true;
-                i += 1;
-            }
-            other => {
-                return Err(format!(
-                    "klint-rs: unknown install-skill argument \"{other}\""
-                ));
-            }
-        }
-    }
-
+    let agents: Vec<String> = values
+        .text("agents")
+        .unwrap_or_default()
+        .split(',')
+        .map(|agent| agent.trim().to_string())
+        .filter(|agent| !agent.is_empty())
+        .collect();
+    let decided = values.text("agents").is_some() || values.flag("symlink") || values.flag("copy");
     Ok((
         InstallRequest {
             root,
             agents,
-            shared,
-            force,
+            shared: !values.flag("copy"),
+            force: values.flag("force"),
         },
         decided,
     ))
-}
-
-fn print_help() {
-    println!(
-        "klint-rs — shadow Rust architecture engine\n\nUsage: klint-rs [--config <dir>] [--json] [--hook] [--version]\n       klint-rs stats [--config <dir>]\n       klint-rs install-skill [--agents <list>] [--symlink | --copy] [--force]\n\n  --hook           count this run as an agent hook run in klint stats\n  stats            print runs, violations reported and errors prevented, in total\n                   and per rule, from .klint/stats.json\n                   (set KLINT_NO_STATS=1 to stop recording)\n\n  install-skill    install the embedded klint-rules skill into agent config directories\n                   Asks which agents and how to store the skill when run on a\n                   terminal without --agents/--symlink/--copy.\n                   --agents <list>  comma-separated: {} (default: all)\n                   --symlink        one skill in .agents/skills, others symlink to it (default)\n                   --copy           an independent copy in every agent directory\n                   --force          replace a skill directory klint did not install",
-        known_agent_names()
-    );
 }

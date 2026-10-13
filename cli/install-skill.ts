@@ -13,6 +13,7 @@ import {
   type SkillReceipt,
   skillHash,
 } from "../core/skill";
+import type { OptionValues } from "./command";
 import { installedVersion, PACKAGE_ROOT } from "./paths";
 
 const AGENT_TARGETS = [
@@ -29,14 +30,14 @@ interface InstallPlan {
   force: boolean;
 }
 
-export async function installSkill(args: string[]): Promise<void> {
+export async function installSkill(values: OptionValues): Promise<void> {
   const skillSrc = join(PACKAGE_ROOT, "skill", SKILL_DIR_NAME);
   if (!existsSync(skillSrc)) {
     process.stderr.write(`klint: skill source not found at ${skillSrc}\n`);
     process.exit(1);
   }
 
-  const plan = await resolvePlan(args);
+  const plan = await resolvePlan(values);
   const dirs = agentSkillDirs(plan.agents);
 
   try {
@@ -164,8 +165,8 @@ async function writeReceipt(dest: string, skillSrc: string): Promise<void> {
   await writeFile(join(dest, RECEIPT_FILE_NAME), `${JSON.stringify(receipt, null, 2)}\n`);
 }
 
-async function resolvePlan(args: string[]): Promise<InstallPlan> {
-  const flags = parseFlags(args);
+async function resolvePlan(values: OptionValues): Promise<InstallPlan> {
+  const flags = parseFlags(values);
   const decided = flags.agents !== undefined || flags.shared !== undefined;
 
   if (!process.stdin.isTTY || decided) {
@@ -184,27 +185,21 @@ async function resolvePlan(args: string[]): Promise<InstallPlan> {
   };
 }
 
-function parseFlags(args: string[]): {
+function parseFlags(values: OptionValues): {
   agents?: AgentKey[];
   shared?: boolean;
   force: boolean;
 } {
-  let agents: AgentKey[] | undefined;
-  let shared: boolean | undefined;
-  let force = false;
+  return {
+    agents: typeof values.agents === "string" ? parseAgents(values.agents) : undefined,
+    shared: sharedChoice(values),
+    force: values.force === true,
+  };
+}
 
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--agents" && args[i + 1]) agents = parseAgents(args[++i]);
-    else if (args[i] === "--symlink" || args[i] === "--shared") shared = true;
-    else if (args[i] === "--copy") shared = false;
-    else if (args[i] === "--force") force = true;
-    else {
-      process.stderr.write(`klint: unknown install-skill argument "${args[i]}"\n`);
-      process.exit(1);
-    }
-  }
-
-  return { agents, force, shared };
+function sharedChoice(values: OptionValues): boolean | undefined {
+  if (values.copy) return false;
+  return values.symlink ? true : undefined;
 }
 
 function parseAgents(value: string): AgentKey[] {

@@ -3,7 +3,8 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
-import { printHelp } from "./cli/help";
+import { type OptionValues, runCommand } from "./cli/command";
+import { klintCommand } from "./cli/commands";
 import { installSkill } from "./cli/install-skill";
 import {
   formatDuration,
@@ -22,60 +23,33 @@ import { skillAdvisories } from "./core/skill";
 import { runRecorder } from "./core/stats";
 import type { ArchConfig, KlintConfig, KlintRule, RuleConfigValue } from "./core/types";
 
-interface CliOptions {
-  configDir?: string;
-  rulesFile?: string;
+export async function main(): Promise<number> {
+  const startedAt = performance.now();
+  const command = klintCommand({
+    lint: (values) => lint(values, startedAt),
+    stats: printStats,
+    installSkill,
+  });
+  return runCommand(command, process.argv.slice(2), ["klint"]);
 }
 
-export async function main(opts: CliOptions = {}): Promise<void> {
-  const startedAt = performance.now();
-  const args = process.argv.slice(2);
+function optionalPath(value: string | true | undefined): string | undefined {
+  return typeof value === "string" ? resolve(value) : undefined;
+}
 
-  if (args[0] === "help" || args[0] === "h") {
-    printHelp();
-    process.exit(0);
-  }
-
-  if (args[0] === "stats") {
-    printStats(args.slice(1));
+async function lint(values: OptionValues, startedAt: number): Promise<void> {
+  if (values.version) {
+    process.stdout.write(`klint ${installedVersion()}\n`);
     return;
   }
-
-  const subcommand = args.indexOf("install-skill");
-  if (subcommand !== -1) {
-    await installSkill(args.slice(subcommand + 1));
-    return;
-  }
-
-  let configDir = opts.configDir;
-  let rulesFile = opts.rulesFile;
-  let fix = false;
-  let json = false;
-  let debug = false;
-  let hook = false;
-  let engine = process.env.KLINT_ENGINE;
-
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--config" && args[i + 1]) configDir = resolve(args[++i]);
-    else if (args[i] === "--rules" && args[i + 1]) rulesFile = resolve(args[++i]);
-    else if (args[i] === "--engine" && args[i + 1]) engine = args[++i];
-    else if (args[i] === "--fix") fix = true;
-    else if (args[i] === "--json") json = true;
-    else if (args[i] === "--hook") hook = true;
-    else if (args[i] === "--debug" || args[i] === "-debug") debug = true;
-    else if (args[i] === "--help" || args[i] === "-h") {
-      printHelp();
-      process.exit(0);
-    } else if (args[i] === "--version" || args[i] === "-V") {
-      process.stdout.write(`klint ${installedVersion()}\n`);
-      process.exit(0);
-    } else {
-      process.stderr.write(`klint: unknown argument "${args[i]}"\n`);
-      process.exit(1);
-    }
-  }
-
-  configDir ??= process.cwd();
+  const rulesFile = optionalPath(values.rules);
+  const fix = values.fix === true;
+  const json = values.json === true;
+  const debug = values.debug === true;
+  const hook = values.hook === true;
+  const engine =
+    typeof values.engine === "string" ? values.engine : process.env.KLINT_ENGINE;
+  const configDir = optionalPath(values.config) ?? process.cwd();
   const record = runRecorder(configDir, hook ? "hook" : "direct");
 
   const yamlPath = resolve(configDir, "klint.yaml");
@@ -237,4 +211,4 @@ export async function main(opts: CliOptions = {}): Promise<void> {
   writeTextOutput([...violations, ...advisories], startedAt);
 }
 
-if (import.meta.main) await main();
+if (import.meta.main) process.exitCode = await main();

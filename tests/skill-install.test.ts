@@ -369,7 +369,7 @@ describe("install-skill across distributions", () => {
     });
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain('unknown argument "--bogus"');
+    expect(result.stderr).toContain("error: unknown option '--bogus'\n\nUsage:");
     rmSync(root, { force: true, recursive: true });
   });
 
@@ -391,7 +391,7 @@ describe("install-skill across distributions", () => {
     });
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain('unknown argument "--bogus"');
+    expect(result.stderr).toContain("error: unknown option '--bogus'\n\nUsage:");
     rmSync(root, { force: true, recursive: true });
   });
 });
