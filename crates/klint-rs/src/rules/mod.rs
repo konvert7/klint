@@ -127,6 +127,10 @@ impl RulePass {
 }
 
 /// The configured rules in [`CHECKS`] order, each carrying the files it covers.
+pub(crate) fn is_supported_rule(name: &str) -> bool {
+    CHECKS.iter().any(|(rule, _, _)| *rule == name)
+}
+
 pub(crate) fn plan_rule_passes(
     rules: &BTreeMap<String, RuleConfig>,
     files: &[PathBuf],

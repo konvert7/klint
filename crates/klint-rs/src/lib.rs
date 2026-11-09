@@ -9,6 +9,7 @@ mod rules;
 mod skill;
 mod stats;
 pub mod syntax;
+mod unsupported;
 mod version;
 
 use std::path::PathBuf;
@@ -26,6 +27,7 @@ pub use skill::install::{InstallRequest, install_skill};
 use skill::skill_advisories;
 pub use skill::{known_agent_names, known_agents};
 pub use stats::{RunSource, record_run, stats_report};
+use unsupported::unsupported_rule_advisories;
 pub use version::reported_version;
 use version::schema_version_advisory;
 
@@ -98,6 +100,11 @@ fn lint(options: &RunOptions) -> Result<Linted, String> {
         schema_version_advisory(raw.schema.as_deref(), &config_path)
             .into_iter()
             .collect();
+    advisories.extend(unsupported_rule_advisories(
+        &rules,
+        &config_path,
+        &options.config_dir,
+    ));
     advisories.extend(skill_advisories(&options.config_dir));
 
     Ok(Linted {
