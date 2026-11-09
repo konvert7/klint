@@ -193,3 +193,43 @@ fn fix_rewrites_multi_line_violations_like_the_ts_engine() {
     );
     let _ = remove_dir_all(root);
 }
+
+#[cfg(unix)]
+#[test]
+fn fix_leaves_every_file_untouched_when_one_write_fails() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let root = temp_root("all-or-nothing");
+    let source = "const a = arr[arr.length - 1];\n";
+    create_dir_all(root.join("src")).expect("create fixture dirs");
+    write(
+        root.join("klint.yaml"),
+        "include: [\"src\"]\nrules:\n  sonar/prefer-at: error\n",
+    )
+    .expect("write config");
+    write(root.join("src/a.ts"), source).expect("write a");
+    write(root.join("src/b.ts"), source).expect("write b");
+    let read_only = root.join("src/b.ts");
+    std::fs::set_permissions(&read_only, std::fs::Permissions::from_mode(0o444))
+        .expect("make b read-only");
+    if std::fs::OpenOptions::new()
+        .write(true)
+        .open(&read_only)
+        .is_ok()
+    {
+        let _ = remove_dir_all(root);
+        return;
+    }
+
+    let (status, stdout) = run_fix(&root);
+
+    assert_eq!(status, 1, "{stdout}");
+    assert_eq!(
+        read_to_string(root.join("src/a.ts")).expect("read a"),
+        source
+    );
+    assert_eq!(read_to_string(&read_only).expect("read b"), source);
+    std::fs::set_permissions(&read_only, std::fs::Permissions::from_mode(0o644))
+        .expect("restore b");
+    let _ = remove_dir_all(root);
+}

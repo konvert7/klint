@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::output::Violation;
 
@@ -52,13 +52,51 @@ pub(crate) fn fix_until_stable<T>(
     })
 }
 
+#[derive(Default)]
+pub(crate) struct Originals(BTreeMap<PathBuf, String>);
+
+impl Originals {
+    fn write(&mut self, path: &Path, before: &str, after: &str) -> Result<(), String> {
+        fs::write(path, after)
+            .map_err(|err| format!("klint-rs: failed to write {}: {err}", path.display()))?;
+        self.0
+            .entry(path.to_path_buf())
+            .or_insert_with(|| before.to_string());
+        Ok(())
+    }
+
+    pub(crate) fn restore_after(self, error: String) -> String {
+        let mut message = error;
+        let mut restored = 0;
+        for (path, original) in self.0 {
+            match fs::write(&path, original) {
+                Ok(()) => restored += 1,
+                Err(err) => message.push_str(&format!(
+                    "\nklint-rs: failed to restore {}: {err}",
+                    path.display()
+                )),
+            }
+        }
+        if restored > 0 {
+            message.push_str(&format!(
+                "\nklint-rs: restored {restored} file(s) to their state before --fix"
+            ));
+        }
+        message
+    }
+}
+
 pub(crate) fn has_fixes(violations: &[Violation]) -> bool {
     violations
         .iter()
         .any(|violation| line_fix(violation).is_some())
 }
 
-pub(crate) fn apply_fixes(violations: &[Violation], root: &Path) -> Result<usize, String> {
+pub(crate) fn apply_fixes(
+    violations: &[Violation],
+    root: &Path,
+    originals: &mut Originals,
+) -> Result<usize, String> {
     let mut by_file: BTreeMap<&str, Vec<LineFix>> = BTreeMap::new();
     for violation in violations {
         if let Some(fix) = line_fix(violation) {
@@ -68,7 +106,7 @@ pub(crate) fn apply_fixes(violations: &[Violation], root: &Path) -> Result<usize
 
     let mut applied = 0;
     for (file, fixes) in by_file {
-        applied += apply_file_fixes(&root.join(file), fixes)?;
+        applied += apply_file_fixes(&root.join(file), fixes, originals)?;
     }
     Ok(applied)
 }
@@ -91,7 +129,11 @@ fn line_fix(violation: &Violation) -> Option<LineFix> {
     })
 }
 
-fn apply_file_fixes(path: &Path, fixes: Vec<LineFix>) -> Result<usize, String> {
+fn apply_file_fixes(
+    path: &Path,
+    fixes: Vec<LineFix>,
+    originals: &mut Originals,
+) -> Result<usize, String> {
     let content = fs::read_to_string(path)
         .map_err(|err| format!("klint-rs: failed to read {}: {err}", path.display()))?;
     let mut lines: Vec<String> = content.split('\n').map(str::to_string).collect();
@@ -112,8 +154,7 @@ fn apply_file_fixes(path: &Path, fixes: Vec<LineFix>) -> Result<usize, String> {
     }
 
     if !applied_ranges.is_empty() {
-        fs::write(path, lines.join("\n"))
-            .map_err(|err| format!("klint-rs: failed to write {}: {err}", path.display()))?;
+        originals.write(path, &content, &lines.join("\n"))?;
     }
     Ok(applied_ranges.len())
 }
@@ -150,7 +191,7 @@ mod tests {
         fs::create_dir_all(&dir).expect("create dir");
         let path = dir.join("a.ts");
         fs::write(&path, content).expect("write");
-        let applied = apply_file_fixes(&path, fixes).expect("apply");
+        let applied = apply_file_fixes(&path, fixes, &mut Originals::default()).expect("apply");
         let result = fs::read_to_string(&path).expect("read");
         let _ = fs::remove_dir_all(dir);
         (applied, result)

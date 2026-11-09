@@ -18,7 +18,7 @@ use config::{find_config, read_config, resolve_root};
 use engine::run_engine;
 use files::{read_files, resolve_files};
 pub use fix::MAX_FIX_PASSES;
-use fix::{apply_fixes, fix_until_stable, has_fixes};
+use fix::{Originals, apply_fixes, fix_until_stable, has_fixes};
 pub use output::{JsonOutput, Summary, Violation};
 use plugins::effective_rules;
 use rules::plan_rule_passes;
@@ -58,11 +58,15 @@ pub fn run(options: RunOptions) -> Result<JsonOutput, String> {
 }
 
 pub fn fix(options: RunOptions) -> Result<FixOutcome, String> {
-    let passes = fix_until_stable(
+    let mut originals = Originals::default();
+    let passes = match fix_until_stable(
         || lint(&options),
-        |linted| apply_fixes(&linted.findings, &linted.root),
+        |linted| apply_fixes(&linted.findings, &linted.root, &mut originals),
         |linted| has_fixes(&linted.findings),
-    )?;
+    ) {
+        Ok(passes) => passes,
+        Err(error) => return Err(originals.restore_after(error)),
+    };
     Ok(FixOutcome {
         applied: passes.applied,
         remaining: output::output_from_violations(passes.last.findings),
