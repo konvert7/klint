@@ -54,7 +54,7 @@
     "knip": "knip-bun",
     "klint": "bun cli.ts --engine auto",
     "jscpd": "jscpd --noTips",
-    "schema": "bun tools/generate-schema.ts",
+    "schema": "cargo run --quiet -p klint-rs --example generate_schema -- $npm_package_version",
     "lint-staged": "lint-staged",
     "prepare": "bun .husky/install.mjs"
   },
@@ -76,7 +76,7 @@
     "@konvert7/klint-win32-x64": "*"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.7",
+    "@biomejs/biome": "2.6.4",
     "@commitlint/cli": "^20.5.3",
     "@commitlint/config-conventional": "^20.5.3",
     "@semantic-release/changelog": "^6.0.3",

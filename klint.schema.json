@@ -1,903 +1,54 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://raw.githubusercontent.com/konvert7/klint/refs/tags/v0.36.0/klint.schema.json",
-  "type": "object",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "description": "klint configuration. Lives at klint.yaml (or klint.config.json) next to biome.json and knip.json.",
   "properties": {
     "$schema": {
       "description": "JSON Schema reference. Use ./klint.schema.json for local validation, or a version-tagged URL such as https://raw.githubusercontent.com/konvert7/klint/refs/tags/v0.29.0/klint.schema.json to pin the schema. A tagged URL naming a version other than the installed one raises a klint/schema-version warning.",
       "type": "string"
     },
-    "root": {
-      "description": "Root directory used to resolve include paths and report relative file names. Defaults to the directory containing klint.config.json.",
-      "type": "string"
-    },
-    "include": {
-      "description": "Glob patterns selecting which TypeScript files to lint. Prefix with ! to exclude. Defaults to [\".\"] which lints all .ts files under root. Example: [\"src\", \"klint\", \"!**/node_modules/**\"]",
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "plugins": {
-      "description": "Named rule bundles to enable. Each plugin applies a default set of rules at \"error\" severity. Individual rules from the bundle can be overridden or silenced via the rules map. Available: \"sonar\".",
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": [
-          "sonar"
-        ]
-      }
-    },
-    "rules": {
-      "description": "Map of rule name → severity or options. Example: { \"no-floating-promise\": \"error\", \"no-sync-in-async\": { \"severity\": \"warn\", \"include\": [\"src/hooks/**\"] } }.",
-      "type": "object",
-      "properties": {
-        "no-unguarded-json-parse": {
-          "description": "Flags `JSON.parse()` calls that aren't wrapped in try/catch — malformed input crashes the process.",
-          "examples": [
-            "no-unguarded-json-parse: error"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        },
-        "no-sync-in-async": {
-          "description": "Flags synchronous I/O (`readFileSync`, `execSync`, etc.) inside async functions — blocks the event loop when an async equivalent is available.",
-          "examples": [
-            "no-sync-in-async: error",
-            "no-sync-in-async:\n  severity: warn\n  include: [\"src/server/**\"]"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        },
-        "no-floating-promise": {
-          "description": "Flags Promise-returning expressions that aren't awaited or `.catch()`-handled — silent failures and unpredictable execution order.",
-          "examples": [
-            "no-floating-promise: error"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        },
-        "no-misused-promises": {
-          "description": "Flags Promises passed where the type expects a non-thenable (e.g. an `if` condition, a `void` callback). The Promise's truthiness — not its resolved value — drives the branch.",
-          "examples": [
-            "no-misused-promises: error"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        },
-        "no-async-predicate": {
-          "description": "Flags `async` functions passed to `.filter`/`.some`/`.every`/`.find`/`.findIndex`. Array methods coerce the returned promise to truthy, so every element appears to match.",
-          "examples": [
-            "no-async-predicate: error"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        },
-        "no-date-equality": {
-          "description": "Flags `Date` comparisons with `==`/`===`/`!=`/`!==` — these compare object identity, not the time value. Use `.getTime()` instead.",
-          "examples": [
-            "no-date-equality: error"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        },
-        "no-optional-chain-on-non-nullable": {
-          "description": "Flags `?.` on receivers whose static type cannot be `null` or `undefined`. The optional chain is dead code and obscures the real shape.",
-          "examples": [
-            "no-optional-chain-on-non-nullable: warn"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        },
-        "no-object-in-template": {
-          "description": "Flags non-primitive objects interpolated into template literals — produces `[object Object]` unless `toString()` is overridden.",
-          "examples": [
-            "no-object-in-template: error"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        },
-        "no-nested-template-literals": {
-          "description": "Flags template literals nested inside template literals — almost always unreadable; extract to a variable.",
-          "examples": [
-            "no-nested-template-literals: warn"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        },
-        "no-consecutive-array-push": {
-          "description": "Flags consecutive `arr.push(x); arr.push(y);` calls — combine into `arr.push(x, y)` or `arr.push(...items)`.",
-          "examples": [
-            "no-consecutive-array-push: warn"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        },
-        "no-string-match": {
-          "description": "Flags `String#match` — prefer `.matchAll()` for iteration or `.test()` for boolean checks. `.match()` returns different shapes depending on the `/g` flag.",
-          "examples": [
-            "no-string-match: error"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        },
-        "sonar/prefer-string-replaceall": {
-          "description": "Flags `.replace(/x/g, y)` on strings — `.replaceAll('x', y)` is clearer and faster for all-occurrence replacements.",
-          "examples": [
-            "sonar/prefer-string-replaceall: error"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        },
-        "sonar/prefer-string-raw-regexp": {
-          "description": "Flags regex literals built from escape-heavy string concatenation — `String.raw` drops the double backslashes.",
-          "examples": [
-            "sonar/prefer-string-raw-regexp: warn"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        },
-        "sonar/prefer-string-raw": {
-          "description": "Flags string literals with multiple backslash escapes — `String.raw` is more readable (Windows paths, regex source, etc.).",
-          "examples": [
-            "sonar/prefer-string-raw: warn"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        },
-        "sonar/prefer-nullish-coalescing-assign": {
-          "description": "Flags explicit nullish assignment guards — `x ??= y` is the dedicated nullish assignment operator.",
-          "examples": [
-            "sonar/prefer-nullish-coalescing-assign: warn"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        },
-        "sonar/no-single-char-class": {
-          "description": "Flags single-character character classes in regex (e.g. `/[a]/`) — drop the brackets; the regex matches the same.",
-          "examples": [
-            "sonar/no-single-char-class: warn"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        },
-        "sonar/prefer-at": {
-          "description": "Flags negative-index access via `arr[arr.length - 1]` — `.at(-1)` reads cleaner for last-element access.",
-          "examples": [
-            "sonar/prefer-at: warn"
-          ],
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "error",
-                "warn",
-                "off"
-              ],
-              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-            },
-            {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warn",
-                    "off"
-                  ],
-                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-                },
-                "include": {
-                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-            }
-          ]
-        }
-      },
-      "additionalProperties": {
-        "anyOf": [
-          {
-            "type": "string",
-            "enum": [
-              "error",
-              "warn",
-              "off"
-            ],
-            "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-          },
-          {
-            "type": "object",
-            "properties": {
-              "severity": {
-                "type": "string",
-                "enum": [
-                  "error",
-                  "warn",
-                  "off"
-                ],
-                "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
-              },
-              "include": {
-                "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            },
-            "additionalProperties": false,
-            "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
-          }
-        ]
-      }
-    },
     "arch": {
-      "type": "object",
+      "additionalProperties": false,
+      "description": "Architecture-as-Code constraints — layers, import boundaries, forbidden patterns, singleton locations, comment budgets. Enforced by the arch engine alongside the rule set.",
       "properties": {
-        "layers": {
-          "type": "object",
-          "propertyNames": {
-            "type": "string"
-          },
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "description": "Named architectural zones. Keys are arbitrary layer names; values are glob patterns matching the files in that layer. Other arch rules reference these names instead of repeating globs.",
-          "examples": [
-            "layers:\n  core:   [\"src/hooks/lib/**\", \"src/tools/**\"]\n  skills: [\"assets/skills/**\"]\n  dao:    [\"src/dao/**\"]"
-          ]
-        },
-        "imports": {
-          "description": "Import-boundary rules. The dependency graph your README claims you have.",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "from": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                ],
-                "description": "Source — a layer name or glob(s) for the files this rule applies to. Imports originating in `from` are checked against `deny`/`allow`."
-              },
-              "deny": {
-                "description": "Layer name(s) or glob(s) the source is not allowed to import from. Mutually exclusive in spirit with `allow` (use one or the other).",
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                ]
-              },
-              "allow": {
-                "description": "Allowlist of layer name(s) / glob(s) the source may import from. Anything not matching `allow` is denied.",
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                ]
-              },
-              "deny-packages": {
-                "description": "Package specifier(s) the source is not allowed to import — npm packages, `node:` builtins, Python pip packages and stdlib modules, Swift system frameworks, external Rust crates, and C# namespaces or NuGet packages, which `deny`/`allow` cannot reach because they never resolve to a project file. Matching is per segment: `/` in TypeScript/JavaScript, so `next` also covers `next/headers` while `nextra` is unaffected; `.` in Python, Swift, and C#, so `os` also covers `os.path` while `oscrypto` is unaffected; and `::` in Rust, so `tokio` also covers `tokio::sync::Mutex` while `tokio_util` is unaffected. Python, Swift, Rust, and C# sources are checked by the Rust engine.",
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                ]
-              },
-              "type-only": {
-                "description": "When set to \"allow\", `import type` statements that would otherwise be denied are permitted. In Python, imports inside an `if TYPE_CHECKING:` block are exempted the same way. Useful for type-only references across layers.",
-                "type": "string",
-                "const": "allow"
-              },
-              "message": {
-                "description": "Custom error message reported when the rule is violated. Shown in the agent's event stream alongside file:line.",
-                "type": "string"
-              },
-              "severity": {
-                "type": "string",
-                "enum": [
-                  "error",
-                  "warn"
-                ],
-                "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)"
-              }
-            },
-            "required": [
-              "from"
-            ],
-            "additionalProperties": false,
-            "description": "An import-boundary rule. Restricts which layers a source can or cannot import from.",
-            "examples": [
-              "arch:\n  imports:\n    - from: skills\n      deny: core\n      message: \"Skills must be self-contained and portable\"\n      severity: warn",
-              "arch:\n  imports:\n    - from: [\"src/dao/**\"]\n      allow: [\"src/dao/**\", \"src/prisma/**\", \"src/types/**\"]"
-            ]
-          }
-        },
         "forbidden": {
           "description": "Forbidden-pattern rules. Block literal strings scoped to a layer.",
-          "type": "array",
           "items": {
             "anyOf": [
               {
-                "type": "object",
+                "additionalProperties": false,
                 "properties": {
-                  "pattern": {
-                    "type": "string",
-                    "description": "Pattern to search for, scanned per line. A literal substring by default (e.g. a console logging call). Prefix with `re:` to match a regular expression instead (e.g. `re:\\bp-\\[\\d+px\\]`). Regexes must use the common JS/RE2 subset — no lookaround or backreferences — so the TS and Rust engines agree. Note: a literal pattern that itself begins with `re:` cannot be expressed; such a value is always read as a regex."
-                  },
                   "in": {
                     "anyOf": [
                       {
                         "type": "string"
                       },
                       {
-                        "type": "array",
                         "items": {
                           "type": "string"
-                        }
+                        },
+                        "type": "array"
                       }
                     ],
                     "description": "Layer name(s) or glob(s) the pattern is forbidden in. Files outside the scope are not checked."
                   },
                   "message": {
-                    "type": "string",
-                    "description": "Required error message explaining why the pattern is forbidden. Shown to the agent so it can fix the call site."
+                    "description": "Required error message explaining why the pattern is forbidden. Shown to the agent so it can fix the call site.",
+                    "type": "string"
+                  },
+                  "pattern": {
+                    "description": "Pattern to search for, scanned per line. A literal substring by default (e.g. a console logging call). Prefix with `re:` to match a regular expression instead (e.g. `re:\\bp-\\[\\d+px\\]`). Regexes must use the common JS/RE2 subset — no lookaround or backreferences — so the TS and Rust engines agree. Note: a literal pattern that itself begins with `re:` cannot be expressed; such a value is always read as a regex.",
+                    "type": "string"
                   },
                   "severity": {
-                    "type": "string",
+                    "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)",
                     "enum": [
                       "error",
-                      "warn"
+                      "warn",
+                      null
                     ],
-                    "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)"
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -905,50 +56,51 @@
                   "in",
                   "message"
                 ],
-                "additionalProperties": false
+                "type": "object"
               },
               {
-                "type": "object",
+                "additionalProperties": false,
                 "properties": {
-                  "jsx-element": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ],
-                    "description": "JSX intrinsic element name(s) to forbid (e.g. `button`, `input`, `label`). AST-matched on opening and self-closing tag names — robust to whitespace, attributes, and naming collisions like `<buttonGroup>`."
-                  },
                   "in": {
                     "anyOf": [
                       {
                         "type": "string"
                       },
                       {
-                        "type": "array",
                         "items": {
                           "type": "string"
-                        }
+                        },
+                        "type": "array"
                       }
                     ],
                     "description": "Layer name(s) or glob(s) the element is forbidden in. Files outside the scope are not checked."
                   },
+                  "jsx-element": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    ],
+                    "description": "JSX intrinsic element name(s) to forbid (e.g. `button`, `input`, `label`). AST-matched on opening and self-closing tag names — robust to whitespace, attributes, and naming collisions like `<buttonGroup>`."
+                  },
                   "message": {
-                    "type": "string",
-                    "description": "Required error message explaining why the raw element is forbidden. Typically points at the design-system replacement (e.g. `Use <Button /> from @/components/ui/button`)."
+                    "description": "Required error message explaining why the raw element is forbidden. Typically points at the design-system replacement (e.g. `Use <Button /> from @/components/ui/button`).",
+                    "type": "string"
                   },
                   "severity": {
-                    "type": "string",
+                    "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)",
                     "enum": [
                       "error",
-                      "warn"
+                      "warn",
+                      null
                     ],
-                    "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)"
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -956,7 +108,7 @@
                   "in",
                   "message"
                 ],
-                "additionalProperties": false
+                "type": "object"
               }
             ],
             "description": "A forbidden-pattern rule. Blocks either a literal substring (`pattern:`) or a JSX element (`jsx-element:`) inside specific layers.",
@@ -964,48 +116,351 @@
               "arch:\n  forbidden:\n    - pattern: \"debugLog(\"\n      in: core\n      message: \"Leaks into the agent event stream\"",
               "arch:\n  forbidden:\n    - jsx-element: [\"button\", \"input\", \"label\"]\n      in: [\"src/app/**/*.tsx\", \"src/components/**/*.tsx\", \"!src/components/ui/**\"]\n      message: \"Use the design-system primitives in @/components/ui/* instead of raw HTML elements.\""
             ]
-          }
+          },
+          "type": "array"
+        },
+        "imports": {
+          "description": "Import-boundary rules. The dependency graph your README claims you have.",
+          "items": {
+            "additionalProperties": false,
+            "description": "An import-boundary rule. Restricts which layers a source can or cannot import from.",
+            "examples": [
+              "arch:\n  imports:\n    - from: skills\n      deny: core\n      message: \"Skills must be self-contained and portable\"\n      severity: warn",
+              "arch:\n  imports:\n    - from: [\"src/dao/**\"]\n      allow: [\"src/dao/**\", \"src/prisma/**\", \"src/types/**\"]"
+            ],
+            "properties": {
+              "allow": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Allowlist of layer name(s) / glob(s) the source may import from. Anything not matching `allow` is denied."
+              },
+              "deny": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Layer name(s) or glob(s) the source is not allowed to import from. Mutually exclusive in spirit with `allow` (use one or the other)."
+              },
+              "deny-packages": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Package specifier(s) the source is not allowed to import — npm packages, `node:` builtins, Python pip packages and stdlib modules, Swift system frameworks, external Rust crates, and C# namespaces or NuGet packages, which `deny`/`allow` cannot reach because they never resolve to a project file. Matching is per segment: `/` in TypeScript/JavaScript, so `next` also covers `next/headers` while `nextra` is unaffected; `.` in Python, Swift, and C#, so `os` also covers `os.path` while `oscrypto` is unaffected; and `::` in Rust, so `tokio` also covers `tokio::sync::Mutex` while `tokio_util` is unaffected. Python, Swift, Rust, and C# sources are checked by the Rust engine."
+              },
+              "from": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Source — a layer name or glob(s) for the files this rule applies to. Imports originating in `from` are checked against `deny`/`allow`."
+              },
+              "message": {
+                "description": "Custom error message reported when the rule is violated. Shown in the agent's event stream alongside file:line.",
+                "type": "string"
+              },
+              "severity": {
+                "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)",
+                "enum": [
+                  "error",
+                  "warn",
+                  null
+                ],
+                "type": "string"
+              },
+              "type-only": {
+                "description": "When set to \"allow\", `import type` statements that would otherwise be denied are permitted. In Python, imports inside an `if TYPE_CHECKING:` block are exempted the same way. Useful for type-only references across layers.",
+                "enum": [
+                  "allow",
+                  null
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "from"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "layers": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "description": "Named architectural zones. Keys are arbitrary layer names; values are glob patterns matching the files in that layer. Other arch rules reference these names instead of repeating globs.",
+          "examples": [
+            "layers:\n  core:   [\"src/hooks/lib/**\", \"src/tools/**\"]\n  skills: [\"assets/skills/**\"]\n  dao:    [\"src/dao/**\"]"
+          ],
+          "type": "object"
+        },
+        "maxCommentBlock": {
+          "description": "Per-block comment-height caps. Limit how many comment lines may stack together; doc-comments are exempt by default.",
+          "items": {
+            "additionalProperties": false,
+            "description": "A per-block comment-height cap. Limits how many comment lines may stack together, so comments stay terse and a long explanation becomes a well-named function instead. Doc-comments are exempt by default.",
+            "examples": [
+              "arch:\n  maxCommentBlock:\n    - limit: 2\n      in: src/**\n      message: \"Extract a named function instead of a comment block\""
+            ],
+            "properties": {
+              "countDocComments": {
+                "default": false,
+                "description": "Count doc-comments toward the limit. Doc-comments are `/** … */` JSDoc blocks (TS/JS), `///` (Swift and C#), and `///` or `//!` (Rust); ordinary `//`, `/* */`, and `#` comments are always counted. Defaults to false, so documentation is exempt and only explanatory/inline comments are capped. Has no effect on Python: docstrings are string expressions rather than comments, so they never count toward either limit.",
+                "type": "boolean"
+              },
+              "ignore": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Comment lines matching these patterns are structural, not prose — marker comments a build or codegen step reads, for example — and count toward neither limit. A literal substring by default; prefix with `re:` for a regex. Ignored lines still count in the density denominator (they are physical lines) and still hold a comment block together, so a marker cannot be used to split an over-tall block."
+              },
+              "in": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Layer name(s) or glob(s) the limit applies to. Files outside the scope are not checked."
+              },
+              "limit": {
+                "description": "Maximum number of consecutive comment lines allowed in a single block. A run of more comment lines than this — e.g. a tall comment stacked above a statement — is a violation, reported at the first offending line.",
+                "format": "uint",
+                "minimum": 1,
+                "type": "integer"
+              },
+              "message": {
+                "description": "Optional error message. Defaults to a message naming the consecutive-line limit.",
+                "type": "string"
+              },
+              "severity": {
+                "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)",
+                "enum": [
+                  "error",
+                  "warn",
+                  null
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "limit",
+              "in"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "maxCommentDensity": {
+          "description": "Per-file comment-density ceilings. Cap the share of a file that may be explanatory comments; doc-comments are exempt by default.",
+          "items": {
+            "additionalProperties": false,
+            "description": "A per-file comment-density ceiling. Caps how much of a file may be explanatory comments — the honest way to push intent into code and names rather than prose (and to keep token cost down), while leaving doc-comments free by default.",
+            "examples": [
+              "arch:\n  maxCommentDensity:\n    - limit: 5\n      in: src/**\n      message: \"Encode intent in names, not comments\"",
+              "arch:\n  maxCommentDensity:\n    - limit: 10\n      countDocComments: true\n      in: src/**"
+            ],
+            "properties": {
+              "countDocComments": {
+                "default": false,
+                "description": "Count doc-comments toward the limit. Doc-comments are `/** … */` JSDoc blocks (TS/JS), `///` (Swift and C#), and `///` or `//!` (Rust); ordinary `//`, `/* */`, and `#` comments are always counted. Defaults to false, so documentation is exempt and only explanatory/inline comments are capped. Has no effect on Python: docstrings are string expressions rather than comments, so they never count toward either limit.",
+                "type": "boolean"
+              },
+              "ignore": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Comment lines matching these patterns are structural, not prose — marker comments a build or codegen step reads, for example — and count toward neither limit. A literal substring by default; prefix with `re:` for a regex. Ignored lines still count in the density denominator (they are physical lines) and still hold a comment block together, so a marker cannot be used to split an over-tall block."
+              },
+              "in": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Layer name(s) or glob(s) the limit applies to. Files outside the scope are not checked."
+              },
+              "limit": {
+                "description": "Maximum percentage of a file's physical lines that may be comment lines. Denominator is total physical lines (code + comments + blanks), the same count `maxLines` uses. A file above this ratio is a violation.",
+                "exclusiveMinimum": 0,
+                "format": "double",
+                "maximum": 100,
+                "type": "number"
+              },
+              "message": {
+                "description": "Optional error message. Defaults to a message naming the measured density and the limit.",
+                "type": "string"
+              },
+              "severity": {
+                "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)",
+                "enum": [
+                  "error",
+                  "warn",
+                  null
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "limit",
+              "in"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "maxLines": {
+          "description": "Per-file line-count limits. Cap how long files in a layer may grow, with different ceilings per scope.",
+          "items": {
+            "additionalProperties": false,
+            "description": "A per-file line-count limit. Caps how long any file in scope may grow — the honest way to keep modules small without a formatter dependency.",
+            "examples": [
+              "arch:\n  maxLines:\n    - limit: 300\n      in: src/**\n      message: \"Split this module\"",
+              "arch:\n  maxLines:\n    - limit: 300\n      in: src/**\n    - limit: 600\n      in: tests/**"
+            ],
+            "properties": {
+              "in": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Layer name(s) or glob(s) the limit applies to. Files outside the scope are not checked."
+              },
+              "limit": {
+                "description": "Maximum number of physical lines a file may contain. Counts every line including blanks and comments. A file with more lines than this is a violation.",
+                "format": "uint",
+                "minimum": 1,
+                "type": "integer"
+              },
+              "message": {
+                "description": "Optional error message. Defaults to a message naming the limit (e.g. 'File exceeds the maximum of 300 lines').",
+                "type": "string"
+              },
+              "severity": {
+                "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)",
+                "enum": [
+                  "error",
+                  "warn",
+                  null
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "limit",
+              "in"
+            ],
+            "type": "object"
+          },
+          "type": "array"
         },
         "singleton": {
           "description": "Singleton-location rules. Pin a pattern to one file; every other touch is a violation.",
-          "type": "array",
           "items": {
             "anyOf": [
               {
-                "type": "object",
+                "additionalProperties": false,
                 "properties": {
-                  "pattern": {
-                    "type": "string",
-                    "description": "Pattern whose appearance is allowed only at one location, scanned per line. A literal substring by default (e.g. `process.env.API_KEY`). Prefix with `re:` to match a regular expression instead. Regexes must use the common JS/RE2 subset — no lookaround or backreferences — so the TS and Rust engines agree. Note: a literal pattern that itself begins with `re:` cannot be expressed; such a value is always read as a regex."
-                  },
-                  "only": {
-                    "type": "string",
-                    "description": "The single file path where this pattern is allowed. Every other occurrence becomes a violation."
-                  },
                   "in": {
-                    "description": "Optional scope. Limit the scan to these layers/globs; defaults to all files in `include`.",
                     "anyOf": [
                       {
                         "type": "string"
                       },
                       {
-                        "type": "array",
                         "items": {
                           "type": "string"
-                        }
+                        },
+                        "type": "array"
                       }
-                    ]
+                    ],
+                    "description": "Optional scope. Limit the scan to these layers/globs; defaults to all files in `include`."
                   },
                   "message": {
                     "type": "string"
                   },
+                  "only": {
+                    "description": "The single file path where this pattern is allowed. Every other occurrence becomes a violation.",
+                    "type": "string"
+                  },
+                  "pattern": {
+                    "description": "Pattern whose appearance is allowed only at one location, scanned per line. A literal substring by default (e.g. `process.env.API_KEY`). Prefix with `re:` to match a regular expression instead. Regexes must use the common JS/RE2 subset — no lookaround or backreferences — so the TS and Rust engines agree. Note: a literal pattern that itself begins with `re:` cannot be expressed; such a value is always read as a regex.",
+                    "type": "string"
+                  },
                   "severity": {
-                    "type": "string",
+                    "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)",
                     "enum": [
                       "error",
-                      "warn"
+                      "warn",
+                      null
                     ],
-                    "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)"
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -1013,53 +468,54 @@
                   "only",
                   "message"
                 ],
-                "additionalProperties": false
+                "type": "object"
               },
               {
-                "type": "object",
+                "additionalProperties": false,
                 "properties": {
-                  "jsx-element": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ],
-                    "description": "JSX intrinsic element name(s) allowed only inside the `only` file. AST-matched on tag names."
-                  },
-                  "only": {
-                    "type": "string",
-                    "description": "The single file path where the element is allowed (typically the design-system primitive that wraps it)."
-                  },
                   "in": {
                     "anyOf": [
                       {
                         "type": "string"
                       },
                       {
-                        "type": "array",
                         "items": {
                           "type": "string"
-                        }
+                        },
+                        "type": "array"
                       }
                     ],
                     "description": "Either a single layer name / glob pattern or an array of them. Layer names defined in `arch.layers` are resolved to their glob lists."
                   },
+                  "jsx-element": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    ],
+                    "description": "JSX intrinsic element name(s) allowed only inside the `only` file. AST-matched on tag names."
+                  },
                   "message": {
                     "type": "string"
                   },
+                  "only": {
+                    "description": "The single file path where the element is allowed (typically the design-system primitive that wraps it).",
+                    "type": "string"
+                  },
                   "severity": {
-                    "type": "string",
+                    "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)",
                     "enum": [
                       "error",
-                      "warn"
+                      "warn",
+                      null
                     ],
-                    "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)"
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -1067,7 +523,7 @@
                   "only",
                   "message"
                 ],
-                "additionalProperties": false
+                "type": "object"
               }
             ],
             "description": "A singleton-location rule. Pins a pattern or JSX element to exactly one file — the only honest way to enforce a module of record or a design-system primitive.",
@@ -1075,201 +531,569 @@
               "arch:\n  singleton:\n    - pattern: \"process.env.API_KEY\"\n      only: \"src/lib/auth.ts\"\n      message: \"API key access must funnel through the auth module.\"",
               "arch:\n  singleton:\n    - jsx-element: \"button\"\n      only: \"src/components/ui/button.tsx\"\n      in: [\"src/**/*.tsx\"]\n      message: \"Raw <button> belongs only to the Button primitive.\""
             ]
-          }
-        },
-        "maxLines": {
-          "description": "Per-file line-count limits. Cap how long files in a layer may grow, with different ceilings per scope.",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "limit": {
-                "type": "integer",
-                "exclusiveMinimum": 0,
-                "maximum": 9007199254740991,
-                "description": "Maximum number of physical lines a file may contain. Counts every line including blanks and comments. A file with more lines than this is a violation."
-              },
-              "in": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                ],
-                "description": "Layer name(s) or glob(s) the limit applies to. Files outside the scope are not checked."
-              },
-              "message": {
-                "description": "Optional error message. Defaults to a message naming the limit (e.g. 'File exceeds the maximum of 300 lines').",
-                "type": "string"
-              },
-              "severity": {
-                "type": "string",
-                "enum": [
-                  "error",
-                  "warn"
-                ],
-                "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)"
-              }
-            },
-            "required": [
-              "limit",
-              "in"
-            ],
-            "additionalProperties": false,
-            "description": "A per-file line-count limit. Caps how long any file in scope may grow — the honest way to keep modules small without a formatter dependency.",
-            "examples": [
-              "arch:\n  maxLines:\n    - limit: 300\n      in: src/**\n      message: \"Split this module\"",
-              "arch:\n  maxLines:\n    - limit: 300\n      in: src/**\n    - limit: 600\n      in: tests/**"
-            ]
-          }
-        },
-        "maxCommentDensity": {
-          "description": "Per-file comment-density ceilings. Cap the share of a file that may be explanatory comments; doc-comments are exempt by default.",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "limit": {
-                "type": "number",
-                "exclusiveMinimum": 0,
-                "maximum": 100,
-                "description": "Maximum percentage of a file's physical lines that may be comment lines. Denominator is total physical lines (code + comments + blanks), the same count `maxLines` uses. A file above this ratio is a violation."
-              },
-              "countDocComments": {
-                "description": "Count doc-comments toward the limit. Doc-comments are `/** … */` JSDoc blocks (TS/JS), `///` (Swift and C#), and `///` or `//!` (Rust); ordinary `//`, `/* */`, and `#` comments are always counted. Defaults to false, so documentation is exempt and only explanatory/inline comments are capped. Has no effect on Python: docstrings are string expressions rather than comments, so they never count toward either limit.",
-                "type": "boolean"
-              },
-              "ignore": {
-                "description": "Comment lines matching these patterns are structural, not prose — marker comments a build or codegen step reads, for example — and count toward neither limit. A literal substring by default; prefix with `re:` for a regex. Ignored lines still count in the density denominator (they are physical lines) and still hold a comment block together, so a marker cannot be used to split an over-tall block.",
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                ]
-              },
-              "in": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                ],
-                "description": "Layer name(s) or glob(s) the limit applies to. Files outside the scope are not checked."
-              },
-              "message": {
-                "description": "Optional error message. Defaults to a message naming the measured density and the limit.",
-                "type": "string"
-              },
-              "severity": {
-                "type": "string",
-                "enum": [
-                  "error",
-                  "warn"
-                ],
-                "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)"
-              }
-            },
-            "required": [
-              "limit",
-              "in"
-            ],
-            "additionalProperties": false,
-            "description": "A per-file comment-density ceiling. Caps how much of a file may be explanatory comments — the honest way to push intent into code and names rather than prose (and to keep token cost down), while leaving doc-comments free by default.",
-            "examples": [
-              "arch:\n  maxCommentDensity:\n    - limit: 5\n      in: src/**\n      message: \"Encode intent in names, not comments\"",
-              "arch:\n  maxCommentDensity:\n    - limit: 10\n      countDocComments: true\n      in: src/**"
-            ]
-          }
-        },
-        "maxCommentBlock": {
-          "description": "Per-block comment-height caps. Limit how many comment lines may stack together; doc-comments are exempt by default.",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "limit": {
-                "type": "integer",
-                "exclusiveMinimum": 0,
-                "maximum": 9007199254740991,
-                "description": "Maximum number of consecutive comment lines allowed in a single block. A run of more comment lines than this — e.g. a tall comment stacked above a statement — is a violation, reported at the first offending line."
-              },
-              "countDocComments": {
-                "description": "Count doc-comments toward the limit. Doc-comments are `/** … */` JSDoc blocks (TS/JS), `///` (Swift and C#), and `///` or `//!` (Rust); ordinary `//`, `/* */`, and `#` comments are always counted. Defaults to false, so documentation is exempt and only explanatory/inline comments are capped. Has no effect on Python: docstrings are string expressions rather than comments, so they never count toward either limit.",
-                "type": "boolean"
-              },
-              "ignore": {
-                "description": "Comment lines matching these patterns are structural, not prose — marker comments a build or codegen step reads, for example — and count toward neither limit. A literal substring by default; prefix with `re:` for a regex. Ignored lines still count in the density denominator (they are physical lines) and still hold a comment block together, so a marker cannot be used to split an over-tall block.",
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                ]
-              },
-              "in": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                ],
-                "description": "Layer name(s) or glob(s) the limit applies to. Files outside the scope are not checked."
-              },
-              "message": {
-                "description": "Optional error message. Defaults to a message naming the consecutive-line limit.",
-                "type": "string"
-              },
-              "severity": {
-                "type": "string",
-                "enum": [
-                  "error",
-                  "warn"
-                ],
-                "description": "Severity for the arch rule. \"error\" exits with code 2; \"warn\" reports but exits 0. (arch rules cannot be \"off\" — remove the entry instead.)"
-              }
-            },
-            "required": [
-              "limit",
-              "in"
-            ],
-            "additionalProperties": false,
-            "description": "A per-block comment-height cap. Limits how many comment lines may stack together, so comments stay terse and a long explanation becomes a well-named function instead. Doc-comments are exempt by default.",
-            "examples": [
-              "arch:\n  maxCommentBlock:\n    - limit: 2\n      in: src/**\n      message: \"Extract a named function instead of a comment block\""
-            ]
-          }
+          },
+          "type": "array"
         }
       },
-      "additionalProperties": false,
-      "description": "Architecture-as-Code constraints — layers, import boundaries, forbidden patterns, singleton locations, comment budgets. Enforced by the arch engine alongside the rule set."
+      "type": "object"
+    },
+    "include": {
+      "description": "Glob patterns selecting which TypeScript files to lint. Prefix with ! to exclude. Defaults to [\".\"] which lints all .ts files under root. Example: [\"src\", \"klint\", \"!**/node_modules/**\"]",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "plugins": {
+      "description": "Named rule bundles to enable. Each plugin applies a default set of rules at \"error\" severity. Individual rules from the bundle can be overridden or silenced via the rules map. Available: \"sonar\".",
+      "items": {
+        "enum": [
+          "sonar"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "root": {
+      "description": "Root directory used to resolve include paths and report relative file names. Defaults to the directory containing klint.config.json.",
+      "type": "string"
+    },
+    "rules": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+            "enum": [
+              "error",
+              "warn",
+              "off"
+            ],
+            "type": "string"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+            "properties": {
+              "include": {
+                "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "severity": {
+                "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                "enum": [
+                  "error",
+                  "warn",
+                  "off",
+                  null
+                ],
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        ]
+      },
+      "description": "Map of rule name → severity or options. Example: { \"no-floating-promise\": \"error\", \"no-sync-in-async\": { \"severity\": \"warn\", \"include\": [\"src/hooks/**\"] } }.",
+      "properties": {
+        "no-async-predicate": {
+          "anyOf": [
+            {
+              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+              "enum": [
+                "error",
+                "warn",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+              "properties": {
+                "include": {
+                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "severity": {
+                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off",
+                    null
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Flags `async` functions passed to `.filter`/`.some`/`.every`/`.find`/`.findIndex`. Array methods coerce the returned promise to truthy, so every element appears to match.",
+          "examples": [
+            "no-async-predicate: error"
+          ]
+        },
+        "no-consecutive-array-push": {
+          "anyOf": [
+            {
+              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+              "enum": [
+                "error",
+                "warn",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+              "properties": {
+                "include": {
+                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "severity": {
+                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off",
+                    null
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Flags consecutive `arr.push(x); arr.push(y);` calls — combine into `arr.push(x, y)` or `arr.push(...items)`.",
+          "examples": [
+            "no-consecutive-array-push: warn"
+          ]
+        },
+        "no-nested-template-literals": {
+          "anyOf": [
+            {
+              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+              "enum": [
+                "error",
+                "warn",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+              "properties": {
+                "include": {
+                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "severity": {
+                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off",
+                    null
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Flags template literals nested inside template literals — almost always unreadable; extract to a variable.",
+          "examples": [
+            "no-nested-template-literals: warn"
+          ]
+        },
+        "no-string-match": {
+          "anyOf": [
+            {
+              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+              "enum": [
+                "error",
+                "warn",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+              "properties": {
+                "include": {
+                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "severity": {
+                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off",
+                    null
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Flags `String#match` — prefer `.matchAll()` for iteration or `.test()` for boolean checks. `.match()` returns different shapes depending on the `/g` flag.",
+          "examples": [
+            "no-string-match: error"
+          ]
+        },
+        "no-sync-in-async": {
+          "anyOf": [
+            {
+              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+              "enum": [
+                "error",
+                "warn",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+              "properties": {
+                "include": {
+                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "severity": {
+                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off",
+                    null
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Flags synchronous I/O (`readFileSync`, `execSync`, etc.) inside async functions — blocks the event loop when an async equivalent is available.",
+          "examples": [
+            "no-sync-in-async: error",
+            "no-sync-in-async:\n  severity: warn\n  include: [\"src/server/**\"]"
+          ]
+        },
+        "no-unguarded-json-parse": {
+          "anyOf": [
+            {
+              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+              "enum": [
+                "error",
+                "warn",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+              "properties": {
+                "include": {
+                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "severity": {
+                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off",
+                    null
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Flags `JSON.parse()` calls that aren't wrapped in try/catch — malformed input crashes the process.",
+          "examples": [
+            "no-unguarded-json-parse: error"
+          ]
+        },
+        "sonar/no-single-char-class": {
+          "anyOf": [
+            {
+              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+              "enum": [
+                "error",
+                "warn",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+              "properties": {
+                "include": {
+                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "severity": {
+                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off",
+                    null
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Flags single-character character classes in regex (e.g. `/[a]/`) — drop the brackets; the regex matches the same.",
+          "examples": [
+            "sonar/no-single-char-class: warn"
+          ]
+        },
+        "sonar/prefer-at": {
+          "anyOf": [
+            {
+              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+              "enum": [
+                "error",
+                "warn",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+              "properties": {
+                "include": {
+                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "severity": {
+                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off",
+                    null
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Flags negative-index access via `arr[arr.length - 1]` — `.at(-1)` reads cleaner for last-element access.",
+          "examples": [
+            "sonar/prefer-at: warn"
+          ]
+        },
+        "sonar/prefer-nullish-coalescing-assign": {
+          "anyOf": [
+            {
+              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+              "enum": [
+                "error",
+                "warn",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+              "properties": {
+                "include": {
+                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "severity": {
+                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off",
+                    null
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Flags explicit nullish assignment guards — `x ??= y` is the dedicated nullish assignment operator.",
+          "examples": [
+            "sonar/prefer-nullish-coalescing-assign: warn"
+          ]
+        },
+        "sonar/prefer-string-raw": {
+          "anyOf": [
+            {
+              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+              "enum": [
+                "error",
+                "warn",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+              "properties": {
+                "include": {
+                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "severity": {
+                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off",
+                    null
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Flags string literals with multiple backslash escapes — `String.raw` is more readable (Windows paths, regex source, etc.).",
+          "examples": [
+            "sonar/prefer-string-raw: warn"
+          ]
+        },
+        "sonar/prefer-string-raw-regexp": {
+          "anyOf": [
+            {
+              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+              "enum": [
+                "error",
+                "warn",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+              "properties": {
+                "include": {
+                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "severity": {
+                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off",
+                    null
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Flags regex literals built from escape-heavy string concatenation — `String.raw` drops the double backslashes.",
+          "examples": [
+            "sonar/prefer-string-raw-regexp: warn"
+          ]
+        },
+        "sonar/prefer-string-replaceall": {
+          "anyOf": [
+            {
+              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+              "enum": [
+                "error",
+                "warn",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+              "properties": {
+                "include": {
+                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "severity": {
+                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off",
+                    null
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Flags `.replace(/x/g, y)` on strings — `.replaceAll('x', y)` is clearer and faster for all-occurrence replacements.",
+          "examples": [
+            "sonar/prefer-string-replaceall: error"
+          ]
+        }
+      },
+      "type": "object"
     }
   },
-  "additionalProperties": false,
-  "description": "klint configuration. Lives at klint.yaml (or klint.config.json) next to biome.json and knip.json."
+  "type": "object"
 }

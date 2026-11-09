@@ -1,12 +1,14 @@
 mod command;
 mod prompt;
+mod text;
 
 use command::{Dispatch, Group, Leaf, OptionSpec, Values, dispatch};
 use klint_rs::{
-    InstallRequest, RunOptions, RunSource, install_skill, known_agent_names, known_agents,
-    record_run, run, stats_report,
+    InstallRequest, MAX_FIX_PASSES, RunOptions, RunSource, fix, install_skill, known_agent_names,
+    known_agents, record_run, run, stats_report,
 };
 use std::path::PathBuf;
+use std::time::Instant;
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -41,6 +43,7 @@ fn klint_command() -> Group {
                     "Directory containing klint.yaml or klint.config.json (default: cwd)",
                 ),
                 OptionSpec::flag("json", "Emit structured JSON to stdout"),
+                OptionSpec::flag("fix", "Apply autofixes, then report what is left"),
                 OptionSpec::flag("hook", "Count this run as an agent hook run in klint stats"),
                 OptionSpec::flag("version", "Print the installed klint-rs version").short('V'),
             ],
@@ -98,6 +101,7 @@ fn config_dir(values: &Values) -> Result<PathBuf, String> {
 }
 
 fn lint_command(values: &Values) -> i32 {
+    let started_at = Instant::now();
     if values.flag("version") {
         println!("klint-rs {}", klint_rs::reported_version());
         return 0;
@@ -114,6 +118,9 @@ fn lint_command(values: &Values) -> i32 {
     } else {
         RunSource::Direct
     };
+    if values.flag("fix") {
+        return fix_command(config_dir, source, started_at);
+    }
     match run(RunOptions {
         config_dir: config_dir.clone(),
     }) {
@@ -124,8 +131,10 @@ fn lint_command(values: &Values) -> i32 {
                     "{}",
                     serde_json::to_string(&output).expect("klint-rs output should be serializable")
                 );
-            } else if output.violations.is_empty() {
-                println!("{}", serde_json::json!({ "output": "klint: 0 violations" }));
+            } else {
+                let report = text::render(&output.violations, started_at.elapsed());
+                print!("{}", report.stdout);
+                eprint!("{}", report.stderr);
             }
             if output.summary.errors > 0 { 2 } else { 0 }
         }
@@ -133,6 +142,41 @@ fn lint_command(values: &Values) -> i32 {
             eprintln!("{err}");
             1
         }
+    }
+}
+
+fn fix_command(config_dir: PathBuf, source: RunSource, started_at: Instant) -> i32 {
+    match fix(RunOptions {
+        config_dir: config_dir.clone(),
+    }) {
+        Ok(outcome) => {
+            record_run(&config_dir, &outcome.remaining.violations, source);
+            if outcome.stopped_at_pass_limit {
+                eprintln!(
+                    "klint: stopped after {MAX_FIX_PASSES} fix passes — some fixes keep producing new fixable violations."
+                );
+            }
+            println!(
+                "{} Finished in {}.",
+                fix_summary(outcome.applied, outcome.remaining.violations.len()),
+                text::format_duration(started_at.elapsed())
+            );
+            0
+        }
+        Err(err) => {
+            eprintln!("{err}");
+            1
+        }
+    }
+}
+
+fn fix_summary(applied: usize, remaining: usize) -> String {
+    if remaining > 0 {
+        format!(
+            "klint: applied {applied} fix(es). {remaining} violation(s) require manual attention."
+        )
+    } else {
+        format!("klint: applied {applied} fix(es). No remaining violations.")
     }
 }
 

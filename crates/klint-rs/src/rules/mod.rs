@@ -1,4 +1,5 @@
 mod builtin;
+mod docs;
 mod sonar;
 
 use std::collections::BTreeMap;
@@ -8,6 +9,7 @@ use crate::config::RuleConfig;
 use crate::engine::{NodeIndex, Wants};
 use crate::files::{is_javascript_like_source, match_pattern, relative_path};
 use crate::output::Violation;
+pub(crate) use docs::RULE_DOCS;
 
 /// One file's indexed nodes, handed to every rule that applies to it. Rules
 /// read the buckets they care about instead of each walking the tree.
@@ -55,6 +57,11 @@ const CHECKS: &[(&str, RuleCheck, RuleWants)] = &[
             wants.calls = true;
             wants.inside_try = true;
         },
+    ),
+    (
+        "no-async-predicate",
+        builtin::run_no_async_predicate,
+        |wants| wants.calls = true,
     ),
     ("no-sync-in-async", builtin::run_no_sync_in_async, |wants| {
         wants.calls = true;
@@ -122,6 +129,10 @@ impl RulePass {
 }
 
 /// The configured rules in [`CHECKS`] order, each carrying the files it covers.
+pub(crate) fn is_supported_rule(name: &str) -> bool {
+    CHECKS.iter().any(|(rule, _, _)| *rule == name)
+}
+
 pub(crate) fn plan_rule_passes(
     rules: &BTreeMap<String, RuleConfig>,
     files: &[PathBuf],
@@ -190,23 +201,40 @@ fn line_fix(
     end_byte: usize,
     replacement: &str,
 ) -> Option<serde_json::Value> {
-    if start_row != end_row {
-        return None;
-    }
-
-    let line_start = line_start_byte(content, start_byte);
-    let line_end = line_end_byte(content, start_byte);
-    let mut line = content.get(line_start..line_end)?.to_string();
-    line.replace_range(
-        (start_byte - line_start)..(end_byte - line_start),
+    let lines_start = line_start_byte(content, start_byte);
+    let lines_end = line_end_byte(content, end_byte);
+    let mut lines = content.get(lines_start..lines_end)?.to_string();
+    lines.replace_range(
+        (start_byte - lines_start)..(end_byte - lines_start),
         replacement,
     );
 
     Some(serde_json::json!({
         "startLine": start_row + 1,
         "endLine": end_row + 1,
-        "replacement": line,
+        "replacement": lines,
     }))
+}
+
+fn single_line_fix(
+    content: &str,
+    start_row: usize,
+    end_row: usize,
+    start_byte: usize,
+    end_byte: usize,
+    replacement: &str,
+) -> Option<serde_json::Value> {
+    if start_row != end_row {
+        return None;
+    }
+    line_fix(
+        content,
+        start_row,
+        end_row,
+        start_byte,
+        end_byte,
+        replacement,
+    )
 }
 
 fn line_start_byte(content: &str, byte: usize) -> usize {

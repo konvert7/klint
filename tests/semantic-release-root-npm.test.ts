@@ -43,7 +43,21 @@ describe("semantic-release root npm plugin", () => {
       expect(packageJson.optionalDependencies).toEqual({
         "@konvert7/klint-darwin-arm64": "*",
       });
-      expect(commands).toEqual([{ command: "bun", args: ["tools/generate-schema.ts"] }]);
+      expect(commands).toEqual([
+        {
+          command: "cargo",
+          args: [
+            "run",
+            "--quiet",
+            "-p",
+            "klint-rs",
+            "--example",
+            "generate_schema",
+            "--",
+            "1.2.3",
+          ],
+        },
+      ]);
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }

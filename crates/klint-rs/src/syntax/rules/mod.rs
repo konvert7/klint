@@ -1,3 +1,4 @@
+mod async_predicate;
 mod consecutive_array_push;
 mod nested_template_literals;
 mod prefer_at;
@@ -22,6 +23,7 @@ pub use string_match::scan_string_match;
 pub use sync_in_async::scan_sync_in_async;
 pub use unguarded_json_parse::scan_unguarded_json_parse;
 
+pub(crate) use async_predicate::async_predicate_record;
 pub(crate) use consecutive_array_push::scan_statement_run;
 pub(crate) use nested_template_literals::find_nested_template_literals;
 pub(crate) use prefer_at::prefer_at_record;
@@ -35,6 +37,12 @@ pub(crate) use sync_in_async::{is_async_function_like, is_function_like, sync_ca
 pub(crate) use unguarded_json_parse::is_json_parse_call;
 
 use super::{language_for_path, raw_node_text};
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct AsyncPredicateRecord {
+    pub line: usize,
+    pub method: String,
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct StringMatchRecord {
