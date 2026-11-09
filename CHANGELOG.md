@@ -1,3 +1,24 @@
+# [0.37.0](https://github.com/konvert7/klint/compare/v0.36.0...v0.37.0) (2026-11-09)
+
+
+### Bug Fixes
+
+* **rust:** emit fixes for violations that span several lines ([d9c9704](https://github.com/konvert7/klint/commit/d9c9704998746192303695397555ea4b7aa018a9))
+* **rust:** give each test fixture its own folder in target/tmp ([7b643b5](https://github.com/konvert7/klint/commit/7b643b54819b71bfa688a9ee53d2530302629945))
+* **rust:** make --fix all-or-nothing ([c4e67d4](https://github.com/konvert7/klint/commit/c4e67d4fe7ac6d54a3b7320a7370a57d60eb6b99))
+* **rust:** read tsconfig.json the way TypeScript does ([420a649](https://github.com/konvert7/klint/commit/420a6492e2ad3d70d5a190960b73be31981deaa3))
+* **rust:** stop --fix from looping forever ([37a4372](https://github.com/konvert7/klint/commit/37a43728b27dcc1c7a1205d35f18c461ecea8ac1))
+
+
+### Features
+
+* **rust:** apply autofixes with --fix in the Rust engine ([2686716](https://github.com/konvert7/klint/commit/26867160019b9bdf8d5033c55625efb1489b6b82))
+* **rust:** expand plugins in the Rust engine ([1f52060](https://github.com/konvert7/klint/commit/1f520602f657fc89341f4cc76c85bab5dc6cd61c))
+* **rust:** generate klint.schema.json from the Rust config types ([91eef0e](https://github.com/konvert7/klint/commit/91eef0ef0935f87fe192ab8c70175067aa2ef62a))
+* **rust:** port no-async-predicate to the Rust engine ([3179fc8](https://github.com/konvert7/klint/commit/3179fc86b6493f74d30c1b27a32c3109e231f82d))
+* **rust:** print violations in text mode like the TS engine ([660071a](https://github.com/konvert7/klint/commit/660071ad370851cdccfbb13c63fdb997ddfdb6ca))
+* **rust:** warn about rules the Rust engine cannot run ([8d9d5c9](https://github.com/konvert7/klint/commit/8d9d5c9d3fd7b041d21371f6914d80417dc51ad2))
+
 # [0.36.0](https://github.com/konvert7/klint/compare/v0.35.2...v0.36.0) (2026-10-13)
 
 
