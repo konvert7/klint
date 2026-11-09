@@ -2,6 +2,8 @@ use crate::files::{
     is_csharp_source, is_python_source, is_rust_source, is_swift_source, normalize_path,
 };
 use crate::syntax::scan_csharp_namespaces;
+use jsonc_parser::ParseOptions;
+use jsonc_parser::parse_to_serde_value;
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -16,8 +18,25 @@ pub(super) struct AliasEntry {
 
 #[derive(Debug, Deserialize)]
 struct TsConfig {
+    extends: Option<TsExtends>,
     #[serde(rename = "compilerOptions")]
     compiler_options: Option<TsCompilerOptions>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum TsExtends {
+    One(String),
+    Many(Vec<String>),
+}
+
+impl TsExtends {
+    fn into_specs(self) -> Vec<String> {
+        match self {
+            Self::One(spec) => vec![spec],
+            Self::Many(specs) => specs,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -27,23 +46,32 @@ struct TsCompilerOptions {
     paths: Option<BTreeMap<String, Vec<String>>>,
 }
 
+const MAX_EXTENDS_DEPTH: usize = 16;
+
+#[derive(Default)]
+struct PathOptions {
+    base_url: Option<PathBuf>,
+    paths: Option<(BTreeMap<String, Vec<String>>, PathBuf)>,
+}
+
+impl PathOptions {
+    fn inherit(&mut self, parent: PathOptions) {
+        if parent.base_url.is_some() {
+            self.base_url = parent.base_url;
+        }
+        if parent.paths.is_some() {
+            self.paths = parent.paths;
+        }
+    }
+}
+
 pub(super) fn load_path_aliases(root: &Path) -> Vec<AliasEntry> {
-    let tsconfig_path = root.join("tsconfig.json");
-    let Ok(text) = fs::read_to_string(&tsconfig_path) else {
-        return Vec::new();
-    };
-    let Ok(tsconfig) = serde_json::from_str::<TsConfig>(&text) else {
-        return Vec::new();
-    };
-    let Some(options) = tsconfig.compiler_options else {
-        return Vec::new();
-    };
-    let Some(paths) = options.paths else {
+    let options = path_options(&root.join("tsconfig.json"), 0);
+    let Some((paths, paths_dir)) = options.paths else {
         return Vec::new();
     };
 
-    let base_url = options.base_url.unwrap_or_else(|| ".".to_string());
-    let base_root = normalize_path(&root.join(base_url));
+    let base_root = options.base_url.unwrap_or(paths_dir);
     paths
         .into_iter()
         .filter_map(|(pattern, targets)| {
@@ -62,6 +90,54 @@ pub(super) fn load_path_aliases(root: &Path) -> Vec<AliasEntry> {
             })
         })
         .collect()
+}
+
+fn path_options(config_path: &Path, depth: usize) -> PathOptions {
+    let mut options = PathOptions::default();
+    if depth > MAX_EXTENDS_DEPTH {
+        return options;
+    }
+    let Some(tsconfig) = read_tsconfig(config_path) else {
+        return options;
+    };
+    let dir = config_path.parent().unwrap_or(Path::new("."));
+
+    for spec in tsconfig
+        .extends
+        .map(TsExtends::into_specs)
+        .unwrap_or_default()
+    {
+        if let Some(parent_path) = relative_extends_path(dir, &spec) {
+            options.inherit(path_options(&parent_path, depth + 1));
+        }
+    }
+    if let Some(own) = tsconfig.compiler_options {
+        if let Some(base_url) = own.base_url {
+            options.base_url = Some(normalize_path(&dir.join(base_url)));
+        }
+        if let Some(paths) = own.paths {
+            options.paths = Some((paths, normalize_path(dir)));
+        }
+    }
+    options
+}
+
+fn read_tsconfig(path: &Path) -> Option<TsConfig> {
+    let text = fs::read_to_string(path).ok()?;
+    parse_to_serde_value::<TsConfig>(&text, &ParseOptions::default()).ok()
+}
+
+fn relative_extends_path(dir: &Path, spec: &str) -> Option<PathBuf> {
+    let is_relative = spec.starts_with("./") || spec.starts_with("../");
+    if !is_relative && !Path::new(spec).is_absolute() {
+        return None;
+    }
+    let path = dir.join(spec);
+    if path.is_file() {
+        return Some(path);
+    }
+    let with_json = PathBuf::from(format!("{}.json", path.display()));
+    with_json.is_file().then_some(with_json)
 }
 
 /// Project-wide module indexes, built once per run rather than once per rule.

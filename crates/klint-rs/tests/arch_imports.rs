@@ -324,3 +324,142 @@ arch:
     assert_eq!(output.violations.len(), 0);
     let _ = fs::remove_dir_all(root);
 }
+
+#[test]
+fn imports_resolve_path_aliases_from_a_tsconfig_with_comments_and_trailing_commas() {
+    let root = temp_root("imports-path-alias-jsonc");
+    create_dir_all(root.join("assets/skills/demo")).expect("create skill dirs");
+    create_dir_all(root.join("src/lib")).expect("create core dirs");
+    write(
+        root.join("tsconfig.json"),
+        r#"
+{
+  // strict mode, "quoted // text" stays a string
+  "compilerOptions": {
+    "baseUrl": ".", /* inline */
+    /* path aliases */
+    "paths": {
+      "@/*": ["src/*"],
+    },
+  },
+}
+"#,
+    )
+    .expect("write tsconfig");
+    write(
+        root.join("klint.yaml"),
+        r#"
+include: ["."]
+rules: {}
+arch:
+  layers:
+    skills: ["assets/skills/**"]
+    core: ["src/**"]
+  imports:
+    - from: skills
+      deny: core
+      message: "No repo source imports from skills"
+"#,
+    )
+    .expect("write config");
+    write(
+        root.join("assets/skills/demo/index.ts"),
+        "import { foo } from \"@/lib/utils\";\nexport const value = foo;\n",
+    )
+    .expect("write importing source");
+    write(root.join("src/lib/utils.ts"), "export const foo = 1;\n").expect("write util");
+
+    let output = run(RunOptions {
+        config_dir: root.clone(),
+    })
+    .expect("valid config should run");
+
+    assert_eq!(output.summary.errors, 1);
+    assert_eq!(output.violations[0].rule, "arch/imports");
+    let _ = fs::remove_dir_all(root);
+}
+
+fn alias_import_violations(name: &str, tsconfigs: &[(&str, &str)]) -> usize {
+    let root = temp_root(name);
+    create_dir_all(root.join("assets/skills/demo")).expect("create skill dirs");
+    create_dir_all(root.join("src/lib")).expect("create core dirs");
+    for (path, content) in tsconfigs {
+        let file = root.join(path);
+        create_dir_all(file.parent().expect("tsconfig has a parent")).expect("create tsconfig dir");
+        write(file, content).expect("write tsconfig");
+    }
+    write(
+        root.join("klint.yaml"),
+        "include: [\".\"]\nrules: {}\narch:\n  layers:\n    skills: [\"assets/skills/**\"]\n    core: [\"src/**\"]\n  imports:\n    - from: skills\n      deny: core\n      message: \"no\"\n",
+    )
+    .expect("write config");
+    write(
+        root.join("assets/skills/demo/index.ts"),
+        "import { foo } from \"@/lib/utils\";\nexport const value = foo;\n",
+    )
+    .expect("write importing source");
+    write(root.join("src/lib/utils.ts"), "export const foo = 1;\n").expect("write util");
+
+    let output = run(RunOptions {
+        config_dir: root.clone(),
+    })
+    .expect("valid config should run");
+    let _ = fs::remove_dir_all(root);
+    output
+        .violations
+        .iter()
+        .filter(|violation| violation.rule == "arch/imports")
+        .count()
+}
+
+#[test]
+fn imports_follow_extends_and_resolve_base_url_from_the_file_that_sets_it() {
+    let found = alias_import_violations(
+        "extends-subdir",
+        &[
+            ("tsconfig.json", r#"{"extends":"./configs/base"}"#),
+            (
+                "configs/base.json",
+                r#"{"compilerOptions":{"baseUrl":"..","paths":{"@/*":["src/*"]}}}"#,
+            ),
+        ],
+    );
+    assert_eq!(found, 1);
+}
+
+#[test]
+fn imports_follow_an_extends_array_with_the_last_entry_winning() {
+    let found = alias_import_violations(
+        "extends-array",
+        &[
+            ("tsconfig.json", r#"{"extends":["./a.json","./b.json"]}"#),
+            (
+                "a.json",
+                r#"{"compilerOptions":{"paths":{"@/*":["nowhere/*"]}}}"#,
+            ),
+            (
+                "b.json",
+                r#"{"compilerOptions":{"paths":{"@/*":["src/*"]}}}"#,
+            ),
+        ],
+    );
+    assert_eq!(found, 1);
+}
+
+#[test]
+fn imports_resolve_own_paths_against_an_inherited_base_url() {
+    let found = alias_import_violations(
+        "extends-inherited-base-url",
+        &[
+            (
+                "tsconfig.json",
+                r#"{"extends":"./base.json","compilerOptions":{"paths":{"@/*":["src/*"]}}}"#,
+            ),
+            (
+                "base.json",
+                r#"{"compilerOptions":{"baseUrl":"./nowhere","paths":{"@/*":["x/*"]}}}"#,
+            ),
+        ],
+    );
+    assert_eq!(found, 0);
+}
