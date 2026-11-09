@@ -1,7 +1,7 @@
 mod common;
 
 use common::temp_root;
-use klint_rs::{RunOptions, run};
+use klint_rs::{RunOptions, fix, run};
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
@@ -14,6 +14,8 @@ struct ParityCase {
     config: Map<String, Value>,
     files: BTreeMap<String, String>,
     expected: Vec<Value>,
+    #[serde(rename = "fixedFiles")]
+    fixed_files: Option<BTreeMap<String, String>>,
 }
 
 fn corpus() -> Vec<ParityCase> {
@@ -98,6 +100,55 @@ fn rust_engine_matches_every_case_recorded_from_the_ts_engine_tests() {
         "{} of {} parity cases differ:\n{}",
         mismatches.len(),
         cases.len(),
+        mismatches.join("\n")
+    );
+}
+
+fn files_after_rust_fix(root: &Path, case: &ParityCase) -> BTreeMap<String, String> {
+    fix(RunOptions {
+        config_dir: root.to_path_buf(),
+    })
+    .expect("parity case config should fix");
+    case.files
+        .iter()
+        .filter_map(|(relative, before)| {
+            let after = read_to_string(root.join(relative)).expect("read fixed file");
+            (after != *before).then(|| (relative.clone(), after))
+        })
+        .collect()
+}
+
+#[test]
+fn rust_fix_leaves_the_same_files_as_the_ts_engine_fix() {
+    let cases = corpus();
+    let fixable: Vec<&ParityCase> = cases
+        .iter()
+        .filter(|case| case.fixed_files.is_some())
+        .collect();
+    assert!(fixable.len() >= 48, "only {} fixable cases", fixable.len());
+
+    let mismatches: Vec<String> = fixable
+        .iter()
+        .filter_map(|case| {
+            let root = temp_root("parity-fix");
+            write_case(&root, case);
+            let actual = files_after_rust_fix(&root, case);
+            let _ = remove_dir_all(&root);
+            let expected = case.fixed_files.clone().unwrap_or_default();
+            (actual != expected).then(|| {
+                format!(
+                    "{}\n  expected: {expected:?}\n  actual:   {actual:?}",
+                    case.name
+                )
+            })
+        })
+        .collect();
+
+    assert!(
+        mismatches.is_empty(),
+        "{} of {} fix cases differ:\n{}",
+        mismatches.len(),
+        fixable.len(),
         mismatches.join("\n")
     );
 }
