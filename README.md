@@ -8,6 +8,13 @@ Use klint when "please follow AGENTS.md" is not strong enough. Put the rule in `
 
 ## Install
 
+Published packages:
+
+- npm: [@konvert7/klint](https://www.npmjs.com/package/@konvert7/klint)
+- PyPI: [klint](https://pypi.org/project/klint/)
+- crates.io: [klint-rs](https://crates.io/crates/klint-rs)
+- NuGet: [Konvert7.Klint](https://www.nuget.org/packages/Konvert7.Klint)
+
 For macOS native CLI usage:
 
 ```sh
