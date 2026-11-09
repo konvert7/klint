@@ -81,3 +81,17 @@ fn excluding_a_literal_folder_still_works() {
         ]
     );
 }
+
+#[test]
+fn excluding_a_dot_slash_folder_works_like_the_plain_path() {
+    assert_eq!(
+        files_flagged_by_comment_block_in(
+            "negated-dot-slash",
+            "[\"./skills/**\", \"!./skills/*/template/**\"]"
+        ),
+        vec![
+            "skills/report/tools/build.ts",
+            "skills/slides/tools/render.ts"
+        ]
+    );
+}
