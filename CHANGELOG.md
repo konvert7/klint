@@ -1,3 +1,11 @@
+## [0.37.1](https://github.com/konvert7/klint/compare/v0.37.0...v0.37.1) (2026-11-09)
+
+
+### Bug Fixes
+
+* **rust:** exclude only matching files for negated wildcard arch scopes ([e494eed](https://github.com/konvert7/klint/commit/e494eeda0dd929cab8b45f9dcb25293dac5065eb))
+* **rust:** read a leading ./ in scope patterns as the root ([3d6508e](https://github.com/konvert7/klint/commit/3d6508e02cf18fefee086b855d6375e12ae7adc7))
+
 # [0.37.0](https://github.com/konvert7/klint/compare/v0.36.0...v0.37.0) (2026-11-09)
 
 
