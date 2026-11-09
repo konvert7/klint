@@ -3,10 +3,11 @@ mod prompt;
 
 use command::{Dispatch, Group, Leaf, OptionSpec, Values, dispatch};
 use klint_rs::{
-    InstallRequest, RunOptions, RunSource, install_skill, known_agent_names, known_agents,
+    InstallRequest, RunOptions, RunSource, fix, install_skill, known_agent_names, known_agents,
     record_run, run, stats_report,
 };
 use std::path::PathBuf;
+use std::time::{Duration, Instant};
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -41,6 +42,7 @@ fn klint_command() -> Group {
                     "Directory containing klint.yaml or klint.config.json (default: cwd)",
                 ),
                 OptionSpec::flag("json", "Emit structured JSON to stdout"),
+                OptionSpec::flag("fix", "Apply autofixes, then report what is left"),
                 OptionSpec::flag("hook", "Count this run as an agent hook run in klint stats"),
                 OptionSpec::flag("version", "Print the installed klint-rs version").short('V'),
             ],
@@ -114,6 +116,9 @@ fn lint_command(values: &Values) -> i32 {
     } else {
         RunSource::Direct
     };
+    if values.flag("fix") {
+        return fix_command(config_dir, source);
+    }
     match run(RunOptions {
         config_dir: config_dir.clone(),
     }) {
@@ -133,6 +138,48 @@ fn lint_command(values: &Values) -> i32 {
             eprintln!("{err}");
             1
         }
+    }
+}
+
+fn fix_command(config_dir: PathBuf, source: RunSource) -> i32 {
+    let started_at = Instant::now();
+    match fix(RunOptions {
+        config_dir: config_dir.clone(),
+    }) {
+        Ok(outcome) => {
+            record_run(&config_dir, &outcome.remaining.violations, source);
+            println!(
+                "{} Finished in {}.",
+                fix_summary(outcome.applied, outcome.remaining.violations.len()),
+                format_duration(started_at.elapsed())
+            );
+            0
+        }
+        Err(err) => {
+            eprintln!("{err}");
+            1
+        }
+    }
+}
+
+fn fix_summary(applied: usize, remaining: usize) -> String {
+    if remaining > 0 {
+        format!(
+            "klint: applied {applied} fix(es). {remaining} violation(s) require manual attention."
+        )
+    } else {
+        format!("klint: applied {applied} fix(es). No remaining violations.")
+    }
+}
+
+fn format_duration(elapsed: Duration) -> String {
+    let millis = elapsed.as_secs_f64() * 1000.0;
+    if millis < 1000.0 {
+        format!("{}ms", millis.round())
+    } else if millis < 10_000.0 {
+        format!("{:.2}s", millis / 1000.0)
+    } else {
+        format!("{:.1}s", millis / 1000.0)
     }
 }
 
