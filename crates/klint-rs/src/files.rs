@@ -162,9 +162,17 @@ pub(crate) fn relative_path(root: &Path, file: &Path) -> String {
         .replace('\\', "/")
 }
 
+fn without_leading_dot_slash(pattern: &str) -> String {
+    let mut rest = pattern;
+    while let Some(stripped) = rest.strip_prefix("./") {
+        rest = stripped;
+    }
+    rest.to_string()
+}
+
 pub(crate) fn match_pattern(rel_path: &str, pattern: &str) -> bool {
     let norm = rel_path.replace('\\', "/");
-    let pattern = pattern.replace('\\', "/");
+    let pattern = without_leading_dot_slash(&pattern.replace('\\', "/"));
     if pattern == "." || pattern == "**" {
         return true;
     }
@@ -302,6 +310,36 @@ mod tests {
             rel_files,
             vec!["src/app/main.py", "src/app/main.swift", "src/app/main.ts"]
         );
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn match_pattern_treats_a_leading_dot_slash_as_the_root() {
+        for pattern in ["./src", "./src/**", "./src/*.ts", "./**/*.ts"] {
+            assert!(match_pattern("src/app.ts", pattern), "{pattern}");
+        }
+        assert!(!match_pattern("lib/app.ts", "./src/**"));
+    }
+
+    #[test]
+    fn resolve_files_excludes_dot_slash_patterns() {
+        let root = temp_root("dot-slash-exclude");
+        create_dir_all(root.join("src/gen")).expect("create src/gen");
+        write(root.join("src/app.ts"), "export const x = 1;\n").expect("write app");
+        write(root.join("src/gen/out.ts"), "export const y = 2;\n").expect("write gen");
+
+        let files = resolve_files(
+            &root,
+            &["./src/**/*.ts".to_string(), "!./src/gen".to_string()],
+        )
+        .expect("resolve files");
+
+        let rel_files = files
+            .iter()
+            .map(|file| relative_path(&root, file))
+            .collect::<Vec<_>>();
+        assert_eq!(rel_files, vec!["src/app.ts"]);
 
         let _ = fs::remove_dir_all(root);
     }

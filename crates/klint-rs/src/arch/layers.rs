@@ -1,5 +1,5 @@
 use super::*;
-use crate::files::normalize_path;
+use crate::files::{match_pattern, normalize_path, relative_path};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -29,10 +29,9 @@ pub(super) fn resolve_layer_mask(
         .filter(|glob| !glob.starts_with('!'))
         .map(|glob| glob_to_prefix(glob, root))
         .collect();
-    let exclude_prefixes: Vec<PathBuf> = globs
+    let exclude_globs: Vec<&str> = globs
         .iter()
-        .filter(|glob| glob.starts_with('!'))
-        .map(|glob| glob_to_prefix(&glob[1..], root))
+        .filter_map(|glob| glob.strip_prefix('!'))
         .collect();
 
     all_files
@@ -41,11 +40,13 @@ pub(super) fn resolve_layer_mask(
             include_prefixes
                 .iter()
                 .any(|prefix| path_in_prefix(file, prefix))
-                && !exclude_prefixes
-                    .iter()
-                    .any(|prefix| path_in_prefix(file, prefix))
+                && !matches_any_glob(&relative_path(root, file), &exclude_globs)
         })
         .collect()
+}
+
+fn matches_any_glob(rel_path: &str, globs: &[&str]) -> bool {
+    globs.iter().any(|glob| match_pattern(rel_path, glob))
 }
 
 fn resolve_globs(
