@@ -17,7 +17,8 @@ use arch::ArchPlan;
 use config::{find_config, read_config, resolve_root};
 use engine::run_engine;
 use files::{read_files, resolve_files};
-use fix::{apply_fixes, has_fixes};
+pub use fix::MAX_FIX_PASSES;
+use fix::{apply_fixes, fix_until_stable, has_fixes};
 pub use output::{JsonOutput, Summary, Violation};
 use plugins::effective_rules;
 use rules::plan_rule_passes;
@@ -37,6 +38,7 @@ pub struct RunOptions {
 pub struct FixOutcome {
     pub applied: usize,
     pub remaining: JsonOutput,
+    pub stopped_at_pass_limit: bool,
 }
 
 struct Linted {
@@ -56,22 +58,15 @@ pub fn run(options: RunOptions) -> Result<JsonOutput, String> {
 }
 
 pub fn fix(options: RunOptions) -> Result<FixOutcome, String> {
-    let mut linted = lint(&options)?;
-    let mut applied = 0;
-    loop {
-        let applied_this_pass = apply_fixes(&linted.findings, &linted.root)?;
-        applied += applied_this_pass;
-        if applied_this_pass == 0 {
-            break;
-        }
-        linted = lint(&options)?;
-        if !has_fixes(&linted.findings) {
-            break;
-        }
-    }
+    let passes = fix_until_stable(
+        || lint(&options),
+        |linted| apply_fixes(&linted.findings, &linted.root),
+        |linted| has_fixes(&linted.findings),
+    )?;
     Ok(FixOutcome {
-        applied,
-        remaining: output::output_from_violations(linted.findings),
+        applied: passes.applied,
+        remaining: output::output_from_violations(passes.last.findings),
+        stopped_at_pass_limit: !passes.converged,
     })
 }
 

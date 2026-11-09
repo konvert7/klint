@@ -4,8 +4,8 @@ mod text;
 
 use command::{Dispatch, Group, Leaf, OptionSpec, Values, dispatch};
 use klint_rs::{
-    InstallRequest, RunOptions, RunSource, fix, install_skill, known_agent_names, known_agents,
-    record_run, run, stats_report,
+    InstallRequest, MAX_FIX_PASSES, RunOptions, RunSource, fix, install_skill, known_agent_names,
+    known_agents, record_run, run, stats_report,
 };
 use std::path::PathBuf;
 use std::time::Instant;
@@ -151,6 +151,11 @@ fn fix_command(config_dir: PathBuf, source: RunSource, started_at: Instant) -> i
     }) {
         Ok(outcome) => {
             record_run(&config_dir, &outcome.remaining.violations, source);
+            if outcome.stopped_at_pass_limit {
+                eprintln!(
+                    "klint: stopped after {MAX_FIX_PASSES} fix passes — some fixes keep producing new fixable violations."
+                );
+            }
             println!(
                 "{} Finished in {}.",
                 fix_summary(outcome.applied, outcome.remaining.violations.len()),

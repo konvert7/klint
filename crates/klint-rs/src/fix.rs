@@ -11,6 +11,47 @@ struct LineFix {
     replacement: String,
 }
 
+pub const MAX_FIX_PASSES: usize = 10;
+
+pub(crate) struct FixPasses<T> {
+    pub(crate) applied: usize,
+    pub(crate) last: T,
+    pub(crate) converged: bool,
+}
+
+pub(crate) fn fix_until_stable<T>(
+    mut lint: impl FnMut() -> Result<T, String>,
+    mut apply: impl FnMut(&T) -> Result<usize, String>,
+    has_fixes: impl Fn(&T) -> bool,
+) -> Result<FixPasses<T>, String> {
+    let mut last = lint()?;
+    let mut applied = 0;
+    for _ in 0..MAX_FIX_PASSES {
+        let applied_this_pass = apply(&last)?;
+        applied += applied_this_pass;
+        if applied_this_pass == 0 {
+            return Ok(FixPasses {
+                applied,
+                last,
+                converged: true,
+            });
+        }
+        last = lint()?;
+        if !has_fixes(&last) {
+            return Ok(FixPasses {
+                applied,
+                last,
+                converged: true,
+            });
+        }
+    }
+    Ok(FixPasses {
+        applied,
+        last,
+        converged: false,
+    })
+}
+
 pub(crate) fn has_fixes(violations: &[Violation]) -> bool {
     violations
         .iter()
@@ -60,7 +101,7 @@ fn apply_file_fixes(path: &Path, fixes: Vec<LineFix>) -> Result<usize, String> {
         let overlaps_applied = applied_ranges
             .iter()
             .any(|&(start, end)| fix.start_line <= end && fix.end_line >= start);
-        if overlaps_applied || fix.end_line > lines.len() {
+        if overlaps_applied || fix.end_line > lines.len() || changes_nothing(&lines, &fix) {
             continue;
         }
         lines.splice(
@@ -75,6 +116,10 @@ fn apply_file_fixes(path: &Path, fixes: Vec<LineFix>) -> Result<usize, String> {
             .map_err(|err| format!("klint-rs: failed to write {}: {err}", path.display()))?;
     }
     Ok(applied_ranges.len())
+}
+
+fn changes_nothing(lines: &[String], fix: &LineFix) -> bool {
+    lines[fix.start_line - 1..fix.end_line].join("\n") == fix.replacement
 }
 
 fn largest_range_first(mut fixes: Vec<LineFix>) -> Vec<LineFix> {
@@ -126,6 +171,47 @@ mod tests {
         let (applied, result) = apply_to("a\nb\nc", vec![fix(1, 1, "a1\na2"), fix(3, 3, "C")]);
         assert_eq!(applied, 2);
         assert_eq!(result, "a1\na2\nb\nC");
+    }
+
+    #[test]
+    fn a_fix_that_changes_nothing_is_not_counted() {
+        let (applied, result) = apply_to("a\nb\n", vec![fix(1, 1, "a"), fix(2, 2, "B")]);
+        assert_eq!(applied, 1);
+        assert_eq!(result, "a\nB\n");
+    }
+
+    #[test]
+    fn stops_after_the_pass_limit_when_fixes_keep_coming() {
+        let mut lint_calls = 0;
+        let outcome = fix_until_stable(
+            || {
+                lint_calls += 1;
+                Ok(())
+            },
+            |_| Ok(1),
+            |_| true,
+        )
+        .expect("passes run");
+        assert_eq!(outcome.applied, MAX_FIX_PASSES);
+        assert!(!outcome.converged);
+        assert_eq!(lint_calls, MAX_FIX_PASSES + 1);
+    }
+
+    #[test]
+    fn converges_once_a_pass_applies_nothing() {
+        let mut fixes_left = 3;
+        let outcome = fix_until_stable(
+            || Ok(()),
+            |_| {
+                let applied = usize::from(fixes_left > 0);
+                fixes_left -= applied;
+                Ok(applied)
+            },
+            |_| true,
+        )
+        .expect("passes run");
+        assert_eq!(outcome.applied, 3);
+        assert!(outcome.converged);
     }
 
     #[test]
