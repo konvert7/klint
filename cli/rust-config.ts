@@ -6,6 +6,7 @@ import { BUILT_IN_PLUGINS } from "../plugins/index";
 import { PACKAGE_ROOT } from "./paths";
 
 const RUST_SUPPORTED_RULES = new Set([
+  "no-async-predicate",
   "no-consecutive-array-push",
   "no-nested-template-literals",
   "no-string-match",

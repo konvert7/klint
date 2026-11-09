@@ -56,6 +56,11 @@ const CHECKS: &[(&str, RuleCheck, RuleWants)] = &[
             wants.inside_try = true;
         },
     ),
+    (
+        "no-async-predicate",
+        builtin::run_no_async_predicate,
+        |wants| wants.calls = true,
+    ),
     ("no-sync-in-async", builtin::run_no_sync_in_async, |wants| {
         wants.calls = true;
         wants.in_async = true;

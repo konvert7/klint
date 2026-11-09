@@ -1,7 +1,7 @@
 use super::{Report, RuleScan, single_line_fix};
 use crate::syntax::{
-    find_nested_template_literals, is_json_parse_call, scan_statement_run, string_match_record,
-    sync_call_name,
+    async_predicate_record, find_nested_template_literals, is_json_parse_call, scan_statement_run,
+    string_match_record, sync_call_name,
 };
 
 pub(super) fn run_no_string_match(scan: RuleScan<'_>) -> Vec<Report> {
@@ -96,6 +96,22 @@ pub(super) fn run_no_sync_in_async(scan: RuleScan<'_>) -> Vec<Report> {
             line: node.start_position().row + 1,
             message: format!(
                 "{name}() blocks the event loop inside an async function — use the async equivalent from node:fs/promises."
+            ),
+            fix: None,
+        })
+        .collect()
+}
+
+pub(super) fn run_no_async_predicate(scan: RuleScan<'_>) -> Vec<Report> {
+    scan.index
+        .calls
+        .iter()
+        .filter_map(|call| async_predicate_record(call.node, scan.source))
+        .map(|record| Report {
+            line: record.line,
+            message: format!(
+                "Async callback passed to .{}() — the returned Promise is always truthy, so the predicate never filters correctly. The array method cannot await it.",
+                record.method
             ),
             fix: None,
         })
