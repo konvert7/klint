@@ -16,6 +16,8 @@ struct ParityCase {
     expected: Vec<Value>,
     #[serde(rename = "fixedFiles")]
     fixed_files: Option<BTreeMap<String, String>>,
+    #[serde(rename = "textOutput")]
+    text_output: Option<Value>,
 }
 
 fn corpus() -> Vec<ParityCase> {
@@ -149,6 +151,55 @@ fn rust_fix_leaves_the_same_files_as_the_ts_engine_fix() {
         "{} of {} fix cases differ:\n{}",
         mismatches.len(),
         fixable.len(),
+        mismatches.join("\n")
+    );
+}
+
+fn without_durations(text: &str) -> String {
+    let duration = regex::Regex::new(r"in \d+(\.\d+)?m?s\b").expect("valid duration regex");
+    duration.replace_all(text, "in <t>").into_owned()
+}
+
+#[test]
+fn rust_cli_prints_and_exits_like_the_ts_engine() {
+    let cases = corpus();
+    let recorded: Vec<&ParityCase> = cases
+        .iter()
+        .filter(|case| case.text_output.is_some())
+        .collect();
+    assert!(recorded.len() >= 203, "only {} text cases", recorded.len());
+
+    let mismatches: Vec<String> = recorded
+        .iter()
+        .filter_map(|case| {
+            let root = temp_root("parity-text");
+            write_case(&root, case);
+            let output = std::process::Command::new(env!("CARGO_BIN_EXE_klint-rs"))
+                .args(["--config", &root.to_string_lossy()])
+                .env("KLINT_NO_STATS", "1")
+                .output()
+                .expect("klint-rs runs");
+            let _ = remove_dir_all(&root);
+            let actual = json!({
+                "exit": output.status.code(),
+                "stdout": without_durations(&String::from_utf8_lossy(&output.stdout)),
+                "stderr": without_durations(&String::from_utf8_lossy(&output.stderr)),
+            });
+            let expected = case.text_output.clone().unwrap_or_default();
+            (actual != expected).then(|| {
+                format!(
+                    "{}\n  expected: {expected}\n  actual:   {actual}",
+                    case.name
+                )
+            })
+        })
+        .collect();
+
+    assert!(
+        mismatches.is_empty(),
+        "{} of {} text cases differ:\n{}",
+        mismatches.len(),
+        recorded.len(),
         mismatches.join("\n")
     );
 }
