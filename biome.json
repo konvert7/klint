@@ -40,6 +40,11 @@
       "complexity": {
         "useOptionalChain": "error"
       },
+      "nursery": {
+        "noFloatingPromises": "error",
+        "noMisusedPromises": "error",
+        "noBaseToString": "error"
+      },
       "style": {
         "noNestedTernary": "error",
         "noNonNullAssertion": "error",
