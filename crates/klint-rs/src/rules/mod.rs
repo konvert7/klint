@@ -1,4 +1,5 @@
 mod builtin;
+mod docs;
 mod sonar;
 
 use std::collections::BTreeMap;
@@ -8,6 +9,7 @@ use crate::config::RuleConfig;
 use crate::engine::{NodeIndex, Wants};
 use crate::files::{is_javascript_like_source, match_pattern, relative_path};
 use crate::output::Violation;
+pub(crate) use docs::RULE_DOCS;
 
 /// One file's indexed nodes, handed to every rule that applies to it. Rules
 /// read the buckets they care about instead of each walking the tree.

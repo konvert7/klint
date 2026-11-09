@@ -30,11 +30,12 @@ export async function prepare(pluginConfig = {}, context) {
   packageJson.version = version;
   writePackageJson(cwd, packageJson);
 
-  regenerateSchema(cwd, pluginConfig.spawnSync ?? spawnSync);
+  regenerateSchema(cwd, version, pluginConfig.spawnSync ?? spawnSync);
 }
 
-function regenerateSchema(cwd, spawn) {
-  const result = spawn("bun", ["tools/generate-schema.ts"], {
+function regenerateSchema(cwd, version, spawn) {
+  const args = ["run", "--quiet", "-p", "klint-rs", "--example", "generate_schema", "--", version];
+  const result = spawn("cargo", args, {
     cwd,
     encoding: "utf-8",
     stdio: "inherit",
