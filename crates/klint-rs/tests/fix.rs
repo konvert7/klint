@@ -137,3 +137,59 @@ fn fix_leaves_files_without_fixable_violations_untouched() {
     );
     let _ = remove_dir_all(root);
 }
+
+const MULTI_LINE_BEFORE: &str = r#"declare const arr: number[], text: string, repl: string, line: string;
+let x: object | undefined;
+const a = arr[
+  arr.length - 1
+];
+if (x == null) {
+  x = {};
+}
+const r = new RegExp(
+  `\\.foo`
+);
+const t = text.replace(
+  /foo/g,
+  repl
+);
+const m = line.match(
+  /foo/i
+);
+console.log(a, r, t, m);
+"#;
+
+const MULTI_LINE_AFTER_TS_ENGINE_FIX: &str = r#"declare const arr: number[], text: string, repl: string, line: string;
+let x: object | undefined;
+const a = arr.at(-1);
+x ??= {};
+const r = new RegExp(
+  String.raw`\.foo`
+);
+const t = text.replaceAll("foo", repl);
+const m = line.match(
+  /foo/i
+);
+console.log(a, r, t, m);
+"#;
+
+#[test]
+fn fix_rewrites_multi_line_violations_like_the_ts_engine() {
+    let root = temp_root("multi-line");
+    write_fixture(&root, FIXABLE_RULES_CONFIG, MULTI_LINE_BEFORE);
+
+    let (status, stdout) = run_fix(&root);
+
+    assert_eq!(status, 0, "{stdout}");
+    assert_eq!(
+        read_to_string(root.join("src/index.ts")).expect("read fixed source"),
+        MULTI_LINE_AFTER_TS_ENGINE_FIX
+    );
+    assert!(
+        stdout.starts_with(
+            "klint: applied 4 fix(es). 2 violation(s) require manual attention. Finished in "
+        ),
+        "{stdout}"
+    );
+    let _ = remove_dir_all(root);
+}

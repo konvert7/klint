@@ -1,4 +1,4 @@
-use super::{Report, RuleScan, line_fix};
+use super::{Report, RuleScan, single_line_fix};
 use crate::syntax::{
     find_nested_template_literals, is_json_parse_call, scan_statement_run, string_match_record,
     sync_call_name,
@@ -16,7 +16,7 @@ pub(super) fn run_no_string_match(scan: RuleScan<'_>) -> Vec<Report> {
                 message: format!(
                     "Use RegExp.exec() instead of String.match() for non-global regexes — use {replacement} instead."
                 ),
-                fix: line_fix(
+                fix: single_line_fix(
                     scan.content,
                     record.start_row,
                     record.end_row,

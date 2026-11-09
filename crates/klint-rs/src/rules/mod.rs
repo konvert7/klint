@@ -190,23 +190,40 @@ fn line_fix(
     end_byte: usize,
     replacement: &str,
 ) -> Option<serde_json::Value> {
-    if start_row != end_row {
-        return None;
-    }
-
-    let line_start = line_start_byte(content, start_byte);
-    let line_end = line_end_byte(content, start_byte);
-    let mut line = content.get(line_start..line_end)?.to_string();
-    line.replace_range(
-        (start_byte - line_start)..(end_byte - line_start),
+    let lines_start = line_start_byte(content, start_byte);
+    let lines_end = line_end_byte(content, end_byte);
+    let mut lines = content.get(lines_start..lines_end)?.to_string();
+    lines.replace_range(
+        (start_byte - lines_start)..(end_byte - lines_start),
         replacement,
     );
 
     Some(serde_json::json!({
         "startLine": start_row + 1,
         "endLine": end_row + 1,
-        "replacement": line,
+        "replacement": lines,
     }))
+}
+
+fn single_line_fix(
+    content: &str,
+    start_row: usize,
+    end_row: usize,
+    start_byte: usize,
+    end_byte: usize,
+    replacement: &str,
+) -> Option<serde_json::Value> {
+    if start_row != end_row {
+        return None;
+    }
+    line_fix(
+        content,
+        start_row,
+        end_row,
+        start_byte,
+        end_byte,
+        replacement,
+    )
 }
 
 fn line_start_byte(content: &str, byte: usize) -> usize {
