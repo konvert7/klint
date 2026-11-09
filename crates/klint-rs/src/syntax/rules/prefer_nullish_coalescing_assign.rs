@@ -10,10 +10,10 @@ pub fn scan_prefer_nullish_coalescing_assign(
     let mut parser = Parser::new();
     parser
         .set_language(&language_for_path(path))
-        .map_err(|err| format!("klint-rs: failed to load TypeScript parser: {err}"))?;
+        .map_err(|err| format!("klint: failed to load TypeScript parser: {err}"))?;
     let tree = parser
         .parse(content, None)
-        .ok_or_else(|| "klint-rs: failed to parse source".to_string())?;
+        .ok_or_else(|| "klint: failed to parse source".to_string())?;
 
     Ok(scan_prefer_nullish_coalescing_assign_from_tree(
         tree.root_node(),

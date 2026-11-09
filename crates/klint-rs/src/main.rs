@@ -95,7 +95,7 @@ fn config_dir(values: &Values) -> Result<PathBuf, String> {
     match values.text("config") {
         Some(dir) => Ok(PathBuf::from(dir)),
         None => {
-            std::env::current_dir().map_err(|err| format!("klint-rs: failed to resolve cwd: {err}"))
+            std::env::current_dir().map_err(|err| format!("klint: failed to resolve cwd: {err}"))
         }
     }
 }
@@ -238,7 +238,7 @@ fn install_skill_command(values: &Values) -> i32 {
 
 fn install_request(values: &Values) -> Result<(InstallRequest, bool), String> {
     let root =
-        std::env::current_dir().map_err(|err| format!("klint-rs: failed to resolve cwd: {err}"))?;
+        std::env::current_dir().map_err(|err| format!("klint: failed to resolve cwd: {err}"))?;
     let agents: Vec<String> = values
         .text("agents")
         .unwrap_or_default()

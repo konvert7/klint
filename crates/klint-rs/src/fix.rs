@@ -58,7 +58,7 @@ pub(crate) struct Originals(BTreeMap<PathBuf, String>);
 impl Originals {
     fn write(&mut self, path: &Path, before: &str, after: &str) -> Result<(), String> {
         fs::write(path, after)
-            .map_err(|err| format!("klint-rs: failed to write {}: {err}", path.display()))?;
+            .map_err(|err| format!("klint: failed to write {}: {err}", path.display()))?;
         self.0
             .entry(path.to_path_buf())
             .or_insert_with(|| before.to_string());
@@ -72,14 +72,14 @@ impl Originals {
             match fs::write(&path, original) {
                 Ok(()) => restored += 1,
                 Err(err) => message.push_str(&format!(
-                    "\nklint-rs: failed to restore {}: {err}",
+                    "\nklint: failed to restore {}: {err}",
                     path.display()
                 )),
             }
         }
         if restored > 0 {
             message.push_str(&format!(
-                "\nklint-rs: restored {restored} file(s) to their state before --fix"
+                "\nklint: restored {restored} file(s) to their state before --fix"
             ));
         }
         message
@@ -135,7 +135,7 @@ fn apply_file_fixes(
     originals: &mut Originals,
 ) -> Result<usize, String> {
     let content = fs::read_to_string(path)
-        .map_err(|err| format!("klint-rs: failed to read {}: {err}", path.display()))?;
+        .map_err(|err| format!("klint: failed to read {}: {err}", path.display()))?;
     let mut lines: Vec<String> = content.split('\n').map(str::to_string).collect();
 
     let mut applied_ranges: Vec<(usize, usize)> = Vec::new();

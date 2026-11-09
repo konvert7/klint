@@ -25,7 +25,7 @@ pub(crate) fn effective_rules(
     let mut rules = BTreeMap::new();
     for plugin in plugins {
         let defaults = plugin_rules(plugin)
-            .ok_or_else(|| format!("klint-rs: Unknown klint plugin: \"{plugin}\""))?;
+            .ok_or_else(|| format!("klint: Unknown klint plugin: \"{plugin}\""))?;
         for rule in defaults {
             rules.insert(
                 (*rule).to_string(),
