@@ -39,7 +39,7 @@ pub(crate) fn read_files(files: &[PathBuf]) -> Result<Vec<String>, String> {
                         read.push((
                             index,
                             fs::read_to_string(file).map_err(|err| {
-                                format!("klint-rs: failed to read {}: {err}", file.display())
+                                format!("klint: failed to read {}: {err}", file.display())
                             }),
                         ));
                     }
@@ -81,7 +81,7 @@ fn collect_source_files(
     };
 
     for entry in entries {
-        let entry = entry.map_err(|err| format!("klint-rs: failed to read dir entry: {err}"))?;
+        let entry = entry.map_err(|err| format!("klint: failed to read dir entry: {err}"))?;
         let path = entry.path();
         if path.is_dir() {
             let rel = relative_path(root, &path);
