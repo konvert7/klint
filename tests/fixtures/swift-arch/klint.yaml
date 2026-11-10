@@ -1,0 +1,25 @@
+include: ["Sources"]
+
+rules: {}
+
+arch:
+  layers:
+    ui: ["Sources/App/UI/**"]
+    core: ["Sources/App/Core/**"]
+    config: ["Sources/App/Config/**"]
+
+  imports:
+    - from: ui
+      deny: core
+      message: "UI must not import Core directly"
+
+  forbidden:
+    - pattern: "URLSession.shared"
+      in: ui
+      message: "Use the networking client"
+
+  singleton:
+    - pattern: "ProcessInfo.processInfo.environment[\"API_KEY\"]"
+      only: "Sources/App/Config/AppConfig.swift"
+      in: ["Sources/**"]
+      message: "Use AppConfig"

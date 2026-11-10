@@ -1,0 +1,112 @@
+import { afterEach, describe, expect, test } from "bun:test";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import YAML from "yaml";
+import cases from "./arch-cases.json";
+
+interface Violation {
+  file: string;
+  line: number;
+  rule: string;
+  severity: string;
+  message: string;
+  fix?: { startLine: number; endLine: number; replacement: string } | null;
+}
+
+type KlintConfig = Record<string, unknown>;
+
+interface GoldenCase {
+  name: string;
+  tsconfig?: object;
+  config: KlintConfig;
+  files: Record<string, string>;
+  expected: GoldenEnvelope;
+}
+
+interface GoldenEnvelope {
+  violations: Array<Omit<Violation, "fix"> & { fix: Violation["fix"] | null }>;
+  summary: {
+    errors: number;
+    warnings: number;
+  };
+}
+
+const roots: string[] = [];
+
+afterEach(() => {
+  for (const root of roots.splice(0)) {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+function writeCaseFixture(testCase: GoldenCase): string {
+  const root = mkdtempSync(join(tmpdir(), "klint-golden-arch-"));
+  roots.push(root);
+
+  writeFileSync(join(root, "klint.yaml"), YAML.stringify(testCase.config));
+
+  if (testCase.tsconfig) {
+    writeFileSync(
+      join(root, "tsconfig.json"),
+      JSON.stringify(testCase.tsconfig, null, 2)
+    );
+  }
+
+  for (const [relPath, content] of Object.entries(testCase.files)) {
+    const absPath = join(root, relPath);
+    mkdirSync(dirname(absPath), { recursive: true });
+    writeFileSync(absPath, content);
+  }
+
+  return root;
+}
+
+function runRustKlint(root: string, testCase: GoldenCase): GoldenEnvelope {
+  const result = spawnSync(
+    "cargo",
+    ["run", "-p", "klint-rs", "--", "--config", root, "--json"],
+    {
+      cwd: join(import.meta.dir, "..", ".."),
+      encoding: "utf8",
+    }
+  );
+
+  const expectedStatus = testCase.expected.summary.errors > 0 ? 2 : 0;
+  expect(result.status, result.stderr || result.stdout).toBe(expectedStatus);
+  return JSON.parse(result.stdout) as GoldenEnvelope;
+}
+
+function normalize(
+  violations: GoldenEnvelope["violations"] | Violation[]
+): GoldenEnvelope {
+  const normalized = violations
+    .map((v) => ({ ...v, fix: v.fix ?? null }))
+    .sort(
+      (a, b) =>
+        a.file.localeCompare(b.file) ||
+        a.line - b.line ||
+        a.rule.localeCompare(b.rule) ||
+        a.message.localeCompare(b.message)
+    );
+  const errors = normalized.filter((v) => v.severity === "error").length;
+  return {
+    violations: normalized,
+    summary: {
+      errors,
+      warnings: normalized.length - errors,
+    },
+  };
+}
+
+describe("golden cases — architecture rules", () => {
+  for (const testCase of cases as unknown as GoldenCase[]) {
+    test(testCase.name, () => {
+      const root = writeCaseFixture(testCase);
+      expect(normalize(runRustKlint(root, testCase).violations)).toEqual(
+        testCase.expected
+      );
+    });
+  }
+});
