@@ -5,6 +5,8 @@ interface FormulaOptions {
   version: string;
   darwinArm64Sha: string;
   darwinX64Sha: string;
+  linuxArm64Sha: string;
+  linuxX64Sha: string;
 }
 
 export function homebrewFormula(options: FormulaOptions): string {
@@ -14,17 +16,23 @@ export function homebrewFormula(options: FormulaOptions): string {
 # frozen_string_literal: true
 
 class Klint < Formula
-  desc "Architecture-as-Code linter for TypeScript, Python, and Swift projects"
+  desc "Architecture-as-Code linter: layer boundaries, imports and forbidden patterns"
   homepage "https://github.com/konvert7/klint"
   version "${version}"
   license "MIT"
 
-  if Hardware::CPU.arm?
+  if OS.mac? && Hardware::CPU.arm?
     url "https://github.com/konvert7/klint/releases/download/v${version}/klint-${version}-darwin-arm64.tar.gz"
     sha256 "${options.darwinArm64Sha}"
-  else
+  elsif OS.mac?
     url "https://github.com/konvert7/klint/releases/download/v${version}/klint-${version}-darwin-x64.tar.gz"
     sha256 "${options.darwinX64Sha}"
+  elsif Hardware::CPU.arm?
+    url "https://github.com/konvert7/klint/releases/download/v${version}/klint-${version}-linux-arm64.tar.gz"
+    sha256 "${options.linuxArm64Sha}"
+  else
+    url "https://github.com/konvert7/klint/releases/download/v${version}/klint-${version}-linux-x64.tar.gz"
+    sha256 "${options.linuxX64Sha}"
   end
 
   def install
@@ -34,7 +42,7 @@ class Klint < Formula
   end
 
   test do
-    assert_match "klint-rs", shell_output("#{bin}/klint --version")
+    assert_match version.to_s, shell_output("#{bin}/klint --version")
   end
 end
 `;
@@ -47,6 +55,8 @@ if (import.meta.main) {
     version: requireValue(args, "--version"),
     darwinArm64Sha: requireValue(args, "--darwin-arm64-sha"),
     darwinX64Sha: requireValue(args, "--darwin-x64-sha"),
+    linuxArm64Sha: requireValue(args, "--linux-arm64-sha"),
+    linuxX64Sha: requireValue(args, "--linux-x64-sha"),
   });
 
   const path = resolve(output);

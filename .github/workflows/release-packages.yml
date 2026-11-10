@@ -411,11 +411,15 @@ jobs:
         run: |
           arm64_sha="$(cut -d ' ' -f 1 "dist/klint-$VERSION-darwin-arm64.tar.gz.sha256")"
           x64_sha="$(cut -d ' ' -f 1 "dist/klint-$VERSION-darwin-x64.tar.gz.sha256")"
+          linux_arm64_sha="$(cut -d ' ' -f 1 "dist/klint-$VERSION-linux-arm64.tar.gz.sha256")"
+          linux_x64_sha="$(cut -d ' ' -f 1 "dist/klint-$VERSION-linux-x64.tar.gz.sha256")"
 
           bun tools/generate-homebrew-formula.ts \
             --version "$VERSION" \
             --darwin-arm64-sha "$arm64_sha" \
             --darwin-x64-sha "$x64_sha" \
+            --linux-arm64-sha "$linux_arm64_sha" \
+            --linux-x64-sha "$linux_x64_sha" \
             --output homebrew-tap/Formula/klint.rb
 
           cd homebrew-tap
