@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { fail, replaceRequired, valueAfter } from "./release-cli";
 
 interface Options {
   name: string;
@@ -51,26 +52,4 @@ function parseArgs(): Options {
     version,
     root: resolve(valueAfter(args, "--root") ?? repoRoot),
   };
-}
-
-function replaceRequired(
-  input: string,
-  pattern: RegExp,
-  replacement: string,
-  path: string
-): string {
-  if (!pattern.test(input)) {
-    fail(`Expected release metadata pattern ${pattern} in ${path}`);
-  }
-  return input.replace(pattern, replacement);
-}
-
-function valueAfter(args: string[], name: string): string | undefined {
-  const index = args.indexOf(name);
-  return index >= 0 ? args[index + 1] : undefined;
-}
-
-function fail(message: string): never {
-  process.stderr.write(`${message}\n`);
-  process.exit(1);
 }

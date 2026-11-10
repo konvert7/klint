@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { nativePackages } from "../core/native-binary";
+import { nativePackages } from "../tools/native-binary";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const outDir = mkdtempSync(join(tmpdir(), "klint-pack-check-"));

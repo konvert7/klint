@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { nativePackageForPlatform } from "../core/native-binary";
+import { nativePackageForPlatform } from "../tools/native-binary";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const nativePackage = nativePackageForPlatform();

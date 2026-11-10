@@ -5,7 +5,7 @@ import {
   nativePackageForPlatform,
   nativePackages,
   resolveNativePackageBinary,
-} from "../core/native-binary";
+} from "../tools/native-binary";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const args = process.argv.slice(2);

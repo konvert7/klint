@@ -10,7 +10,8 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { nativePackages } from "../core/native-binary";
+import { nativePackages } from "./native-binary";
+import { fail, valueAfter } from "./release-cli";
 
 interface PackageJson {
   name: string;
@@ -153,14 +154,4 @@ function parseArgs(): Options {
     requireBinaries: args.includes("--require-binaries"),
     keep: args.includes("--keep"),
   };
-}
-
-function valueAfter(args: string[], name: string): string | undefined {
-  const index = args.indexOf(name);
-  return index >= 0 ? args[index + 1] : undefined;
-}
-
-function fail(message: string): never {
-  process.stderr.write(`${message}\n`);
-  process.exit(1);
 }
