@@ -13,15 +13,16 @@ try {
 
   assertIncludes(mainList, [
     "package/README.md",
-    "package/cli.ts",
+    "package/bin/klint.js",
     "package/package.json",
-    "package/core/native-binary.ts",
-    "package/skill/klint-rules/SKILL.md",
     "package/klint.schema.json",
     "package/klint.schema.yaml",
   ]);
 
   assertExcludes(mainList, [
+    "package/cli.ts",
+    "package/tools/native-binary.ts",
+    "package/skill/klint-rules/SKILL.md",
     "package/npm/native/darwin-arm64/package.json",
     "package/npm/native/darwin-x64/package.json",
     "package/npm/native/linux-x64/package.json",
