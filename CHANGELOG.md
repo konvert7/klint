@@ -1,3 +1,32 @@
+# [1.0.0](https://github.com/konvert7/klint/compare/v0.38.0...v1.0.0) (2026-11-10)
+
+
+* feat!: run the native binary from the npm package and remove the TS engine ([a518c30](https://github.com/konvert7/klint/commit/a518c30976918d813650fd7163d92901069aa3de))
+
+
+### Bug Fixes
+
+* **npm:** ask Yarn to unplug the native platform packages ([f65fbd7](https://github.com/konvert7/klint/commit/f65fbd731beb5c27271b2490c6c731070735d22d))
+
+
+### Features
+
+* add support for additional native Linux binaries ([772095d](https://github.com/konvert7/klint/commit/772095d765d39ab821227599779093931f29944b))
+* **homebrew:** install the linux-x64 and linux-arm64 archives on Linux ([a8b0dab](https://github.com/konvert7/klint/commit/a8b0dab32b8dd0972d313154571643511e6699a1))
+* **npm:** run the win32-x64 binary on Windows on Arm ([3681698](https://github.com/konvert7/klint/commit/36816982248c2a800a6abf054d21714187790f22))
+* **rust:** call the CLI klint in usage, help and --version ([28af6d1](https://github.com/konvert7/klint/commit/28af6d14dedbc494be4e2482b90a1ccf2788a993))
+
+
+### BREAKING CHANGES
+
+* the npm package runs the Rust engine only. --engine,
+--rules and --debug are removed. Custom rules in klint.rules.ts and the
+type-checker rules no-floating-promise, no-misused-promises,
+no-date-equality, no-optional-chain-on-non-nullable and
+no-object-in-template are ignored with a klint/unsupported-rule warning.
+
+Co-authored by Jarvis · https://github.com/kovrichard/portable-agent-layer
+
 # [0.38.0](https://github.com/konvert7/klint/compare/v0.37.1...v0.38.0) (2026-11-10)
 
 
