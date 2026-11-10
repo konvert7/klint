@@ -232,7 +232,7 @@ dependencies = [
 
 [[package]]
 name = "klint-rs"
-version = "0.37.1"
+version = "0.38.0"
 dependencies = [
  "inquire",
  "jsonc-parser",

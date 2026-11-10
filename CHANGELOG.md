@@ -1,3 +1,16 @@
+# [0.38.0](https://github.com/konvert7/klint/compare/v0.37.1...v0.38.0) (2026-11-10)
+
+
+### Bug Fixes
+
+* **rust:** read config files that start with a byte-order mark ([8b1096d](https://github.com/konvert7/klint/commit/8b1096db3b1a461ada8af8c7cbadccca8e0ed1ee))
+* **rust:** start error messages with klint: instead of klint-rs: ([6673661](https://github.com/konvert7/klint/commit/66736615d9e724d3bab153fb3baf8f2bffbab23e))
+
+
+### Features
+
+* **rust:** warn about unknown config keys and invalid severities ([b4835d5](https://github.com/konvert7/klint/commit/b4835d529377c180fd9358ffddfa9544c94d5375))
+
 ## [0.37.1](https://github.com/konvert7/klint/compare/v0.37.0...v0.37.1) (2026-11-09)
 
 
