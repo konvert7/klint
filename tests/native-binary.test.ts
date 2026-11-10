@@ -34,8 +34,16 @@ describe("native binary package metadata", () => {
       packageName: "@konvert7/klint-darwin-x64",
       binaryPath: "bin/klint-rs",
     });
-    expect(nativePackageForPlatform("linux", "x64")).toMatchObject({
+    expect(nativePackageForPlatform("linux", "x64", "glibc")).toMatchObject({
       packageName: "@konvert7/klint-linux-x64",
+      binaryPath: "bin/klint-rs",
+    });
+    expect(nativePackageForPlatform("linux", "x64", "musl")).toMatchObject({
+      packageName: "@konvert7/klint-linux-x64-musl",
+      binaryPath: "bin/klint-rs",
+    });
+    expect(nativePackageForPlatform("linux", "arm64", "glibc")).toMatchObject({
+      packageName: "@konvert7/klint-linux-arm64",
       binaryPath: "bin/klint-rs",
     });
     expect(nativePackageForPlatform("win32", "x64")).toMatchObject({
@@ -45,8 +53,22 @@ describe("native binary package metadata", () => {
   });
 
   test("does not invent unsupported platform packages", () => {
-    expect(nativePackageForPlatform("linux", "arm64")).toBeUndefined();
+    expect(nativePackageForPlatform("linux", "arm64", "musl")).toBeUndefined();
     expect(nativePackageForPlatform("freebsd", "x64")).toBeUndefined();
+  });
+
+  test("declares libc on every linux package so npm installs only the matching one", () => {
+    for (const nativePackage of nativePackages()) {
+      const packageJson = JSON.parse(
+        readFileSync(
+          new URL(`npm/native/${nativePackage.dir}/package.json`, root),
+          "utf-8"
+        )
+      ) as { libc?: unknown };
+      const expected =
+        nativePackage.platform === "linux" ? [nativePackage.libc] : undefined;
+      expect(packageJson.libc).toEqual(expected);
+    }
   });
 
   test("keeps package names unique", () => {
@@ -70,10 +92,7 @@ describe("native binary package metadata", () => {
   test("native packages remain private in source before release prep", () => {
     for (const nativePackage of nativePackages()) {
       const packageJson = readPackageJson(
-        new URL(
-          `npm/native/${nativePackage.platform}-${nativePackage.arch}/package.json`,
-          root
-        )
+        new URL(`npm/native/${nativePackage.dir}/package.json`, root)
       );
 
       expect(packageJson.name).toBe(nativePackage.packageName);

@@ -81,7 +81,7 @@ function prepareNativePackage(nativePackage: ReturnType<typeof nativePackages>[n
   binaryCopied: boolean;
   packageJson: PackageJson;
 } {
-  const packageDirName = `${nativePackage.platform}-${nativePackage.arch}`;
+  const packageDirName = nativePackage.dir;
   const sourceDir = join(root, "npm", "native", packageDirName);
   const outDir = join(options.outDir, "npm", "native", packageDirName);
   mkdirSync(outDir, { recursive: true });

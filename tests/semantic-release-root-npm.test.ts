@@ -109,7 +109,9 @@ describe("semantic-release root npm plugin", () => {
       expect(packageJson.optionalDependencies).toEqual({
         "@konvert7/klint-darwin-arm64": "1.2.3",
         "@konvert7/klint-darwin-x64": "1.2.3",
+        "@konvert7/klint-linux-arm64": "1.2.3",
         "@konvert7/klint-linux-x64": "1.2.3",
+        "@konvert7/klint-linux-x64-musl": "1.2.3",
         "@konvert7/klint-win32-x64": "1.2.3",
       });
       expect(publishes).toEqual([

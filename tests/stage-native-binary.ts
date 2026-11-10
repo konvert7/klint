@@ -12,7 +12,7 @@ const args = process.argv.slice(2);
 const packageKey = valueAfter(args, "--package");
 const sourceArg = valueAfter(args, "--source");
 const nativePackage = packageKey
-  ? nativePackages().find((pkg) => `${pkg.platform}-${pkg.arch}` === packageKey)
+  ? nativePackages().find((pkg) => pkg.dir === packageKey)
   : nativePackageForPlatform();
 
 if (!nativePackage) {
@@ -24,12 +24,7 @@ if (!nativePackage) {
 }
 
 const source = resolveSource(sourceArg);
-const packageRoot = join(
-  root,
-  "npm",
-  "native",
-  `${nativePackage.platform}-${nativePackage.arch}`
-);
+const packageRoot = join(root, "npm", "native", nativePackage.dir);
 const destination = join(packageRoot, nativePackage.binaryPath);
 
 if (!existsSync(source)) {
@@ -43,6 +38,7 @@ const resolved = resolveNativePackageBinary({
   packageRoot: root,
   platform: nativePackage.platform,
   arch: nativePackage.arch,
+  libc: nativePackage.libc,
   readPackageJson: () => ({ version: "0.0.0-stage" }),
   resolvePackageJson: (packageName) => {
     if (packageName !== nativePackage.packageName) {

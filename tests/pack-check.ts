@@ -26,6 +26,8 @@ try {
     "package/npm/native/darwin-arm64/package.json",
     "package/npm/native/darwin-x64/package.json",
     "package/npm/native/linux-x64/package.json",
+    "package/npm/native/linux-x64-musl/package.json",
+    "package/npm/native/linux-arm64/package.json",
     "package/npm/native/win32-x64/package.json",
     "package/tests/pack-check.ts",
     "package/tests/native-binary.test.ts",
@@ -33,12 +35,7 @@ try {
   ]);
 
   for (const nativePackage of nativePackages()) {
-    const packageRoot = join(
-      root,
-      "npm",
-      "native",
-      `${nativePackage.platform}-${nativePackage.arch}`
-    );
+    const packageRoot = join(root, "npm", "native", nativePackage.dir);
     const packageJson = JSON.parse(
       readFileSync(join(packageRoot, "package.json"), "utf-8")
     );
@@ -67,6 +64,11 @@ try {
       packageJson.cpu,
       [nativePackage.arch],
       `${nativePackage.packageName} cpu`
+    );
+    assertEquals(
+      packageJson.libc,
+      nativePackage.libc ? [nativePackage.libc] : undefined,
+      `${nativePackage.packageName} libc`
     );
     assertEquals(
       packageJson.files,

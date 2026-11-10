@@ -3,7 +3,14 @@ import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 
-const nativePackage = `@konvert7/klint-${process.platform}-${process.arch}`;
+function isMuslLinux() {
+  if (process.platform !== "linux") return false;
+  process.report.excludeNetwork = true;
+  return !process.report.getReport().header.glibcVersionRuntime;
+}
+
+const target = `${process.platform}-${process.arch}${isMuslLinux() ? "-musl" : ""}`;
+const nativePackage = `@konvert7/klint-${target}`;
 const binaryName = process.platform === "win32" ? "klint-rs.exe" : "klint-rs";
 
 function nativeBinary() {
@@ -23,8 +30,9 @@ function fail(message) {
 const binary = nativeBinary();
 if (!binary) {
   fail(
-    `no native binary for ${process.platform}-${process.arch}: ${nativePackage} is not installed. ` +
-      "Reinstall without --omit=optional, or use a supported platform (darwin-arm64, darwin-x64, linux-x64, win32-x64)."
+    `no native binary for ${target}: ${nativePackage} is not installed. ` +
+      "Reinstall without --omit=optional, or use a supported platform " +
+      "(darwin-arm64, darwin-x64, linux-arm64, linux-x64, linux-x64-musl, win32-x64)."
   );
 }
 

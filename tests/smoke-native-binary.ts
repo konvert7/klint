@@ -12,13 +12,7 @@ if (!nativePackage) {
   fail(`No native package mapping for ${process.platform}-${process.arch}`);
 }
 
-const binary = join(
-  root,
-  "npm",
-  "native",
-  `${nativePackage.platform}-${nativePackage.arch}`,
-  nativePackage.binaryPath
-);
+const binary = join(root, "npm", "native", nativePackage.dir, nativePackage.binaryPath);
 const fixture = mkdtempSync(join(tmpdir(), "klint-native-smoke-"));
 
 try {

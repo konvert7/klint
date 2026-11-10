@@ -121,6 +121,16 @@ jobs:
             package: linux-x64
             rust-target: x86_64-unknown-linux-gnu
             binary: klint-rs
+          # 2026-11-10: Alpine (node:alpine) needs musl, the glibc build cannot start there
+          - os: ubuntu-latest
+            package: linux-x64-musl
+            rust-target: x86_64-unknown-linux-musl
+            binary: klint-rs
+          # 2026-11-10: arm64 Linux (Docker on Apple Silicon, Graviton); native runner https://github.com/actions/partner-runner-images
+          - os: ubuntu-24.04-arm
+            package: linux-arm64
+            rust-target: aarch64-unknown-linux-gnu
+            binary: klint-rs
           - os: macos-latest
             package: darwin-arm64
             rust-target: aarch64-apple-darwin
@@ -148,6 +158,10 @@ jobs:
 
       - name: Install Rust target
         run: rustup target add ${{ matrix.rust-target }}
+
+      - name: Install musl C toolchain
+        if: matrix.package == 'linux-x64-musl'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
@@ -225,6 +239,18 @@ jobs:
         with:
           name: native-linux-x64
           path: npm/native/linux-x64/bin
+
+      - name: Download native linux-x64-musl binary
+        uses: actions/download-artifact@v8
+        with:
+          name: native-linux-x64-musl
+          path: npm/native/linux-x64-musl/bin
+
+      - name: Download native linux-arm64 binary
+        uses: actions/download-artifact@v8
+        with:
+          name: native-linux-arm64
+          path: npm/native/linux-arm64/bin
 
       - name: Download native win32-x64 binary
         uses: actions/download-artifact@v8

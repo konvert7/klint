@@ -8,6 +8,8 @@ const PACKAGES = [
   ["darwin-arm64", "@konvert7/klint-darwin-arm64", "bin/klint-rs"],
   ["darwin-x64", "@konvert7/klint-darwin-x64", "bin/klint-rs"],
   ["linux-x64", "@konvert7/klint-linux-x64", "bin/klint-rs"],
+  ["linux-x64-musl", "@konvert7/klint-linux-x64-musl", "bin/klint-rs"],
+  ["linux-arm64", "@konvert7/klint-linux-arm64", "bin/klint-rs"],
   ["win32-x64", "@konvert7/klint-win32-x64", "bin/klint-rs.exe"],
 ] as const;
 

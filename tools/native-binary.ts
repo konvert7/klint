@@ -4,34 +4,58 @@ import { dirname, join } from "node:path";
 
 type NativePlatform = "darwin" | "linux" | "win32";
 type NativeArch = "arm64" | "x64";
+type NativeLibc = "glibc" | "musl";
 
 export interface NativePackage {
+  dir: string;
   platform: NativePlatform;
   arch: NativeArch;
+  libc?: NativeLibc;
   packageName: string;
   binaryPath: string;
 }
 
 const NATIVE_PACKAGES: Record<string, NativePackage> = {
   "darwin-arm64": {
+    dir: "darwin-arm64",
     platform: "darwin",
     arch: "arm64",
     packageName: "@konvert7/klint-darwin-arm64",
     binaryPath: "bin/klint-rs",
   },
   "darwin-x64": {
+    dir: "darwin-x64",
     platform: "darwin",
     arch: "x64",
     packageName: "@konvert7/klint-darwin-x64",
     binaryPath: "bin/klint-rs",
   },
   "linux-x64": {
+    dir: "linux-x64",
     platform: "linux",
     arch: "x64",
+    libc: "glibc",
     packageName: "@konvert7/klint-linux-x64",
     binaryPath: "bin/klint-rs",
   },
+  "linux-x64-musl": {
+    dir: "linux-x64-musl",
+    platform: "linux",
+    arch: "x64",
+    libc: "musl",
+    packageName: "@konvert7/klint-linux-x64-musl",
+    binaryPath: "bin/klint-rs",
+  },
+  "linux-arm64": {
+    dir: "linux-arm64",
+    platform: "linux",
+    arch: "arm64",
+    libc: "glibc",
+    packageName: "@konvert7/klint-linux-arm64",
+    binaryPath: "bin/klint-rs",
+  },
   "win32-x64": {
+    dir: "win32-x64",
     platform: "win32",
     arch: "x64",
     packageName: "@konvert7/klint-win32-x64",
@@ -43,6 +67,7 @@ interface NativeBinaryOptions {
   packageRoot: string;
   platform?: string;
   arch?: string;
+  libc?: string;
   exists?: (path: string) => boolean;
   readPackageJson?: (path: string) => { version?: string };
   resolvePackageJson?: (packageName: string) => string;
@@ -50,9 +75,19 @@ interface NativeBinaryOptions {
 
 export function nativePackageForPlatform(
   platform: string = process.platform,
-  arch: string = process.arch
+  arch: string = process.arch,
+  libc: string | undefined = currentLibc()
 ): NativePackage | undefined {
-  return NATIVE_PACKAGES[`${platform}-${arch}`];
+  const muslSuffix = platform === "linux" && libc === "musl" ? "-musl" : "";
+  return NATIVE_PACKAGES[`${platform}-${arch}${muslSuffix}`];
+}
+
+function currentLibc(): NativeLibc | undefined {
+  if (process.platform !== "linux") return undefined;
+  const report = process.report.getReport() as {
+    header?: { glibcVersionRuntime?: string };
+  };
+  return report.header?.glibcVersionRuntime ? "glibc" : "musl";
 }
 
 export function nativePackages(): NativePackage[] {
@@ -63,11 +98,12 @@ export function resolveNativePackageBinary({
   packageRoot,
   platform = process.platform,
   arch = process.arch,
+  libc = currentLibc(),
   exists = existsSync,
   readPackageJson = readJsonFile,
   resolvePackageJson,
 }: NativeBinaryOptions): string | undefined {
-  const nativePackage = nativePackageForPlatform(platform, arch);
+  const nativePackage = nativePackageForPlatform(platform, arch, libc);
   if (!nativePackage) return undefined;
 
   const packageJsonPath = resolveOptionalPackageJson(
