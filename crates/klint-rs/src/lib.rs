@@ -1,5 +1,6 @@
 mod arch;
 mod config;
+mod config_check;
 mod engine;
 mod files;
 mod fix;
@@ -13,10 +14,13 @@ pub mod syntax;
 mod unsupported;
 mod version;
 
+use config::RuleConfig;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use arch::ArchPlan;
 use config::{find_config, read_config, resolve_root};
+use config_check::{config_advisories, has_valid_severity};
 use engine::run_engine;
 use files::{read_files, resolve_files};
 pub use fix::MAX_FIX_PASSES;
@@ -86,10 +90,15 @@ fn lint(options: &RunOptions) -> Result<Linted, String> {
 
     let files = resolve_files(&root, &include)?;
     let contents = read_files(&files)?;
-    let rules = effective_rules(
+    let configured_rules = effective_rules(
         &raw.plugins.unwrap_or_default(),
         raw.rules.unwrap_or_default(),
     )?;
+    let config_warnings = config_advisories(&configured_rules, &config_path);
+    let rules: BTreeMap<String, RuleConfig> = configured_rules
+        .into_iter()
+        .filter(|(_, config)| has_valid_severity(config))
+        .collect();
 
     let rule_passes = plan_rule_passes(&rules, &files, &root);
     let arch_plan = raw
@@ -107,6 +116,7 @@ fn lint(options: &RunOptions) -> Result<Linted, String> {
         &config_path,
         &options.config_dir,
     ));
+    advisories.extend(config_warnings);
     advisories.extend(skill_advisories(&options.config_dir));
 
     Ok(Linted {
