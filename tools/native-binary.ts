@@ -11,6 +11,7 @@ export interface NativePackage {
   platform: NativePlatform;
   arch: NativeArch;
   libc?: NativeLibc;
+  emulatedOn?: NativeArch[];
   packageName: string;
   binaryPath: string;
 }
@@ -58,6 +59,7 @@ const NATIVE_PACKAGES: Record<string, NativePackage> = {
     dir: "win32-x64",
     platform: "win32",
     arch: "x64",
+    emulatedOn: ["arm64"],
     packageName: "@konvert7/klint-win32-x64",
     binaryPath: "bin/klint-rs.exe",
   },
@@ -79,7 +81,23 @@ export function nativePackageForPlatform(
   libc: string | undefined = currentLibc()
 ): NativePackage | undefined {
   const muslSuffix = platform === "linux" && libc === "musl" ? "-musl" : "";
-  return NATIVE_PACKAGES[`${platform}-${arch}${muslSuffix}`];
+  return (
+    NATIVE_PACKAGES[`${platform}-${arch}${muslSuffix}`] ??
+    emulatingPackage(platform, arch, muslSuffix)
+  );
+}
+
+function emulatingPackage(
+  platform: string,
+  arch: string,
+  muslSuffix: string
+): NativePackage | undefined {
+  return nativePackages().find(
+    (pkg) =>
+      pkg.platform === platform &&
+      pkg.dir.endsWith(muslSuffix) &&
+      pkg.emulatedOn?.includes(arch as NativeArch)
+  );
 }
 
 function currentLibc(): NativeLibc | undefined {

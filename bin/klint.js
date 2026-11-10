@@ -9,7 +9,12 @@ function isMuslLinux() {
   return !process.report.getReport().header.glibcVersionRuntime;
 }
 
-const target = `${process.platform}-${process.arch}${isMuslLinux() ? "-musl" : ""}`;
+function packageArch() {
+  const windowsOnArmRunsX64 = process.platform === "win32" && process.arch === "arm64";
+  return windowsOnArmRunsX64 ? "x64" : process.arch;
+}
+
+const target = `${process.platform}-${packageArch()}${isMuslLinux() ? "-musl" : ""}`;
 const nativePackage = `@konvert7/klint-${target}`;
 const binaryName = process.platform === "win32" ? "klint-rs.exe" : "klint-rs";
 

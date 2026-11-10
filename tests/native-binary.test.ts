@@ -52,6 +52,13 @@ describe("native binary package metadata", () => {
     });
   });
 
+  test("serves the x64 package to Windows on Arm, which emulates x64", () => {
+    expect(nativePackageForPlatform("win32", "arm64")).toMatchObject({
+      packageName: "@konvert7/klint-win32-x64",
+      binaryPath: "bin/klint-rs.exe",
+    });
+  });
+
   test("does not invent unsupported platform packages", () => {
     expect(nativePackageForPlatform("linux", "arm64", "musl")).toBeUndefined();
     expect(nativePackageForPlatform("freebsd", "x64")).toBeUndefined();

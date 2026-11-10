@@ -62,7 +62,7 @@ try {
     );
     assertEquals(
       packageJson.cpu,
-      [nativePackage.arch],
+      [nativePackage.arch, ...(nativePackage.emulatedOn ?? [])],
       `${nativePackage.packageName} cpu`
     );
     assertEquals(

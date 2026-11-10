@@ -85,6 +85,42 @@ describe("npm launcher", () => {
     expect(result.status).toBe(2);
   });
 
+  test.skipIf(process.platform === "win32")(
+    "runs the x64 binary on Windows on Arm",
+    () => {
+      const launcher = installedLauncher({ withNativePackage: false });
+      const native = join(
+        sandbox as string,
+        "node_modules",
+        "@konvert7",
+        "klint-win32-x64"
+      );
+      mkdirSync(join(native, "bin"), { recursive: true });
+      writeFileSync(
+        join(native, "package.json"),
+        JSON.stringify({ name: "@konvert7/klint-win32-x64" })
+      );
+      const fakeBinary = join(native, "bin", "klint-rs.exe");
+      writeFileSync(fakeBinary, '#!/bin/sh\necho "win32-x64 binary: $*"\n');
+      chmodSync(fakeBinary, 0o755);
+      const windowsOnArm = `data:text/javascript,${encodeURIComponent(
+        'Object.defineProperty(process, "platform", { value: "win32" });' +
+          'Object.defineProperty(process, "arch", { value: "arm64" });'
+      )}`;
+
+      const result = spawnSync(
+        "node",
+        ["--import", windowsOnArm, launcher, "--version"],
+        {
+          encoding: "utf-8",
+        }
+      );
+
+      expect(result.stdout).toBe("win32-x64 binary: --version\n");
+      expect(result.status).toBe(0);
+    }
+  );
+
   test("explains a missing native package instead of crashing", () => {
     const result = runNode(installedLauncher({ withNativePackage: false }), [
       "--version",
