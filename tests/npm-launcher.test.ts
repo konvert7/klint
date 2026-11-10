@@ -12,10 +12,12 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { nativePackageForPlatform } from "../tools/native-binary";
 
 const repo = fileURLToPath(new URL("..", import.meta.url));
 const binaryName = process.platform === "win32" ? "klint-rs.exe" : "klint-rs";
 const builtBinary = join(repo, "target", "debug", binaryName);
+const hostPackage = nativePackageForPlatform()?.packageName ?? "(unsupported host)";
 const crateVersion = /^version = "([^"]+)"/m.exec(
   readFileSync(join(repo, "crates", "klint-rs", "Cargo.toml"), "utf-8")
 )?.[1];
@@ -42,12 +44,9 @@ function installedLauncher({
   copyFileSync(join(repo, "bin", "klint.js"), join(klint, "bin", "klint.js"));
 
   if (withNativePackage) {
-    const native = join(scope, `klint-${process.platform}-${process.arch}`);
+    const native = join(scope, hostPackage.replace("@konvert7/", ""));
     mkdirSync(join(native, "bin"), { recursive: true });
-    writeFileSync(
-      join(native, "package.json"),
-      JSON.stringify({ name: `@konvert7/klint-${process.platform}-${process.arch}` })
-    );
+    writeFileSync(join(native, "package.json"), JSON.stringify({ name: hostPackage }));
     copyFileSync(builtBinary, join(native, "bin", binaryName));
     chmodSync(join(native, "bin", binaryName), 0o755);
   }
@@ -126,9 +125,7 @@ describe("npm launcher", () => {
       "--version",
     ]);
 
-    expect(result.stderr).toContain(
-      `@konvert7/klint-${process.platform}-${process.arch} is not installed`
-    );
+    expect(result.stderr).toContain(`${hostPackage} is not installed`);
     expect(result.status).toBe(1);
   });
 });
