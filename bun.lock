@@ -24,7 +24,9 @@
       "optionalDependencies": {
         "@konvert7/klint-darwin-arm64": "*",
         "@konvert7/klint-darwin-x64": "*",
+        "@konvert7/klint-linux-arm64": "*",
         "@konvert7/klint-linux-x64": "*",
+        "@konvert7/klint-linux-x64-musl": "*",
         "@konvert7/klint-win32-x64": "*",
       },
     },
@@ -128,7 +130,11 @@
 
     "@konvert7/klint-darwin-x64": ["@konvert7/klint-darwin-x64@0.19.2", "", { "os": "darwin", "cpu": "x64", "bin": { "klint-rs": "bin/klint-rs" } }, "sha512-GmtLUI52iS6lrAwMBi46scko48S2MRonXDBUwZOTCl5rJNxkNpTSgly1TfhM29MJz3iUCOoA74C/VpVLBKRhFQ=="],
 
+    "@konvert7/klint-linux-arm64": ["@konvert7/klint-linux-arm64@0.0.0", "", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-tOolobb7PdX97wcV/Vn3qHvG6DfjLg24UfzdjsZ5XFm0IcJKQccsnKz5+43h2Meq9mxOOkd5q5FN9mZcs1cpxQ=="],
+
     "@konvert7/klint-linux-x64": ["@konvert7/klint-linux-x64@0.19.2", "", { "os": "linux", "cpu": "x64", "bin": { "klint-rs": "bin/klint-rs" } }, "sha512-C+mwFBQ0B6YVFigiPxowzKBYHNkiA6JUsDQnxtyRypej48o+mCcGtLTsr1W4CINzfKjU4pmWzOwhqkO/6MzDlg=="],
+
+    "@konvert7/klint-linux-x64-musl": ["@konvert7/klint-linux-x64-musl@0.0.0", "", { "os": "linux", "cpu": "x64", "libc": "musl" }, "sha512-oJu/Vd+3KgS9uXsibNoe0zwZN4eIa2hacWsXhS/bF+MxvBSDk9pSo3Pw/mktChi5/6ZI5iitnznjDePF0YsuOg=="],
 
     "@konvert7/klint-win32-x64": ["@konvert7/klint-win32-x64@0.19.2", "", { "os": "win32", "cpu": "x64", "bin": { "klint-rs": "bin/klint-rs.exe" } }, "sha512-Gh5nyU2aBAbDua07hEjdcw1EyNKJ0u/QfOLSVE/Qllr6gppW7UE4AXPP+ClacxkIdbkPpSclLvafi8eo9nricA=="],
 
