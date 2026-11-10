@@ -325,7 +325,7 @@ jobs:
         if: needs.metadata.outputs.python-repository != 'none' && matrix.package == 'linux-x64-musl'
         run: |
           rm -rf python/dist
-          python3 -m pip wheel python --wheel-dir python/dist
+          python3 -m pip wheel ./python --wheel-dir python/dist
         env:
           KLINT_PYTHON_PLAT_NAME: ${{ matrix.python-platform-tag }}
 
