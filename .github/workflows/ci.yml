@@ -20,7 +20,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # 2026-11-10: test every shipped CPU; arm runners per https://github.com/actions/partner-runner-images
+        os:
+          [
+            ubuntu-latest,
+            ubuntu-24.04-arm,
+            macos-latest,
+            macos-15-intel,
+            windows-latest,
+            windows-11-arm,
+          ]
 
     steps:
       - name: Checkout
@@ -106,6 +115,29 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: bun tests/smoke-python-wheel.ts
 
+  test-musl:
+    name: test (alpine x64)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Test on Alpine
+        # 2026-11-10: bun@1.3 from npm ships the musl build; matches setup-bun's "1.3" line
+        run: |
+          docker run --rm -v "$PWD:/io" -w /io rust:1-alpine sh -euc '
+            apk add -q bash nodejs npm git musl-dev libstdc++ libgcc tar
+            npm install -g --silent bun@1.3
+            bun install --frozen-lockfile
+            cargo build -p klint-rs
+            bun run test
+            cargo test -p klint-rs
+            cargo build -p klint-rs --release
+            bun run native:stage
+            bun run native:smoke
+          '
+
   native:
     name: native (${{ matrix.package }})
     # Cross-platform release artifacts feed the release job; the test matrix
@@ -187,7 +219,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    needs: [test, native]
+    needs: [test, test-musl, native]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
