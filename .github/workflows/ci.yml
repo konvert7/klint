@@ -92,6 +92,11 @@ jobs:
       - name: Rust release build
         run: cargo build -p klint-rs --release
 
+      - name: Check Windows binary needs no VC++ runtime
+        if: runner.os == 'Windows'
+        shell: bash
+        run: "! grep -qai vcruntime140.dll target/release/klint-rs.exe"
+
       - name: Stage native package binary
         run: bun run native:stage
 
@@ -153,6 +158,8 @@ jobs:
             package: linux-x64
             rust-target: x86_64-unknown-linux-gnu
             binary: klint-rs
+            # 2026-11-10: glibc 2.28 floor, runner-built 1.0.0 needed 2.39 and warned on Debian 12; https://github.com/pypa/manylinux
+            manylinux-image: quay.io/pypa/manylinux_2_28_x86_64
           # 2026-11-10: Alpine (node:alpine) needs musl, the glibc build cannot start there
           - os: ubuntu-latest
             package: linux-x64-musl
@@ -163,6 +170,8 @@ jobs:
             package: linux-arm64
             rust-target: aarch64-unknown-linux-gnu
             binary: klint-rs
+            # 2026-11-10: glibc 2.28 floor, runner-built 1.0.0 needed 2.39 and failed on Debian 12; https://github.com/pypa/manylinux
+            manylinux-image: quay.io/pypa/manylinux_2_28_aarch64
           - os: macos-latest
             package: darwin-arm64
             rust-target: aarch64-apple-darwin
@@ -186,9 +195,11 @@ jobs:
           bun-version: "1.3"
 
       - name: Setup Rust
+        if: matrix.manylinux-image == ''
         run: rustup toolchain install stable --profile minimal
 
       - name: Install Rust target
+        if: matrix.manylinux-image == ''
         run: rustup target add ${{ matrix.rust-target }}
 
       - name: Install musl C toolchain
@@ -196,6 +207,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y musl-tools
 
       - name: Rust cache
+        if: matrix.manylinux-image == ''
         uses: Swatinem/rust-cache@v2
         with:
           key: native-${{ matrix.rust-target }}
@@ -206,7 +218,17 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build native binary
+        if: matrix.manylinux-image == ''
         run: cargo build -p klint-rs --release --target ${{ matrix.rust-target }}
+
+      - name: Build manylinux native binary
+        if: matrix.manylinux-image != ''
+        run: |
+          docker run --rm \
+            -v "$PWD:/io" \
+            -w /io \
+            ${{ matrix.manylinux-image }} \
+            bash -lc 'curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal && source "$HOME/.cargo/env" && cargo build -p klint-rs --release --target ${{ matrix.rust-target }}'
 
       - name: Stage native package binary
         run: bun tests/stage-native-binary.ts --package ${{ matrix.package }} --source target/${{ matrix.rust-target }}/release/${{ matrix.binary }}

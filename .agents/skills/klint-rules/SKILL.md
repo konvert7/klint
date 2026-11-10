@@ -48,12 +48,24 @@ Wire it into `klint.yaml` for editor autocomplete and validation:
 
 6. **Verify zero new violations on the current codebase:**
    ```sh
-   bun klint/cli.ts        # in-repo
-   npx klint               # after npm install
+   npx klint               # npm
+   klint                   # PyPI, NuGet, Homebrew
    ```
    If new violations appear on existing code, fix them first or adjust the rule scope — then land the rule.
 
 7. **Write a break test** — prove the rule fires on a deliberate violation, and doesn't fire on clean code. Run the test suite to confirm.
+
+## Run tracking
+
+Every run is recorded in `.klint/stats.json` next to the config. The folder ignores itself, so never add it to `.gitignore`.
+
+| Command or flag | Use |
+|---|---|
+| `klint stats [--config <dir>]` | Print runs, violations reported and errors prevented, in total and per rule. Use it to answer "how much has klint caught?" |
+| `--hook` | Put it only in agent hook commands, e.g. `klint --json --hook`. Leave it off when you run klint yourself, so your runs count as direct. |
+| `KLINT_NO_STATS=1` | Turn recording off for a run, e.g. in a throwaway fixture. |
+
+Every violation a run reports counts as reported, repeats included; klint's own `klint/*` advisories do not. An error counts as prevented once, when a later run no longer reports it. Errors match by rule, file and message, so moving code to another line is not a fix. Warnings are not tracked.
 
 ## Primitive reference
 
@@ -243,10 +255,10 @@ After adding or modifying a rule, report:
 - The YAML stanza added
 - The grep evidence that confirmed the pattern is real
 - The test written and its result
-- The output of `bun run klint` (or `npx klint`) confirming zero new violations
+- The output of `npx klint` (or `klint`) confirming zero new violations
 
 ## Do NOT use
 
 - To fix TypeScript type errors, lint issues, or Biome violations — those are separate tools
 - To enforce naming conventions (hooks must start with `use`, components must be PascalCase) — use ESLint with the appropriate plugin
-- To write custom TypeScript AST rules in `klint.rules.ts` — that is a separate, code-level workflow
+- To write custom code-level rules — klint has no plugin API; express the policy as an `arch` rule or use a linter with one
