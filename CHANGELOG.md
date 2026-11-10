@@ -1,3 +1,11 @@
+## [1.0.1](https://github.com/konvert7/klint/compare/v1.0.0...v1.0.1) (2026-11-10)
+
+
+### Bug Fixes
+
+* **npm:** build the Linux glibc binaries against glibc 2.28 ([871bb78](https://github.com/konvert7/klint/commit/871bb7802edcb12119ea43848f9347ee7f0a8ea8))
+* **windows:** link the C runtime statically into the MSVC binary ([0f0b979](https://github.com/konvert7/klint/commit/0f0b979974966bfa97a466a43c1af551b9e89ff2))
+
 # [1.0.0](https://github.com/konvert7/klint/compare/v0.38.0...v1.0.0) (2026-11-10)
 
 
