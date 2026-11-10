@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/konvert7/klint/compare/v1.0.1...v1.0.2) (2026-11-10)
+
+
+### Bug Fixes
+
+* **python:** build the musllinux wheel from the local python directory ([7cac05b](https://github.com/konvert7/klint/commit/7cac05ba93c2eeccb973e225dd5aa9d02be9ed1d))
+
 ## [1.0.1](https://github.com/konvert7/klint/compare/v1.0.0...v1.0.1) (2026-11-10)
 
 
