@@ -4,13 +4,22 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import YAML from "yaml";
-import { runKlint } from "../../core/runner";
-import type { KlintConfig, Violation } from "../../core/types";
 import cases from "./rule-cases.json";
+
+interface Violation {
+  file: string;
+  line: number;
+  rule: string;
+  severity: string;
+  message: string;
+  fix?: { startLine: number; endLine: number; replacement: string } | null;
+}
+
+type KlintConfig = Record<string, unknown>;
 
 interface GoldenCase {
   name: string;
-  config: Omit<KlintConfig, "root">;
+  config: KlintConfig;
   files: Record<string, string>;
   expected: GoldenEnvelope;
 }
@@ -61,37 +70,7 @@ function runRustKlint(root: string, testCase: GoldenCase): GoldenEnvelope {
   return JSON.parse(result.stdout) as GoldenEnvelope;
 }
 
-function normalize(violations: Violation[]): GoldenEnvelope {
-  const normalized = violations
-    .map((v) => ({ ...v, file: v.file.replaceAll("\\", "/"), fix: v.fix ?? null }))
-    .sort(
-      (a, b) =>
-        a.file.localeCompare(b.file) ||
-        a.line - b.line ||
-        a.rule.localeCompare(b.rule) ||
-        a.message.localeCompare(b.message)
-    );
-  const errors = normalized.filter((v) => v.severity === "error").length;
-  return {
-    violations: normalized,
-    summary: {
-      errors,
-      warnings: normalized.length - errors,
-    },
-  };
-}
-
-describe("golden parity — rules", () => {
-  for (const testCase of cases as unknown as GoldenCase[]) {
-    test(testCase.name, () => {
-      const root = writeCaseFixture(testCase);
-      const actual = normalize(runKlint({ ...testCase.config, root }, {}));
-      expect(actual).toEqual(testCase.expected);
-    });
-  }
-});
-
-describe("rust golden parity — rules", () => {
+describe("golden cases — rules", () => {
   for (const testCase of cases as unknown as GoldenCase[]) {
     test(testCase.name, () => {
       const root = writeCaseFixture(testCase);

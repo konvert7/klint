@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { nativePackages } from "../core/native-binary";
+import { nativePackages } from "../tools/native-binary";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const outDir = mkdtempSync(join(tmpdir(), "klint-pack-check-"));
@@ -13,18 +13,21 @@ try {
 
   assertIncludes(mainList, [
     "package/README.md",
-    "package/cli.ts",
+    "package/bin/klint.js",
     "package/package.json",
-    "package/core/native-binary.ts",
-    "package/skill/klint-rules/SKILL.md",
     "package/klint.schema.json",
     "package/klint.schema.yaml",
   ]);
 
   assertExcludes(mainList, [
+    "package/cli.ts",
+    "package/tools/native-binary.ts",
+    "package/skill/klint-rules/SKILL.md",
     "package/npm/native/darwin-arm64/package.json",
     "package/npm/native/darwin-x64/package.json",
     "package/npm/native/linux-x64/package.json",
+    "package/npm/native/linux-x64-musl/package.json",
+    "package/npm/native/linux-arm64/package.json",
     "package/npm/native/win32-x64/package.json",
     "package/tests/pack-check.ts",
     "package/tests/native-binary.test.ts",
@@ -32,12 +35,7 @@ try {
   ]);
 
   for (const nativePackage of nativePackages()) {
-    const packageRoot = join(
-      root,
-      "npm",
-      "native",
-      `${nativePackage.platform}-${nativePackage.arch}`
-    );
+    const packageRoot = join(root, "npm", "native", nativePackage.dir);
     const packageJson = JSON.parse(
       readFileSync(join(packageRoot, "package.json"), "utf-8")
     );
@@ -64,8 +62,13 @@ try {
     );
     assertEquals(
       packageJson.cpu,
-      [nativePackage.arch],
+      [nativePackage.arch, ...(nativePackage.emulatedOn ?? [])],
       `${nativePackage.packageName} cpu`
+    );
+    assertEquals(
+      packageJson.libc,
+      nativePackage.libc ? [nativePackage.libc] : undefined,
+      `${nativePackage.packageName} libc`
     );
     assertEquals(
       packageJson.files,

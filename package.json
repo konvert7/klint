@@ -4,22 +4,16 @@
   "description": "Architecture-as-Code linter for TypeScript. Enforce layer boundaries, import rules, and singleton patterns in YAML.",
   "type": "module",
   "bin": {
-    "klint": "cli.ts"
+    "klint": "bin/klint.js"
   },
   "files": [
-    "cli.ts",
-    "cli",
-    "core",
-    "rules",
-    "plugins",
-    "skill",
-    "tools",
+    "bin",
     "README.md",
     "klint.schema.json",
     "klint.schema.yaml"
   ],
   "engines": {
-    "bun": ">=1.3.0"
+    "node": ">=18"
   },
   "keywords": [
     "architecture",
@@ -38,8 +32,6 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "test": "bun test",
-    "test:rust-engine": "bun test tests/rust-engine-cli.test.ts",
-    "test:auto-engine": "bun cli.ts --engine auto",
     "pack:check": "bun tests/pack-check.ts",
     "native:stage": "bun tests/stage-native-binary.ts",
     "native:smoke": "bun tests/smoke-native-binary.ts",
@@ -52,7 +44,7 @@
     "check": "biome check",
     "check-write": "biome check --write",
     "knip": "knip-bun",
-    "klint": "bun cli.ts --engine auto",
+    "klint": "cargo run --quiet -p klint-rs --",
     "jscpd": "jscpd --noTips",
     "schema": "cargo run --quiet -p klint-rs --example generate_schema -- $npm_package_version",
     "lint-staged": "lint-staged",
@@ -63,20 +55,16 @@
       "bun run check"
     ]
   },
-  "dependencies": {
-    "@clack/prompts": "^1.3.0",
-    "typescript": "^5.9.3",
-    "yaml": "^2.9.0",
-    "zod": "^4.4.3"
-  },
   "optionalDependencies": {
     "@konvert7/klint-darwin-arm64": "*",
     "@konvert7/klint-darwin-x64": "*",
+    "@konvert7/klint-linux-arm64": "*",
     "@konvert7/klint-linux-x64": "*",
+    "@konvert7/klint-linux-x64-musl": "*",
     "@konvert7/klint-win32-x64": "*"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.4",
+    "@biomejs/biome": "2.6.5",
     "@commitlint/cli": "^20.5.3",
     "@commitlint/config-conventional": "^20.5.3",
     "@semantic-release/changelog": "^6.0.3",
@@ -88,7 +76,9 @@
     "jscpd": "4.2.3",
     "knip": "^6.9.0",
     "lint-staged": "^15.5.2",
-    "semantic-release": "^25.0.3"
+    "semantic-release": "^25.0.3",
+    "typescript": "^5.9.3",
+    "yaml": "^2.9.0"
   },
   "directories": {
     "test": "tests"

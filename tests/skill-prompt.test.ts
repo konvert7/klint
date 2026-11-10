@@ -3,7 +3,9 @@ import { spawnSync } from "node:child_process";
 import { existsSync, lstatSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CANONICAL_SKILL_DIR, SKILL_DIR_NAME } from "../core/skill";
+
+const CANONICAL_SKILL_DIR = ".agents/skills";
+const SKILL_DIR_NAME = "klint-rules";
 
 const ROOT = join(import.meta.dir, "..");
 const DRIVER = join(import.meta.dir, "support", "pty-driver.py");

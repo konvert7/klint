@@ -19,6 +19,16 @@ const NATIVE_PACKAGES = [
     binaryPath: "bin/klint-rs",
   },
   {
+    dir: "linux-x64-musl",
+    name: "@konvert7/klint-linux-x64-musl",
+    binaryPath: "bin/klint-rs",
+  },
+  {
+    dir: "linux-arm64",
+    name: "@konvert7/klint-linux-arm64",
+    binaryPath: "bin/klint-rs",
+  },
+  {
     dir: "win32-x64",
     name: "@konvert7/klint-win32-x64",
     binaryPath: "bin/klint-rs.exe",

@@ -12,7 +12,7 @@ use std::time::Instant;
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let code = match dispatch(&klint_command(), &args, "klint-rs") {
+    let code = match dispatch(&klint_command(), &args, "klint") {
         Dispatch::Exit(code) => code,
         Dispatch::Run {
             command: Some("stats"),
@@ -32,7 +32,7 @@ fn main() {
 
 fn klint_command() -> Group {
     Group {
-        summary: "Shadow Rust architecture engine",
+        summary: "Architecture-as-Code linter: layer boundaries, import rules and forbidden patterns",
         aliases: &[("h", "help")],
         default_command: Some(Leaf {
             summary: "Lints the project",
@@ -45,7 +45,7 @@ fn klint_command() -> Group {
                 OptionSpec::flag("json", "Emit structured JSON to stdout"),
                 OptionSpec::flag("fix", "Apply autofixes, then report what is left"),
                 OptionSpec::flag("hook", "Count this run as an agent hook run in klint stats"),
-                OptionSpec::flag("version", "Print the installed klint-rs version").short('V'),
+                OptionSpec::flag("version", "Print the installed klint version").short('V'),
             ],
             details: Vec::new(),
         }),
@@ -103,7 +103,7 @@ fn config_dir(values: &Values) -> Result<PathBuf, String> {
 fn lint_command(values: &Values) -> i32 {
     let started_at = Instant::now();
     if values.flag("version") {
-        println!("klint-rs {}", klint_rs::reported_version());
+        println!("klint {}", klint_rs::reported_version());
         return 0;
     }
     let config_dir = match config_dir(values) {

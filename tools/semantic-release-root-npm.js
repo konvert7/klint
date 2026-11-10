@@ -5,7 +5,9 @@ import { join } from "node:path";
 const NATIVE_PACKAGE_NAMES = [
   "@konvert7/klint-darwin-arm64",
   "@konvert7/klint-darwin-x64",
+  "@konvert7/klint-linux-arm64",
   "@konvert7/klint-linux-x64",
+  "@konvert7/klint-linux-x64-musl",
   "@konvert7/klint-win32-x64",
 ];
 

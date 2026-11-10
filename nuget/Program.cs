@@ -43,6 +43,7 @@ static int Run()
 static string? ResolveRid()
 {
     string? os = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "win"
+        : IsMuslLinux() ? "linux-musl"
         : RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "linux"
         : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "osx"
         : null;
@@ -56,6 +57,9 @@ static string? ResolveRid()
 
     return os is null || arch is null ? null : $"{os}-{arch}";
 }
+
+static bool IsMuslLinux() =>
+    RuntimeInformation.RuntimeIdentifier.StartsWith("linux-musl", StringComparison.Ordinal);
 
 static string BinaryName() =>
     RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "klint-rs.exe" : "klint-rs";

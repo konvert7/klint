@@ -2,6 +2,5 @@
 set -e
 
 bun run test
-bun run test:rust-engine
 bun run pack:check
 cargo test -p klint-rs

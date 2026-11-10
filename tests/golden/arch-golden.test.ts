@@ -4,14 +4,23 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import YAML from "yaml";
-import { runKlint } from "../../core/runner";
-import type { KlintConfig, Violation } from "../../core/types";
 import cases from "./arch-cases.json";
+
+interface Violation {
+  file: string;
+  line: number;
+  rule: string;
+  severity: string;
+  message: string;
+  fix?: { startLine: number; endLine: number; replacement: string } | null;
+}
+
+type KlintConfig = Record<string, unknown>;
 
 interface GoldenCase {
   name: string;
   tsconfig?: object;
-  config: Omit<KlintConfig, "root">;
+  config: KlintConfig;
   files: Record<string, string>;
   expected: GoldenEnvelope;
 }
@@ -91,17 +100,7 @@ function normalize(
   };
 }
 
-describe("golden parity — architecture rules", () => {
-  for (const testCase of cases as unknown as GoldenCase[]) {
-    test(testCase.name, () => {
-      const root = writeCaseFixture(testCase);
-      const actual = normalize(runKlint({ ...testCase.config, root }, {}));
-      expect(actual).toEqual(testCase.expected);
-    });
-  }
-});
-
-describe("rust golden parity — architecture rules", () => {
+describe("golden cases — architecture rules", () => {
   for (const testCase of cases as unknown as GoldenCase[]) {
     test(testCase.name, () => {
       const root = writeCaseFixture(testCase);

@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { nativePackageForPlatform } from "../core/native-binary";
+import { nativePackageForPlatform } from "../tools/native-binary";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const nativePackage = nativePackageForPlatform();
@@ -12,13 +12,7 @@ if (!nativePackage) {
   fail(`No native package mapping for ${process.platform}-${process.arch}`);
 }
 
-const binary = join(
-  root,
-  "npm",
-  "native",
-  `${nativePackage.platform}-${nativePackage.arch}`,
-  nativePackage.binaryPath
-);
+const binary = join(root, "npm", "native", nativePackage.dir, nativePackage.binaryPath);
 const fixture = mkdtempSync(join(tmpdir(), "klint-native-smoke-"));
 
 try {

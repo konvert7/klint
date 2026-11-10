@@ -9,6 +9,8 @@ const sourceArg = valueAfter(args, "--source");
 
 const BINARY_BY_RID: Record<string, string> = {
   "linux-x64": "klint-rs",
+  "linux-musl-x64": "klint-rs",
+  "linux-arm64": "klint-rs",
   "osx-x64": "klint-rs",
   "osx-arm64": "klint-rs",
   "win-x64": "klint-rs.exe",

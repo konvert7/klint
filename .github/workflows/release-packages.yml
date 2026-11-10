@@ -148,6 +148,24 @@ jobs:
             binary: klint-rs
             archive: tar.gz
             python-platform-tag: manylinux_2_28_x86_64
+            manylinux-image: quay.io/pypa/manylinux_2_28_x86_64
+          # 2026-11-10: Alpine needs musl; static-pie binary, wheel tag per https://peps.python.org/pep-0656/
+          - os: ubuntu-latest
+            package: linux-x64-musl
+            nuget-rid: linux-musl-x64
+            rust-target: x86_64-unknown-linux-musl
+            binary: klint-rs
+            archive: tar.gz
+            python-platform-tag: musllinux_1_2_x86_64
+          # 2026-11-10: arm64 Linux built natively on https://github.com/actions/partner-runner-images
+          - os: ubuntu-24.04-arm
+            package: linux-arm64
+            nuget-rid: linux-arm64
+            rust-target: aarch64-unknown-linux-gnu
+            binary: klint-rs
+            archive: tar.gz
+            python-platform-tag: manylinux_2_28_aarch64
+            manylinux-image: quay.io/pypa/manylinux_2_28_aarch64
           - os: macos-latest
             package: darwin-arm64
             nuget-rid: osx-arm64
@@ -191,15 +209,19 @@ jobs:
           python-version: "3.13"
 
       - name: Setup Rust
-        if: matrix.package != 'linux-x64'
+        if: matrix.manylinux-image == ''
         run: rustup toolchain install stable --profile minimal
 
       - name: Install Rust target
-        if: matrix.package != 'linux-x64'
+        if: matrix.manylinux-image == ''
         run: rustup target add ${{ matrix.rust-target }}
 
+      - name: Install musl C toolchain
+        if: matrix.package == 'linux-x64-musl'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
       - name: Rust cache
-        if: matrix.package != 'linux-x64'
+        if: matrix.manylinux-image == ''
         uses: Swatinem/rust-cache@v2
         with:
           key: release-packages-${{ matrix.rust-target }}
@@ -210,18 +232,18 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build native binary
-        if: matrix.package != 'linux-x64'
+        if: matrix.manylinux-image == ''
         run: cargo build -p klint-rs --release --target ${{ matrix.rust-target }}
 
       - name: Build manylinux native binary
-        if: matrix.package == 'linux-x64'
+        if: matrix.manylinux-image != ''
         run: |
           docker run --rm \
             -v "$PWD:/io" \
             -w /io \
             -e KLINT_VERSION \
-            quay.io/pypa/manylinux_2_28_x86_64 \
-            bash -lc 'curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal && source "$HOME/.cargo/env" && cargo build -p klint-rs --release --target x86_64-unknown-linux-gnu'
+            ${{ matrix.manylinux-image }} \
+            bash -lc 'curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal && source "$HOME/.cargo/env" && cargo build -p klint-rs --release --target ${{ matrix.rust-target }}'
 
       - name: Stage archive directory
         shell: bash
@@ -294,10 +316,24 @@ jobs:
         run: bun tools/prepare-python-release.ts --name ${{ needs.metadata.outputs.python-package }} --version ${{ needs.metadata.outputs.version }}
 
       - name: Smoke Python wheel
-        if: needs.metadata.outputs.python-repository != 'none'
+        if: needs.metadata.outputs.python-repository != 'none' && matrix.package != 'linux-x64-musl'
         run: bun tests/smoke-python-wheel.ts
         env:
           KLINT_PYTHON_PLAT_NAME: ${{ matrix.python-platform-tag }}
+
+      - name: Build musllinux Python wheel
+        if: needs.metadata.outputs.python-repository != 'none' && matrix.package == 'linux-x64-musl'
+        run: |
+          rm -rf python/dist
+          python3 -m pip wheel python --wheel-dir python/dist
+        env:
+          KLINT_PYTHON_PLAT_NAME: ${{ matrix.python-platform-tag }}
+
+      - name: Smoke musllinux Python wheel on Alpine
+        if: needs.metadata.outputs.python-repository != 'none' && matrix.package == 'linux-x64-musl'
+        run: |
+          docker run --rm -v "$PWD:/io" -w /io python:3.13-alpine sh -c \
+            'pip install --quiet python/dist/*.whl && klint --version'
 
       - name: Upload Python wheel
         if: needs.metadata.outputs.python-repository != 'none'
@@ -375,11 +411,15 @@ jobs:
         run: |
           arm64_sha="$(cut -d ' ' -f 1 "dist/klint-$VERSION-darwin-arm64.tar.gz.sha256")"
           x64_sha="$(cut -d ' ' -f 1 "dist/klint-$VERSION-darwin-x64.tar.gz.sha256")"
+          linux_arm64_sha="$(cut -d ' ' -f 1 "dist/klint-$VERSION-linux-arm64.tar.gz.sha256")"
+          linux_x64_sha="$(cut -d ' ' -f 1 "dist/klint-$VERSION-linux-x64.tar.gz.sha256")"
 
           bun tools/generate-homebrew-formula.ts \
             --version "$VERSION" \
             --darwin-arm64-sha "$arm64_sha" \
             --darwin-x64-sha "$x64_sha" \
+            --linux-arm64-sha "$linux_arm64_sha" \
+            --linux-x64-sha "$linux_x64_sha" \
             --output homebrew-tap/Formula/klint.rb
 
           cd homebrew-tap
@@ -425,6 +465,8 @@ jobs:
       - name: Stage native binaries
         run: |
           bun tests/stage-nuget-binary.ts --rid linux-x64 --source downloads/nuget-native-linux-x64/klint-rs
+          bun tests/stage-nuget-binary.ts --rid linux-musl-x64 --source downloads/nuget-native-linux-musl-x64/klint-rs
+          bun tests/stage-nuget-binary.ts --rid linux-arm64 --source downloads/nuget-native-linux-arm64/klint-rs
           bun tests/stage-nuget-binary.ts --rid osx-x64   --source downloads/nuget-native-osx-x64/klint-rs
           bun tests/stage-nuget-binary.ts --rid osx-arm64 --source downloads/nuget-native-osx-arm64/klint-rs
           bun tests/stage-nuget-binary.ts --rid win-x64   --source downloads/nuget-native-win-x64/klint-rs.exe

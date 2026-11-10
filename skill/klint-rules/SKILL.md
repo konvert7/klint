@@ -48,8 +48,8 @@ Wire it into `klint.yaml` for editor autocomplete and validation:
 
 6. **Verify zero new violations on the current codebase:**
    ```sh
-   bun klint/cli.ts        # in-repo
-   npx klint               # after npm install
+   npx klint               # npm
+   klint                   # PyPI, NuGet, Homebrew
    ```
    If new violations appear on existing code, fix them first or adjust the rule scope — then land the rule.
 
@@ -255,10 +255,10 @@ After adding or modifying a rule, report:
 - The YAML stanza added
 - The grep evidence that confirmed the pattern is real
 - The test written and its result
-- The output of `bun run klint` (or `npx klint`) confirming zero new violations
+- The output of `npx klint` (or `klint`) confirming zero new violations
 
 ## Do NOT use
 
 - To fix TypeScript type errors, lint issues, or Biome violations — those are separate tools
 - To enforce naming conventions (hooks must start with `use`, components must be PascalCase) — use ESLint with the appropriate plugin
-- To write custom TypeScript AST rules in `klint.rules.ts` — that is a separate, code-level workflow
+- To write custom code-level rules — klint has no plugin API; express the policy as an `arch` rule or use a linter with one
