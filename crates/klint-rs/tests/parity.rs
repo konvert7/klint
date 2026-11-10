@@ -176,6 +176,7 @@ fn comparable_text(text: &str, root: &Path) -> String {
     duration
         .replace_all(text, "in <t>")
         .replace(root.to_string_lossy().as_ref(), "<dir>")
+        .replace("<dir>\\", "<dir>/")
         .replace(env!("CARGO_PKG_VERSION"), VERSION_PLACEHOLDER)
 }
 
