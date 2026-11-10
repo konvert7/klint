@@ -92,6 +92,11 @@ jobs:
       - name: Rust release build
         run: cargo build -p klint-rs --release
 
+      - name: Check Windows binary needs no VC++ runtime
+        if: runner.os == 'Windows'
+        shell: bash
+        run: "! grep -qai vcruntime140.dll target/release/klint-rs.exe"
+
       - name: Stage native package binary
         run: bun run native:stage
 

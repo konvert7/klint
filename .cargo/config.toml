@@ -1,0 +1,3 @@
+[target.'cfg(all(windows, target_env = "msvc"))']
+# 2026-11-10: link the C runtime in so klint starts without the VC++ Redistributable; https://doc.rust-lang.org/reference/linkage.html#static-and-dynamic-c-runtimes
+rustflags = ["-C", "target-feature=+crt-static"]
