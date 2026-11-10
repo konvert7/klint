@@ -39,7 +39,7 @@ fn cli_version_exits_zero() {
     assert_eq!(output.status.code(), Some(0));
     assert_eq!(
         String::from_utf8(output.stdout).expect("stdout should be utf8"),
-        format!("klint-rs {}\n", env!("CARGO_PKG_VERSION"))
+        format!("klint {}\n", env!("CARGO_PKG_VERSION"))
     );
     assert!(
         String::from_utf8(output.stderr)
