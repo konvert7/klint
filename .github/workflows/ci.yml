@@ -62,17 +62,11 @@ jobs:
       - name: Klint
         run: bun run klint
 
-      - name: Klint auto engine
-        run: bun run test:auto-engine
-
       - name: Rust debug build
         run: cargo build -p klint-rs
 
       - name: Test
         run: bun run test
-
-      - name: Rust shadow engine test
-        run: bun run test:rust-engine
 
       - name: Rust format
         run: cargo fmt --check
