@@ -1,8 +1,8 @@
 # klint
 
-Architecture-as-Code linting for TypeScript, Python, and Swift projects.
+Architecture-as-Code linting for TypeScript, Python, Swift, Rust, and C# projects, in one native binary.
 
-Biome, oxlint, Ruff, and SwiftLint are excellent at syntax, style, and fast local correctness. klint handles the rules that need project context: layer boundaries, singleton ownership, forbidden patterns, custom repository policies, and type-aware TypeScript checks that should block an AI agent or CI run before code lands.
+Biome, oxlint, Ruff, and SwiftLint are excellent at syntax, style, and fast local correctness. klint handles the rules that need project context: layer boundaries, singleton ownership, forbidden patterns, comment and file-size budgets, and repository policies that should block an AI agent or CI run before code lands.
 
 Use klint when "please follow AGENTS.md" is not strong enough. Put the rule in `klint.yaml`, run `klint`, and make the constraint executable.
 
@@ -28,10 +28,10 @@ With Cargo (installs the `klint-rs` binary):
 cargo install klint-rs
 ```
 
-For TypeScript projects using Bun:
+For JavaScript and TypeScript projects (npm, pnpm, Yarn or Bun; Node.js 18+). The package runs the native binary for your platform, so no TypeScript or Bun runtime is involved:
 
 ```sh
-bun add -d @konvert7/klint
+npm install -D @konvert7/klint
 ```
 
 Add a script:
@@ -53,7 +53,7 @@ Then create `klint.yaml` in your project root.
 include: ["src", "!**/node_modules/**"]
 
 rules:
-  no-floating-promise: error
+  no-async-predicate: error
   no-unguarded-json-parse: error
   no-sync-in-async:
     severity: error
@@ -74,13 +74,13 @@ arch:
 Run it:
 
 ```sh
-bun run klint
+npx klint
 ```
 
 For machines and hooks:
 
 ```sh
-bun run klint -- --json
+npx klint --json
 ```
 
 `--json` emits structured violations and exits `2` when errors are present.
@@ -112,15 +112,14 @@ klint is for rules that are too project-specific or context-heavy for a formatte
 | Forbidden patterns | `console.log(` is blocked inside hook libraries |
 | Raw JSX elements | `<button>` is blocked outside `src/components/ui/**` |
 | File length | No file in `src/**` may exceed 300 lines |
-| Type-aware mistakes | Promise-returning calls cannot be silently discarded |
-| Repository policy | Custom `klint.rules.ts` rules run with the same severity/config system |
+| Syntax mistakes | An `async` callback passed to `.filter()` always passes |
 
 Rules give agents room to move quickly because the unsafe moves are blocked structurally.
 
 ## CLI
 
 ```sh
-klint [--config <dir>] [--rules <file>] [--engine ts|rust|compare|auto] [--fix] [--json] [--hook]
+klint [--config <dir>] [--fix] [--json] [--hook]
 klint stats [--config <dir>]
 klint install-skill [--agents <list>] [--symlink | --copy] [--force]
 ```
@@ -128,8 +127,6 @@ klint install-skill [--agents <list>] [--symlink | --copy] [--force]
 | Flag | Description |
 |------|-------------|
 | `--config <dir>` | Directory containing `klint.yaml` or `klint.config.json` (default: cwd) |
-| `--rules <file>` | Path to custom rules file (default: `<configDir>/klint.rules.ts` when present) |
-| `--engine <name>` | Engine mode: `ts` (default), `rust`, `compare`, or `auto` |
 | `--fix` | Apply auto-fixes for fixable violations in-place |
 | `--json` | Emit structured JSON to stdout for agents and CI |
 | `--hook` | Count this run as an agent hook run in `klint stats` |
@@ -142,7 +139,7 @@ klint install-skill
 
 The skill is embedded in the native engine, so this works from every distribution — the npm package, the PyPI wheel, the NuGet tool, and the standalone binary — not just Node projects.
 
-Run on a terminal without `--agents`, `--symlink`, or `--copy`, it asks which agents to install for and how to store the skill. That is true of every distribution: the npm CLI prompts through `@clack/prompts`, and the native engine — which the wheel, the NuGet tool, and the standalone binary all wrap — prompts through `inquire`. Passing any of those flags, or piping stdin (CI, scripts, hooks), skips the questions and uses the defaults.
+Run on a terminal without `--agents`, `--symlink`, or `--copy`, it asks which agents to install for and how to store the skill. That is true of every distribution, since they all run the same native binary. Passing any of those flags, or piping stdin (CI, scripts, hooks), skips the questions and uses the defaults.
 
 ### Shared layout (default)
 
@@ -190,7 +187,7 @@ klint stats (.klint/stats.json)
   errors prevented     17  (caught by hook 11, direct 6)
 
   by rule                reported  prevented
-    no-floating-promise        29          9
+    no-async-predicate         29          9
     arch/imports               20          5
     no-string-match            12          3
 ```
@@ -201,49 +198,23 @@ Errors prevented is stricter: an error counts once, when a run reports it and a 
 
 `.klint/` contains a `.gitignore` with `*`, so git ignores the whole folder and nothing needs adding to your own `.gitignore`. Set `KLINT_NO_STATS=1` to stop recording. Stats are best effort: a read-only checkout never fails a lint run.
 
-## Engines
+## Upgrading from klint 0.x
 
-klint currently ships a TypeScript engine and an experimental Rust engine. The Rust path is built for portable architecture checks and syntax-local rules; type-aware checks stay in TypeScript for now.
+klint 1.0 runs one native engine on every platform. The TypeScript engine is gone, and with it:
 
-Maintainer migration notes live in [`docs/rust-engine.md`](docs/rust-engine.md).
+- **`--engine`, `--rules` and `--debug`.** Remove them from scripts and hooks.
+- **Custom rules in `klint.rules.ts`.** The file is ignored, and klint warns with `klint/unsupported-rule` so you notice. Express the policy as an `arch` rule (`forbidden`, `singleton`, `imports`) where you can.
+- **The rules that needed TypeScript's type checker.** They are ignored with a `klint/unsupported-rule` warning that names the replacement, when one exists. Turn them off in `klint.yaml` to silence it.
 
-| Engine | What it does | When to use it |
-|--------|--------------|----------------|
-| `ts` | Runs the full TypeScript implementation. This is the default. | Maximum compatibility |
-| `rust` | Runs only rules supported by the Rust engine. Unsupported TS-only rules are rejected. | Strict Rust smoke tests and native-engine debugging |
-| `compare` | Runs TS and Rust on the same supported config and fails if JSON output differs. Requires `--json`. | Parity verification while porting rules |
-| `auto` | Runs Rust-supported rules in Rust, TS-only rules and unsupported plugin defaults in TypeScript, then merges output. | Recommended experimental migration path |
+| Removed rule | Replacement |
+|--------------|-------------|
+| `no-floating-promise` | Biome `nursery/noFloatingPromises` |
+| `no-misused-promises` | Biome `nursery/noMisusedPromises` |
+| `no-object-in-template` | Biome `nursery/noBaseToString` |
+| `no-date-equality` | none yet |
+| `no-optional-chain-on-non-nullable` | none yet |
 
-Examples:
-
-```sh
-klint --engine auto
-klint --engine rust --json     # strict Rust-only run; rejects unsupported rules
-klint --engine compare --json  # parity check; rejects unsupported rules
-```
-
-Rust currently supports:
-
-- `arch` rules: imports, forbidden patterns (literal + `re:` regex), singleton locations, `maxLines` file limits, comment budgets (`maxCommentDensity`, `maxCommentBlock`)
-- `no-unguarded-json-parse`
-- `no-sync-in-async`
-- `no-nested-template-literals`
-- `no-consecutive-array-push`
-- `no-string-match`
-- `sonar/no-single-char-class`
-- `sonar/prefer-at`
-- `sonar/prefer-nullish-coalescing-assign`
-- `sonar/prefer-string-replaceall`
-- `sonar/prefer-string-raw`
-- `sonar/prefer-string-raw-regexp`
-
-These rules remain TypeScript-owned because they need TypeScript semantic information:
-
-- `no-floating-promise`
-- `no-misused-promises`
-- `no-date-equality`
-- `no-optional-chain-on-non-nullable`
-- `no-object-in-template`
+The npm package needs Node.js 18+ and no longer installs `typescript`, `zod`, `yaml` or `@clack/prompts`.
 
 ## Configuration
 
@@ -257,10 +228,9 @@ plugins: [sonar]
 
 rules:
   no-unguarded-json-parse: error
-  no-floating-promise: error
-  no-misused-promises: error
+  no-async-predicate: error
   sonar/prefer-string-replaceall: warn
-  my-custom-rule:
+  no-sync-in-async:
     severity: error
     include: ["src/server/**"]
 
@@ -432,7 +402,7 @@ arch:
       message: "Libraries should return or throw, not terminate the process"
 ```
 
-Match a **regular expression** instead of a literal by prefixing the pattern with `re:` — useful for value-shaped policies such as off-system utility classes. Regexes use the common JS/RE2 subset (no lookaround or backreferences) so the TS and Rust engines agree:
+Match a **regular expression** instead of a literal by prefixing the pattern with `re:` — useful for value-shaped policies such as off-system utility classes. Regexes use the RE2 subset (no lookaround or backreferences):
 
 ```yaml
 arch:
@@ -497,7 +467,7 @@ arch:
       in: ["tests/**"]
 ```
 
-`maxLines` is enforced in both the TS and Rust engines and applies to every language klint scans, with no formatter dependency.
+`maxLines` applies to every language klint scans, with no formatter dependency.
 
 ### Comment Budgets
 
@@ -522,7 +492,7 @@ arch:
       in: ["src/**"]
 ```
 
-Set `countDocComments: true` on either rule to count doc-comments toward the limit as well. Both rules run in the TS and Rust engines; Python (`#`), Swift (`//`, `/* */`), and C# (`//`, `/* */`) files are enforced by the Rust engine.
+Set `countDocComments: true` on either rule to count doc-comments toward the limit as well.
 
 Some comments are machinery rather than prose — markers a build or codegen step reads, region pragmas — and counting them makes both limits measure the wrong thing. `ignore` exempts them, on either rule:
 
@@ -542,8 +512,7 @@ klint scans TypeScript/JavaScript, Python, Swift, Rust, and C#. Every architectu
 
 | | TypeScript / JavaScript | Python | Swift | Rust | C# |
 |---|---|---|---|---|---|
-| **Engines** | `ts`, `rust` | `rust` | `rust` | `rust` | `rust` |
-| **Parser** | TypeScript compiler API (TS engine), tree-sitter (Rust engine) | tree-sitter | tree-sitter | tree-sitter | tree-sitter |
+| **Parser** | tree-sitter | tree-sitter | tree-sitter | tree-sitter | tree-sitter |
 | `arch.imports` — static | ✅ | ✅ | ✅ | ✅ `use` | ✅ `using` |
 | `arch.imports` — dynamic | ✅ `import()` | ✅ `importlib.import_module`, `__import__` | — | — | — |
 | `arch.imports` — re-exports | ✅ `export … from` | — | ✅ `@_exported import` | ✅ `pub use` | — |
@@ -557,18 +526,16 @@ klint scans TypeScript/JavaScript, Python, Swift, Rust, and C#. Every architectu
 | `arch.maxLines` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `arch.maxCommentDensity` / `maxCommentBlock` | ✅ `//`, `/* */`, `/** */` docs | ✅ `#` | ✅ `//`, `/* */`, `///` and `/** */` docs | ✅ `//`, `/* */`, `///` and `//!` docs | ✅ `//`, `/* */`, `///` and `/** */` docs |
 | Built-in rules and plugins | ✅ | ✗ | ✗ | ✗ | ✗ |
-| Custom rules (`klint.rules.ts`) | ✅ | ✗ | ✗ | ✗ | ✗ |
-| Type-aware rules | ✅ | ✗ | ✗ | ✗ | ✗ |
 
 **✅** supported · **—** the language has no equivalent construct · **✗** not supported yet
 
 A dash is not a gap. Swift has no dynamic import expression, no `import type`, and one module per declaration; Rust has no dynamic import and no type-only import; C# has no dynamic `using`, no type-only import, and one namespace per `using`. Those rows can never be filled. The `✗` rows are real limits: the rule set and custom rules are written against the TypeScript AST, and type-aware rules need a type checker that only the TS engine has.
 
-Imports are read off the AST in every language, so a specifier written inside a comment or a string is never an import — including nested Swift block comments. Only file discovery differs: the TS engine walks `.ts`/`.tsx`/`.js`/`.jsx`/`.mts`/`.cts`, so Python, Swift, Rust, and C# files reach klint through the Rust engine, which `auto` mode selects for them automatically.
+Imports are read off the AST in every language, so a specifier written inside a comment or a string is never an import — including nested Swift block comments.
 
 ### Python Architecture Checks
 
-The Rust engine can apply architecture rules to Python projects:
+klint applies architecture rules to Python projects:
 
 ```yaml
 include: ["src"]
@@ -616,7 +583,7 @@ virtual-environment analysis.
 
 ### Swift Architecture Checks
 
-The Rust engine can apply architecture rules to Swift projects:
+klint applies architecture rules to Swift projects:
 
 ```yaml
 include: ["Sources"]
@@ -660,7 +627,7 @@ alongside `/** */`.
 
 ### Rust Architecture Checks
 
-The Rust engine can apply architecture rules to Rust crates:
+klint applies architecture rules to Rust crates:
 
 ```yaml
 include: ["crates/**/*.rs", "!target/**"]
@@ -707,7 +674,7 @@ doc-comments.
 
 ### C# Architecture Checks
 
-The Rust engine can apply architecture rules to C# projects:
+klint applies architecture rules to C# projects:
 
 ```yaml
 include: ["src"]
@@ -754,19 +721,16 @@ doc-comments alongside `/** */`.
 
 ## Built-in Rules
 
-| Rule | Type-aware | Description |
-|------|------------|-------------|
-| `no-unguarded-json-parse` | No | `JSON.parse()` called outside a try/catch |
-| `no-sync-in-async` | No | Sync filesystem calls inside async functions |
-| `no-floating-promise` | Yes | Promise-returning call whose result is discarded |
-| `no-misused-promises` | Yes | Async function passed where a sync callback is expected |
-| `no-async-predicate` | Yes | Async predicate passed to array filtering/search methods |
-| `no-date-equality` | Yes | Date values compared by object identity |
-| `no-optional-chain-on-non-nullable` | Yes | Optional chaining on values TypeScript knows are non-nullable |
-| `no-object-in-template` | Yes | Object values interpolated into template strings |
-| `no-nested-template-literals` | No | Template literals nested inside template literals |
-| `no-consecutive-array-push` | No | Multiple consecutive `push()` calls that should be grouped |
-| `no-string-match` | No | `String#match()` usage better expressed with clearer APIs |
+| Rule | Description |
+|------|-------------|
+| `no-unguarded-json-parse` | `JSON.parse()` called outside a try/catch |
+| `no-sync-in-async` | Sync filesystem calls inside async functions |
+| `no-async-predicate` | Inline `async` function passed to `filter`, `some`, `every`, `find` or `findIndex`; without types, any receiver counts |
+| `no-nested-template-literals` | Template literals nested inside template literals |
+| `no-consecutive-array-push` | Multiple consecutive `push()` calls that should be grouped |
+| `no-string-match` | `String#match()` usage better expressed with clearer APIs |
+
+Rules that needed TypeScript's type checker were removed in 1.0; see [Upgrading from klint 0.x](#upgrading-from-klint-0x).
 
 ## Plugins
 
@@ -789,99 +753,18 @@ Agent hooks should run klint with `--json` so violations are machine-readable, a
 // .agents/hooks/klint.ts
 import { runHook } from "./run-hook";
 
-const exitCode = runHook(["bun", "run", "klint", "--", "--json", "--hook"]);
+const exitCode = runHook(["npx", "klint", "--json", "--hook"]);
 process.exit(exitCode);
 ```
 
 In CI, run the same command you use locally:
 
 ```sh
-bun install
-bun run klint
+npm ci
+npx klint
 ```
 
 The important contract is simple: klint exits `0` when the project is clean, `2` when blocking errors exist, and can emit JSON for agents that need structured feedback.
-
-## Custom Rules
-
-Create `klint.rules.ts` next to `klint.yaml` and export a `Record<string, KlintRule>` as default. Each key is the rule name.
-
-```ts
-import { relative } from "node:path";
-import type { KlintRule } from "@konvert7/klint/core/types";
-
-const noForbiddenPattern: KlintRule = {
-  check({ files, root, fileContents }, violations) {
-    for (const file of files) {
-      const lines = (fileContents.get(file) ?? "").split("\n");
-      for (let i = 0; i < lines.length; i++) {
-        if (/forbidden-pattern/.test(lines[i])) {
-          violations.push({
-            file: relative(root, file),
-            line: i + 1,
-            message: "Explain what is wrong and how to fix it.",
-          });
-        }
-      }
-    }
-  },
-};
-
-export default {
-  "no-forbidden-pattern": noForbiddenPattern,
-};
-```
-
-All exported custom rules run at `"error"` severity by default. Override severity or scope through `rules`:
-
-```yaml
-rules:
-  no-forbidden-pattern:
-    severity: warn
-    include: ["src/server/**"]
-```
-
-No separate registration step is required.
-
-### Auto-fix Support
-
-Add a `fix` field to a violation to make it auto-fixable with `--fix`. Fixes replace a line range with new text:
-
-```ts
-violations.push({
-  file: relative(root, file),
-  line: i + 1,
-  message: "Use foo() instead of bar().",
-  fix: {
-    startLine: i + 1,
-    endLine: i + 1,
-    replacement: lines[i].replace("bar()", "foo()"),
-  },
-});
-```
-
-### Type-aware Rules
-
-For rules that need the TypeScript AST, use `walkAst`:
-
-```ts
-import ts from "typescript";
-import { walkAst } from "@konvert7/klint/core/ast";
-import type { KlintRule } from "@konvert7/klint/core/types";
-
-const noSpecificCall: KlintRule = {
-  check({ files, fileContents }, violations) {
-    for (const file of files) {
-      const content = fileContents.get(file) ?? "";
-      walkAst(file, content, (node) => {
-        if (ts.isCallExpression(node)) {
-          // Inspect node with the TypeScript AST.
-        }
-      });
-    }
-  },
-};
-```
 
 ## How It Fits
 
@@ -890,6 +773,6 @@ klint is not a replacement for Biome, oxlint, ESLint, knip, or TypeScript itself
 - Use TypeScript for type correctness.
 - Use Biome or oxlint for fast syntax and style checks.
 - Use knip for unused files and exports.
-- Use klint for architecture, agent constraints, project policy, and custom type-aware checks.
+- Use klint for architecture, agent constraints, and project policy.
 
 The goal is a small, sharp gate: the rules your project cannot afford to leave as prose.
