@@ -29,4 +29,4 @@ rule reference.
 
 ## Supported platforms
 
-`linux-x64`, `osx-x64`, `osx-arm64`, `win-x64`.
+`linux-x64`, `linux-musl-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`, `win-x64`.
