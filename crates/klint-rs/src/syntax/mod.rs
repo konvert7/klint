@@ -1,5 +1,11 @@
 mod architecture;
+mod blank_lines;
 mod rules;
+
+pub(crate) use blank_lines::{
+    BlankLineFinding, Keyword, KeywordSet, is_statement_container, missing_blank_after,
+    missing_blank_before,
+};
 
 pub use architecture::{
     CommentRecord, ImportRecord, JsxElementRecord, scan_imports, scan_jsx_elements,
@@ -37,7 +43,7 @@ pub(crate) fn parse_source(path: &Path, content: &str) -> Option<Tree> {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum SourceLanguage {
+pub(crate) enum SourceLanguage {
     JavaScriptLike,
     Python,
     Swift,
@@ -61,7 +67,7 @@ fn language_for_path(path: &Path) -> Language {
     }
 }
 
-fn source_language_for_path(path: &Path) -> SourceLanguage {
+pub(crate) fn source_language_for_path(path: &Path) -> SourceLanguage {
     match path.extension().and_then(|ext| ext.to_str()) {
         Some("py") => SourceLanguage::Python,
         Some("swift") => SourceLanguage::Swift,

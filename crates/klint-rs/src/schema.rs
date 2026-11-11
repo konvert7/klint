@@ -31,7 +31,10 @@ pub(crate) fn rules_schema(generator: &mut SchemaGenerator) -> Schema {
     let properties: Map<String, Value> = RULE_DOCS
         .iter()
         .map(|doc| {
-            let mut entry = rule_value.clone();
+            let mut entry = doc.options_schema.map_or_else(
+                || rule_value.clone(),
+                |schema_for| schema_for(generator).to_value(),
+            );
             let fields = entry
                 .as_object_mut()
                 .expect("an inlined rule value schema is a JSON object");
