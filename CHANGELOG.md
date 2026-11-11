@@ -1,3 +1,16 @@
+# [1.1.0](https://github.com/konvert7/klint/compare/v1.0.2...v1.1.0) (2026-11-11)
+
+
+### Bug Fixes
+
+* **rust:** skip docstrings and directive lines in blank-line rules ([9b1fff5](https://github.com/konvert7/klint/commit/9b1fff5a10037d906f9dc79c0d0f98b61264454b)), closes [else/#endif](https://github.com/konvert7/klint/issues/endif)
+
+
+### Features
+
+* add .dark-factory.json config ([963a944](https://github.com/konvert7/klint/commit/963a944e4641fa2975e8c7baa6ad26fd004de7e7))
+* **rust:** add blank-line rules around control flow ([57e85bf](https://github.com/konvert7/klint/commit/57e85bf6775907e9702bb3ad8cc8f771ce3d7deb))
+
 ## [1.0.2](https://github.com/konvert7/klint/compare/v1.0.1...v1.0.2) (2026-11-10)
 
 
