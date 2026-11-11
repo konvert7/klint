@@ -1,6 +1,8 @@
 use tree_sitter::Node;
 
-use crate::syntax::{is_async_function_like, is_function_like};
+use crate::syntax::{
+    SourceLanguage, is_async_function_like, is_function_like, is_statement_container,
+};
 
 /// A `call_expression` plus the descent state its rules need. Both
 /// `no-unguarded-json-parse` and `no-sync-in-async` decide from an ancestor —
@@ -27,6 +29,7 @@ pub(crate) struct Wants {
     pub new_expressions: bool,
     pub if_statements: bool,
     pub containers: bool,
+    pub statement_blocks: bool,
 }
 
 impl Wants {
@@ -39,6 +42,7 @@ impl Wants {
             || self.new_expressions
             || self.if_statements
             || self.containers
+            || self.statement_blocks
     }
 }
 
@@ -55,19 +59,39 @@ pub(crate) struct NodeIndex<'a> {
     pub new_expressions: Vec<Node<'a>>,
     pub if_statements: Vec<Node<'a>>,
     pub containers: Vec<Node<'a>>,
+    pub statement_blocks: Vec<Node<'a>>,
+    pub has_syntax_error: bool,
 }
 
 impl<'a> NodeIndex<'a> {
-    pub(crate) fn build(root: Node<'a>, source: &[u8], wants: Wants) -> Self {
-        let mut index = Self::default();
+    pub(crate) fn build(
+        root: Node<'a>,
+        source: &[u8],
+        wants: Wants,
+        language: SourceLanguage,
+    ) -> Self {
+        let mut index = Self {
+            has_syntax_error: root.has_error(),
+            ..Self::default()
+        };
         if wants.wants_anything() {
-            index.visit(root, source, wants, Descent::default());
+            index.visit(root, source, wants, language, Descent::default());
         }
         index
     }
 
-    fn visit(&mut self, node: Node<'a>, source: &[u8], wants: Wants, descent: Descent) {
+    fn visit(
+        &mut self,
+        node: Node<'a>,
+        source: &[u8],
+        wants: Wants,
+        language: SourceLanguage,
+        descent: Descent,
+    ) {
         let descent = descent.enter(node, source, wants);
+        if wants.statement_blocks && is_statement_container(language, node.kind()) {
+            self.statement_blocks.push(node);
+        }
         match node.kind() {
             "call_expression" if wants.calls => self.calls.push(IndexedCall {
                 node,
@@ -86,7 +110,7 @@ impl<'a> NodeIndex<'a> {
 
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit(child, source, wants, descent);
+            self.visit(child, source, wants, language, descent);
         }
     }
 }

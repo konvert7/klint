@@ -842,5 +842,68 @@
       "violations": [],
       "summary": { "errors": 0, "warnings": 0 }
     }
+  },
+  {
+    "name": "blank-line-before-control-flow flags a statement glued to the previous one and emits fix",
+    "config": {
+      "include": ["."],
+      "rules": { "blank-line-before-control-flow": "error" }
+    },
+    "files": {
+      "src/subject.ts": "foo();\nif (a) {\n  b();\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "blank-line-before-control-flow",
+          "message": "Missing blank line before `if` — separate it from the statement above.",
+          "severity": "error",
+          "fix": { "startLine": 2, "endLine": 2, "replacement": "\nif (a) {" }
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "blank-line-after-block flags a block glued to the next statement and emits fix",
+    "config": {
+      "include": ["."],
+      "rules": { "blank-line-after-block": "error" }
+    },
+    "files": {
+      "src/subject.ts": "if (a) {\n  b();\n}\nfoo();\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 3,
+          "rule": "blank-line-after-block",
+          "message": "Missing blank line after `if` block — separate it from the statement below.",
+          "severity": "error",
+          "fix": { "startLine": 4, "endLine": 4, "replacement": "\nfoo();" }
+        }
+      ],
+      "summary": { "errors": 1, "warnings": 0 }
+    }
+  },
+  {
+    "name": "blank-line rules stay quiet when the blank lines are there",
+    "config": {
+      "include": ["."],
+      "rules": {
+        "blank-line-before-control-flow": "error",
+        "blank-line-after-block": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "foo();\n\nif (a) {\n  b();\n}\n\nfoo();\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": { "errors": 0, "warnings": 0 }
+    }
   }
 ]
