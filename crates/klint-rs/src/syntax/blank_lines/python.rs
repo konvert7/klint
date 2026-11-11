@@ -18,7 +18,7 @@ impl Grammar for Python {
     }
 
     fn classify<'a>(&self, member: Node<'a>) -> Role<'a> {
-        if member.kind() == "comment" {
+        if member.kind() == "comment" || is_docstring(member) {
             return Role::Comment;
         }
         Role::Statement(target_of(member))
@@ -40,6 +40,34 @@ impl Grammar for Python {
                 .parent()
                 .is_none_or(|parent| !is_member_or_keyword_name(parent, node))
     }
+}
+
+fn is_docstring(statement: Node<'_>) -> bool {
+    statement.kind() == "expression_statement"
+        && named_children(statement)
+            .first()
+            .is_some_and(|expression| expression.kind() == "string")
+        && statement.named_child_count() == 1
+        && only_comments_before(statement)
+        && statement.parent().is_some_and(is_documented_body)
+}
+
+fn only_comments_before(statement: Node<'_>) -> bool {
+    let mut sibling = statement.prev_named_sibling();
+    while let Some(node) = sibling {
+        if node.kind() != "comment" {
+            return false;
+        }
+        sibling = node.prev_named_sibling();
+    }
+    true
+}
+
+fn is_documented_body(body: Node<'_>) -> bool {
+    body.kind() == "module"
+        || body
+            .parent()
+            .is_some_and(|owner| matches!(owner.kind(), "function_definition" | "class_definition"))
 }
 
 fn target_of(node: Node<'_>) -> Option<Target<'_>> {

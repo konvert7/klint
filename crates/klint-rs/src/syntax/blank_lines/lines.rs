@@ -1,3 +1,4 @@
+use super::grammar::Grammar;
 use tree_sitter::Node;
 
 pub(super) struct SourceLines<'s> {
@@ -15,6 +16,14 @@ impl<'s> SourceLines<'s> {
         self.lines
             .get(row)
             .is_some_and(|line| line.trim().is_empty())
+    }
+
+    pub(super) fn separates(&self, row: usize, grammar: &dyn Grammar) -> bool {
+        self.is_blank(row)
+            || self
+                .lines
+                .get(row)
+                .is_some_and(|line| grammar.is_directive_line(line))
     }
 
     pub(super) fn starts_line(&self, row: usize, column: usize) -> bool {

@@ -40,6 +40,11 @@ impl Grammar for Swift {
                 !matches!(parent.kind(), "navigation_suffix" | "value_argument_label")
             })
     }
+
+    fn is_directive_line(&self, line: &str) -> bool {
+        let word = line.split_whitespace().next().unwrap_or_default();
+        matches!(word, "#if" | "#elseif" | "#else" | "#endif")
+    }
 }
 
 fn target_of(node: Node<'_>) -> Option<Target<'_>> {

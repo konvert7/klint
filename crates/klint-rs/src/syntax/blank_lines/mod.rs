@@ -72,7 +72,14 @@ pub(crate) fn missing_blank_after(
     let grammar = grammar_for(language);
     let mut findings: Vec<BlankLineFinding> = blocks
         .iter()
-        .flat_map(|block| after_findings(&block_items(*block, grammar, &lines), &lines, targets))
+        .flat_map(|block| {
+            after_findings(
+                &block_items(*block, grammar, &lines),
+                &lines,
+                grammar,
+                targets,
+            )
+        })
         .collect();
     findings.sort_by_key(|finding| finding.line);
     findings

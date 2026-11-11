@@ -46,6 +46,10 @@ impl Grammar for CSharp {
                 !(parent.kind() == "member_access_expression" && is_field_of(parent, "name", node))
             })
     }
+
+    fn is_directive_line(&self, line: &str) -> bool {
+        line.trim_start().starts_with('#')
+    }
 }
 
 fn is_section_body(child: Node<'_>) -> bool {

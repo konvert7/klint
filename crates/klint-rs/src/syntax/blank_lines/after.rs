@@ -1,4 +1,5 @@
 use super::BlankLineFinding;
+use super::grammar::Grammar;
 use super::items::{Item, ItemRole};
 use super::keyword::KeywordSet;
 use super::lines::SourceLines;
@@ -6,6 +7,7 @@ use super::lines::SourceLines;
 pub(super) fn after_findings(
     items: &[Item<'_>],
     lines: &SourceLines<'_>,
+    grammar: &dyn Grammar,
     targets: KeywordSet,
 ) -> Vec<BlankLineFinding> {
     items
@@ -19,7 +21,7 @@ pub(super) fn after_findings(
             (targets.contains(target.keyword)
                 && target.ends_with_block
                 && next.start_row > item.last_row
-                && !lines.is_blank(item.last_row + 1))
+                && !lines.separates(item.last_row + 1, grammar))
             .then(|| finding(item, target.written))
         })
         .collect()
@@ -55,7 +57,7 @@ mod tests {
         let lines = SourceLines::new(source);
         let grammar = grammar_for(SourceLanguage::JavaScriptLike);
         let items = block_items(tree.root_node(), grammar, &lines);
-        after_findings(&items, &lines, KeywordSet::ALL_AFTER)
+        after_findings(&items, &lines, grammar, KeywordSet::ALL_AFTER)
     }
 
     fn finding(line: usize, insertion_line: usize, keyword: &'static str) -> BlankLineFinding {

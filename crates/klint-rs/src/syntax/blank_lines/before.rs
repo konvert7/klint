@@ -22,7 +22,7 @@ pub(super) fn before_findings(
             };
             let previous = previous_statement(&items[..index])?;
             (targets.contains(target.keyword)
-                && is_reportable_gap(previous, item, lines)
+                && is_reportable_gap(previous, item, lines, grammar)
                 && !(allow_setup && setup_applies(previous, target, grammar, source)))
             .then(|| finding(item, target.written))
         })
@@ -36,11 +36,16 @@ fn previous_statement<'i, 'a>(items: &'i [Item<'a>]) -> Option<&'i Item<'a>> {
         .find(|item| matches!(item.role, ItemRole::Statement(_)))
 }
 
-fn is_reportable_gap(previous: &Item<'_>, item: &Item<'_>, lines: &SourceLines<'_>) -> bool {
+fn is_reportable_gap(
+    previous: &Item<'_>,
+    item: &Item<'_>,
+    lines: &SourceLines<'_>,
+    grammar: &dyn Grammar,
+) -> bool {
     item.head_row > previous.last_row
         && lines.starts_line(item.start_row, item.start_column)
         && lines.starts_line(item.head_row, item.head_column)
-        && !lines.is_blank(item.head_row - 1)
+        && !lines.separates(item.head_row - 1, grammar)
 }
 
 fn finding(item: &Item<'_>, written: &'static str) -> BlankLineFinding {

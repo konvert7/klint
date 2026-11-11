@@ -780,7 +780,7 @@ rules:
 
 **Autofix.** `klint --fix` inserts one empty line with the line ending of the line above it, and changes nothing else. A second run changes nothing.
 
-**Not checked.** A file with a syntax error gets no report and no fix. A braceless body (`if (a) return 1;`) is not a block for the after rule. `do…while` and `repeat…while` are never reported by the after rule. A statement that shares its line with the previous statement is not reported, because the fix would have to split that line. Expression forms are not statements: `let x = if …` and `let r = match …` in Rust, `let x = if …` in Swift, a C# switch expression, and control flow inside a call are never reported.
+**Not checked.** A file with a syntax error gets no report and no fix. A braceless body (`if (a) return 1;`) is not a block for the after rule. `do…while` and `repeat…while` are never reported by the after rule. A statement that shares its line with the previous statement is not reported, because the fix would have to split that line. Expression forms are not statements: `let x = if …` and `let r = match …` in Rust, `let x = if …` in Swift, a C# switch expression, and control flow inside a call are never reported. A Python docstring is documentation, not a statement, so the statement after it counts as first in its block. A C# preprocessor line (`#region`, `#if`, `#pragma`, …) or a Swift `#if`/`#elseif`/`#else`/`#endif` line separates statements like a blank line, so neither rule inserts a line next to one.
 
 ## Plugins
 

@@ -275,6 +275,10 @@ rules:
 `klint --fix` inserts the missing blank lines, one per gap, and changes nothing else. Files with a
 syntax error are skipped. Run `klint --fix` again to confirm it reports nothing left to fix.
 
+A comment directly above a statement belongs to it, so the blank line goes above the comment. A
+Python docstring counts as a comment. A C# preprocessor line or a Swift `#if`/`#else`/`#endif` line
+separates statements like a blank line, so no line is inserted next to it.
+
 ## Pitfalls
 
 - `pattern` in `singleton` and `forbidden` is a **literal substring** by default — it will not catch `process.env["KEY"]` (bracket notation). Either grep for both forms, or use a `re:` regex prefix to match them in one rule. Caveat: a literal pattern that itself begins with `re:` cannot be expressed (it is always read as a regex), and regexes must stay in the common JS/RE2 subset (no lookaround or backreferences) so both engines agree.

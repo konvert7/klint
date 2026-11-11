@@ -19,6 +19,9 @@ pub(super) trait Grammar: Sync {
     fn classify<'a>(&self, member: Node<'a>) -> Role<'a>;
     fn assigned_names(&self, statement: Node<'_>, source: &[u8]) -> Vec<String>;
     fn is_condition_name(&self, node: Node<'_>) -> bool;
+    fn is_directive_line(&self, _line: &str) -> bool {
+        false
+    }
 }
 
 pub(super) enum Role<'a> {
