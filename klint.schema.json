@@ -598,6 +598,133 @@
       },
       "description": "Map of rule name → severity or options. Example: { \"no-floating-promise\": \"error\", \"no-sync-in-async\": { \"severity\": \"warn\", \"include\": [\"src/hooks/**\"] } }.",
       "properties": {
+        "blank-line-after-block": {
+          "anyOf": [
+            {
+              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+              "enum": [
+                "error",
+                "warn",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+              "properties": {
+                "include": {
+                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "severity": {
+                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off",
+                    null
+                  ],
+                  "type": "string"
+                },
+                "statements": {
+                  "description": "Block statement kinds this rule targets. Defaults to every kind: if, for, while, switch, try, guard, loop, with. match is an alias of switch. return is not a block statement. An empty list turns the rule off.",
+                  "items": {
+                    "description": "A block statement kind the rule targets. match is an alias of switch.",
+                    "enum": [
+                      "if",
+                      "for",
+                      "while",
+                      "switch",
+                      "match",
+                      "try",
+                      "guard",
+                      "loop",
+                      "with"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Requires a blank line below a block statement (if, for, while, switch/match, try, guard, loop, with) when another statement follows it in the same block, like C# IDE2003. Works on TypeScript/JavaScript, Python, Swift, Rust and C#; `klint --fix` inserts the line.",
+          "examples": [
+            "blank-line-after-block: warn",
+            "blank-line-after-block:\n  severity: warn\n  include: [\"src/**\"]\n  statements: [if, for, while, switch, try, guard, loop, with]"
+          ]
+        },
+        "blank-line-before-control-flow": {
+          "anyOf": [
+            {
+              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+              "enum": [
+                "error",
+                "warn",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+              "properties": {
+                "allowSetup": {
+                  "description": "Skip an if, guard or switch statement whose condition uses a name assigned by the statement directly above it. Defaults to true.",
+                  "type": "boolean"
+                },
+                "include": {
+                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "severity": {
+                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off",
+                    null
+                  ],
+                  "type": "string"
+                },
+                "statements": {
+                  "description": "Statement kinds this rule targets. Defaults to every kind: if, for, while, switch, try, return, guard, loop, with. match is an alias of switch. An empty list turns the rule off.",
+                  "items": {
+                    "description": "A statement kind the rule targets. match is an alias of switch.",
+                    "enum": [
+                      "if",
+                      "for",
+                      "while",
+                      "switch",
+                      "match",
+                      "try",
+                      "return",
+                      "guard",
+                      "loop",
+                      "with"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Requires a blank line above a control-flow statement (if, for, while, switch/match, try, return, guard, loop, with) that follows another statement in the same block. Works on TypeScript/JavaScript, Python, Swift, Rust and C#; `klint --fix` inserts the line.",
+          "examples": [
+            "blank-line-before-control-flow: error",
+            "blank-line-before-control-flow:\n  severity: error\n  include: [\"src/**\", \"!src/generated/**\"]\n  statements: [if, for, while, switch, try, return, guard, loop, with]\n  allowSetup: true"
+          ]
+        },
         "no-async-predicate": {
           "anyOf": [
             {

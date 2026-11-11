@@ -52,7 +52,7 @@ enum PluginName {
     description = "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences."
 )]
 #[allow(dead_code)]
-enum Severity {
+pub(crate) enum Severity {
     Error,
     Warn,
     Off,
@@ -73,10 +73,29 @@ pub(crate) enum RuleConfig {
             description = "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]"
         )]
         include: Option<Vec<String>>,
+        #[schemars(skip)]
+        statements: Option<serde_json::Value>,
+        #[serde(rename = "allowSetup")]
+        #[schemars(skip)]
+        allow_setup: Option<serde_json::Value>,
     },
 }
 
 impl RuleConfig {
+    pub(crate) fn statements(&self) -> Option<&serde_json::Value> {
+        match self {
+            RuleConfig::Severity(_) => None,
+            RuleConfig::Options { statements, .. } => statements.as_ref(),
+        }
+    }
+
+    pub(crate) fn allow_setup(&self) -> Option<&serde_json::Value> {
+        match self {
+            RuleConfig::Severity(_) => None,
+            RuleConfig::Options { allow_setup, .. } => allow_setup.as_ref(),
+        }
+    }
+
     pub(crate) fn severity(&self) -> &str {
         match self {
             RuleConfig::Severity(value) => value,
@@ -132,5 +151,35 @@ pub(crate) fn resolve_root(config_dir: &Path, root: Option<&str>) -> PathBuf {
         normalize_path(path)
     } else {
         normalize_path(&config_dir.join(path))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rule_config(yaml: &str) -> RuleConfig {
+        serde_yaml::from_str(yaml).expect("valid rule config")
+    }
+
+    #[test]
+    fn bare_severity_has_no_statements_and_no_allow_setup() {
+        let config = rule_config("error");
+        assert_eq!(config.statements(), None);
+        assert_eq!(config.allow_setup(), None);
+    }
+
+    #[test]
+    fn statements_list_is_returned_and_allow_setup_is_absent() {
+        let config = rule_config("{statements: [if]}");
+        assert_eq!(config.statements(), Some(&serde_json::json!(["if"])));
+        assert_eq!(config.allow_setup(), None);
+    }
+
+    #[test]
+    fn allow_setup_false_is_returned_and_statements_is_absent() {
+        let config = rule_config("{allowSetup: false}");
+        assert_eq!(config.statements(), None);
+        assert_eq!(config.allow_setup(), Some(&serde_json::json!(false)));
     }
 }

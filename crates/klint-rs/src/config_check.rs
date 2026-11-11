@@ -4,6 +4,7 @@ use std::path::Path;
 
 use crate::config::RuleConfig;
 use crate::output::Violation;
+use crate::rules::rule_option_problems;
 
 const RULE: &str = "klint/config";
 const KNOWN_KEYS: &[&str] = &["$schema", "root", "include", "plugins", "rules", "arch"];
@@ -47,7 +48,15 @@ pub(crate) fn config_advisories(
                 ),
             )
         });
-    unknown_keys.chain(invalid_severities).collect()
+    let option_problems = rules.iter().flat_map(|(name, config)| {
+        rule_option_problems(name, config)
+            .into_iter()
+            .map(move |problem| advisory(file, line_of_key(text, name), problem))
+    });
+    unknown_keys
+        .chain(invalid_severities)
+        .chain(option_problems)
+        .collect()
 }
 
 fn top_level_keys(text: &str) -> Vec<String> {

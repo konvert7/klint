@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::arch::{ArchFileScan, ArchPlan};
 use crate::output::Violation;
 use crate::rules::{RulePass, RuleScan, rule_wants};
-use crate::syntax::parse_source;
+use crate::syntax::{parse_source, source_language_for_path};
 
 pub(crate) use walk::{NodeIndex, Wants};
 
@@ -88,6 +88,7 @@ impl Engine<'_> {
         let file = &self.files[file_index];
         let content = &self.contents[file_index];
         let source = content.as_bytes();
+        let language = source_language_for_path(file);
 
         let tree = self
             .needs_tree(file_index, file)
@@ -98,7 +99,7 @@ impl Engine<'_> {
         let scans_rules =
             tree_root.is_some() && self.rule_passes.iter().any(|pass| pass.covers(file_index));
         let index = match tree_root {
-            Some(root) if scans_rules => NodeIndex::build(root, source, self.wants),
+            Some(root) if scans_rules => NodeIndex::build(root, source, self.wants, language),
             _ => NodeIndex::default(),
         };
 
@@ -112,6 +113,8 @@ impl Engine<'_> {
                         index: &index,
                         source,
                         content,
+                        language,
+                        options: pass.options(),
                     },
                 )
             } else {
