@@ -5,6 +5,9 @@ use std::fs::{create_dir_all, read, remove_dir_all, write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+pub mod edge_cases_py;
+pub mod edge_cases_rs_sw_cs;
+pub mod edge_cases_ts;
 pub mod fix_cases;
 pub mod fixtures;
 mod fixtures_cs;
@@ -13,6 +16,13 @@ mod fixtures_ts_py;
 
 pub fn ws(source: &str) -> String {
     source.replace("@@", "  ")
+}
+
+pub struct EdgeCase {
+    pub name: &'static str,
+    pub file: &'static str,
+    pub input: &'static str,
+    pub expected: Option<&'static str>,
 }
 
 pub const BEFORE: &str = "blank-line-before-control-flow";
@@ -71,6 +81,15 @@ pub fn lint(fx: &Fixture) -> Value {
 
 pub fn fix(fx: &Fixture) -> String {
     run(&fx.root, "--fix").0
+}
+
+pub fn fix_twice(config: &str, file: &str, input: &str, expected: &str) {
+    let fx = fixture("blank-fix", config, &[(file, input)]);
+    let first = fix(&fx);
+    assert_eq!(text(&fx, file), expected, "{file}: {first}");
+    let second = fix(&fx);
+    assert_eq!(text(&fx, file), expected, "{file} second run");
+    assert!(second.contains("applied 0 fix(es)"), "{file}: {second}");
 }
 
 pub fn source(fx: &Fixture, file: &str) -> Vec<u8> {

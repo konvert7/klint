@@ -4,15 +4,6 @@ mod common;
 use blank_lines_support::fix_cases::CASES;
 use blank_lines_support::*;
 
-fn fix_twice(config: &str, file: &str, input: &str, expected: &str) {
-    let fx = fixture("blank-fix", config, &[(file, input)]);
-    let first = fix(&fx);
-    assert_eq!(text(&fx, file), expected, "{file}: {first}");
-    let second = fix(&fx);
-    assert_eq!(text(&fx, file), expected, "{file} second run");
-    assert!(second.contains("applied 0 fix(es)"), "{file}: {second}");
-}
-
 #[test]
 fn before_rule_fix_matches_expected_text_in_every_language() {
     for case in &CASES {
