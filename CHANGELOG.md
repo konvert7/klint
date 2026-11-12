@@ -1,3 +1,20 @@
+# [1.4.0](https://github.com/konvert7/klint/compare/v1.3.1...v1.4.0) (2026-11-12)
+
+
+### Bug Fixes
+
+* **config:** find klint.yml and parse it as JSON ([2457ad4](https://github.com/konvert7/klint/commit/2457ad45e796ffa57eb112e462c56beea0c30f81))
+* **migrate:** debug-only forced mismatch hook for the findings proof ([70cae91](https://github.com/konvert7/klint/commit/70cae91f64f86863a9dea996e26ae34d9b50faba))
+* **migrate:** drop inline test module from proof.rs ([03dbd0e](https://github.com/konvert7/klint/commit/03dbd0e8422b3cd8e1cc6c259e7b1fa583f0fabf))
+* **migrate:** prove findings against a real temp config, drop env mismatch hook ([b643572](https://github.com/konvert7/klint/commit/b6435728f0e6204c7fa92d54c1daa1309becda01))
+* **migrate:** warn on migrate errors during --fix and unit-test first_difference ([096e32d](https://github.com/konvert7/klint/commit/096e32d39c6d3351576d3efdafa5113c1518c3a9))
+* stop find_config from reading klint.yml ([b834c5a](https://github.com/konvert7/klint/commit/b834c5ae72611cf002bd2fd07ccc298d0e1466bd))
+
+
+### Features
+
+* **config:** add v2 rule groups, klint migrate and the config-keys manifest ([aa2f696](https://github.com/konvert7/klint/commit/aa2f696b60871862d9850da0e99746c136a45c4a))
+
 ## [1.3.1](https://github.com/konvert7/klint/compare/v1.3.0...v1.3.1) (2026-11-12)
 
 
