@@ -936,6 +936,75 @@ rules:
 | `sonar/no-single-char-class` | Avoid regex character classes with a single character |
 | `sonar/prefer-at` | Prefer `.at()` for relative index access |
 
+## Experimental rules (`rules.experimental`)
+
+Rules under trial live under `rules.experimental`:
+
+```yaml
+rules:
+  recommended: true
+  experimental:
+    no-date-equality: error
+    no-floating-promise: warn
+```
+
+- **Opt-in.** A rule runs only when it is listed under `rules.experimental` with `error`, `warn`, or `{severity, include}`. `recommended: true` never enables one.
+- **Wrong group.** An experimental rule listed under `rules.core` or `rules.sonar`, or a core or sonar rule listed under `rules.experimental`, gives one `klint/config` warning and is ignored.
+- **Plain ids.** Ids have no `experimental/` prefix in output, `--json`, `.klint/stats.json` and `klint stats`. Ids and suppressions stay the same when a rule is promoted to `core`.
+- **Same-file checks.** These rules use no type information. They stay silent unless the file proves the case, and they have no autofix.
+
+### `no-date-equality`
+
+Reports `==`, `===`, `!=` and `!==` when both operands are provably `Date` objects, because these compare identity, not time.
+
+Reported:
+
+```ts
+const a = new Date(1);
+const b = new Date(2);
+a === b;
+new Date(1) !== new Date(2);
+```
+
+Not reported:
+
+```ts
+let c = new Date(1);
+c === a; // let binding
+function f(d: Date) { return d === a; } // parameter
+x.created === y.created; // property
+a < b; // relational operator
+a === null; // null comparison
+```
+
+### `no-floating-promise`
+
+Reports an expression statement that drops a promise the file provably created.
+
+Reported:
+
+```ts
+async function f() {}
+f();
+new Promise((resolve) => resolve(1));
+Promise.all([]);
+Promise.resolve(1).then((x) => x);
+Promise.resolve(1).finally(() => {});
+```
+
+Not reported:
+
+```ts
+await f();
+return f();
+void f();
+const p = f();
+g(f());
+f().catch(() => {});
+f().then((x) => x, () => {});
+obj.f();
+```
+
 ## Agent and CI Integration
 
 Agent hooks should run klint with `--json` so violations are machine-readable, and with `--hook` so [`klint stats`](#stats) can tell hook runs apart from direct ones.
