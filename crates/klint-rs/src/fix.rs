@@ -180,13 +180,13 @@ mod tests {
         }
     }
 
+    static NEXT_DIR: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
     fn apply_to(content: &str, fixes: Vec<LineFix>) -> (usize, String) {
         let dir = std::env::temp_dir().join(format!(
-            "klint-rs-fix-unit-{}",
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("clock")
-                .as_nanos()
+            "klint-rs-fix-unit-{}-{}",
+            std::process::id(),
+            NEXT_DIR.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
         ));
         fs::create_dir_all(&dir).expect("create dir");
         let path = dir.join("a.ts");
