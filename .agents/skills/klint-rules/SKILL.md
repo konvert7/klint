@@ -17,6 +17,21 @@ Wire it into `klint.yaml` for editor autocomplete and validation:
 # yaml-language-server: $schema=./klint.schema.yaml
 ```
 
+## Config format (v2)
+
+`rules` has three parts: `recommended: true` enables the six sonar rules at `error`, `core` holds the built-in rules by name, and `sonar` holds the sonar rules by name without the `sonar/` prefix (an entry there overrides `recommended`). Output rule ids stay `sonar/…`.
+
+```yaml
+rules:
+  recommended: true
+  core:
+    no-string-match: error
+  sonar:
+    prefer-at: warn
+```
+
+The v1 format (a flat `rules` map with `sonar/` prefixes, and `plugins: [sonar]`) still reads, with one `klint/config` warning. Run `klint migrate` to upgrade the config in place; comments, blank lines and key order are kept. `klint migrate --check` exits 1 on v1 and 0 on v2 and never writes. `klint --fix` migrates first, and when the migration is refused it adds one `klint/config` warning and keeps fixing.
+
 ## Workflow
 
 1. **Understand the constraint** — if scope is ambiguous, ask: which files/layers are involved? should it block or warn? are there legitimate exceptions?
@@ -236,6 +251,110 @@ Two rules govern how an ignored line behaves, and both matter:
 
 `ignore` tests the **physical source line**, so it only ever applies to lines already identified as
 comments — code containing the same text is untouched. Enforced identically in both engines.
+
+### Blank lines — control flow and blocks
+
+Pick `blank-line-before-control-flow` to keep an `if`, loop, `switch`/`match`, `try`, `return` or
+similar statement visually separate from the statement above it. Pick `blank-line-after-block` for the
+IDE2003-style rule: a blank line below a block statement when another statement follows it. Both run
+on TypeScript/JavaScript, Python, Swift, Rust and C#, and both are opt-in.
+
+```yaml
+rules:
+  core:
+    blank-line-before-control-flow: error
+    blank-line-after-block: warn
+```
+
+Or with options:
+
+```yaml
+rules:
+  core:
+    blank-line-before-control-flow:
+      severity: error
+      include: ["src/**", "!src/generated/**"]
+      statements: [if, for, while, switch, try, return, guard, loop, with]
+      allowSetup: true
+    blank-line-after-block:
+      severity: warn
+      include: ["src/**"]
+      statements: [if, for, while, switch, try, guard, loop, with]
+```
+
+- `statements` narrows the kinds a rule targets. The default is every kind the rule supports, and
+  `statements: []` turns the rule off. `match` is an alias of `switch`. `return` belongs only to
+  `blank-line-before-control-flow`; an unknown keyword, or `return` on the after rule, raises one
+  `klint/config` warning and the other keywords still apply.
+- `allowSetup` (before rule only, default `true`) skips an `if`, `guard` or `switch` whose condition
+  uses a plain name assigned by the statement directly above it, such as `x = f();` then `if (x) …`.
+
+`klint --fix` inserts the missing blank lines, one per gap, and changes nothing else. Files with a
+syntax error are skipped. Run `klint --fix` again to confirm it reports nothing left to fix.
+
+A comment directly above a statement belongs to it, so the blank line goes above the comment. A
+Python docstring counts as a comment. A C# preprocessor line or a Swift `#if`/`#else`/`#endif` line
+separates statements like a blank line, so no line is inserted next to it.
+
+### Cognitive complexity — cap per-function complexity
+
+Pick `cognitive-complexity` to gate how complex each function may get, the way Biome's
+`noExcessiveCognitiveComplexity` does, with the same scores, on TypeScript/JavaScript, Python, Swift,
+Rust and C#. It is opt-in.
+
+```yaml
+rules:
+  core:
+    cognitive-complexity: error
+```
+
+Or with options:
+
+```yaml
+rules:
+  core:
+    cognitive-complexity:
+      severity: warn
+      include: ["src/**", "!src/generated/**"]
+      max: 14
+```
+
+- `max` defaults to 15, and a function whose score is **above** it is reported. An invalid `max`
+  (0, a negative number, a fraction, a string) raises one `klint/config` warning and the rule uses 15.
+- There is no `--fix`: split the function. A nested closure is reported on its own, not added to the
+  enclosing function. Files with a syntax error are skipped.
+
+### Function length — cap per-function length
+
+Pick `function-length` to gate how long each function body may be, the way Biome's
+`noExcessiveLinesPerFunction` does, with the same counts, on TypeScript/JavaScript, Python, Swift,
+Rust and C#. It is opt-in.
+
+```yaml
+rules:
+  core:
+    function-length: error
+```
+
+Or with options:
+
+```yaml
+rules:
+  core:
+    function-length:
+      severity: warn
+      include: ["src/**", "!src/generated/**"]
+      max: 40
+      skipBlankLines: true
+```
+
+- `max` defaults to 50, and a function whose body counts **above** it is reported. An invalid `max`
+  (0, a negative number, a fraction, a string) raises one `klint/config` warning and the rule uses 50.
+- `skipBlankLines` defaults to `false`. A non-boolean value raises one `klint/config` warning and the
+  rule uses `false`.
+- There is no `--fix`: split the function. A nested function's lines count toward its parent, and it
+  is also reported on its own. Getters and setters are not checked. Files with a syntax error are
+  skipped.
 
 ## Pitfalls
 
