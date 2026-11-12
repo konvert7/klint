@@ -1,4 +1,4 @@
-$id: https://raw.githubusercontent.com/konvert7/klint/refs/tags/v1.1.0/klint.schema.json
+$id: https://raw.githubusercontent.com/konvert7/klint/refs/tags/v1.2.0/klint.schema.json
 $schema: http://json-schema.org/draft-07/schema#
 additionalProperties: false
 description: klint configuration. Lives at klint.yaml (or klint.config.json) next to biome.json and knip.json.

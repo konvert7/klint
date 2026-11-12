@@ -1,3 +1,21 @@
+# [1.2.0](https://github.com/konvert7/klint/compare/v1.1.0...v1.2.0) (2026-11-12)
+
+
+### Bug Fixes
+
+* **klint-rs:** nest only the let-else block and score Swift boolean chains by precedence ([ca07b0f](https://github.com/konvert7/klint/commit/ca07b0ffc4b21a37ba5c1030dc5ff70dcccb3906))
+* **klint:** score finally and logical operators like Biome ([bba863d](https://github.com/konvert7/klint/commit/bba863d647aacf475c16e695ef5e3e81ff12a6c1))
+
+
+### Features
+
+* **klint:** add cognitive-complexity rule ([fa8479b](https://github.com/konvert7/klint/commit/fa8479b599b19891cb652b6f6ed638e05e61d7d8))
+
+
+### Performance Improvements
+
+* **klint-rs:** score cognitive complexity during the shared index walk ([800201b](https://github.com/konvert7/klint/commit/800201b05de5d8978fde7eed3229df29dca27967))
+
 # [1.1.0](https://github.com/konvert7/klint/compare/v1.0.2...v1.1.0) (2026-11-11)
 
 
