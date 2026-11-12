@@ -42,7 +42,8 @@ xs.forEach((a) => {
     ],
 }];
 
-pub const SAME_SOURCE_EXTENSIONS: &[&str] = &["a.js", "a.jsx", "a.tsx", "a.mts", "a.cts"];
+pub const SAME_SOURCE_EXTENSIONS: &[&str] =
+    &["a.js", "a.jsx", "a.tsx", "a.mts", "a.cts", "a.mjs", "a.cjs"];
 
 pub const EXTENSION_SOURCE: &str =
     "function f(a) {\n  if (a) {\n    if (a) {\n      g();\n    }\n  }\n}\n";

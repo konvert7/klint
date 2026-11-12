@@ -110,7 +110,7 @@ fn is_supported_source(path: &Path) -> bool {
 pub(crate) fn is_javascript_like_source(path: &Path) -> bool {
     matches!(
         path.extension().and_then(|ext| ext.to_str()),
-        Some("ts" | "tsx" | "js" | "jsx" | "mts" | "cts")
+        Some("ts" | "tsx" | "js" | "jsx" | "mts" | "cts" | "mjs" | "cjs")
     )
 }
 
