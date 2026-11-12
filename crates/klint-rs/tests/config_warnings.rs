@@ -6,8 +6,6 @@ use std::fs::{create_dir_all, remove_dir_all, write};
 use std::process::Command;
 
 const PREFER_AT: &str = "const x = arr[arr.length - 1];\n";
-const V1_WARNING: &str =
-    "This config uses the v1 format — run `klint migrate` to upgrade it in place.";
 
 fn run_json(config_file: &str, config: &str) -> (i32, Value) {
     let root = temp_root("config-warnings");
@@ -96,12 +94,6 @@ fn skips_a_rule_with_an_invalid_severity_and_says_so() {
             3,
             "warn".to_string(),
             "Rule \"sonar/prefer-at\" has severity \"fatal\", which is not error, warn or off, so it is ignored.".to_string()
-        ),
-        (
-            "klint.yaml".to_string(),
-            1,
-            "warn".to_string(),
-            V1_WARNING.to_string()
         )]
     );
 }
@@ -114,7 +106,7 @@ fn checks_the_severity_inside_rule_options_too() {
     );
 
     assert!(violations_of(&json, "sonar/prefer-at").is_empty(), "{json}");
-    assert_eq!(violations_of(&json, "klint/config").len(), 2, "{json}");
+    assert_eq!(violations_of(&json, "klint/config").len(), 1, "{json}");
 }
 
 #[test]
@@ -124,15 +116,6 @@ fn stays_quiet_for_a_valid_config() {
         "$schema: ./klint.schema.json\nroot: .\ninclude: [\"src\"]\nplugins: [sonar]\nrules:\n  sonar/prefer-at: warn\narch: {}\n",
     );
 
-    assert_eq!(
-        violations_of(&json, "klint/config"),
-        vec![(
-            "klint.yaml".to_string(),
-            1,
-            "warn".to_string(),
-            V1_WARNING.to_string()
-        )],
-        "{json}"
-    );
+    assert!(violations_of(&json, "klint/config").is_empty(), "{json}");
     assert_eq!(violations_of(&json, "sonar/prefer-at").len(), 1, "{json}");
 }

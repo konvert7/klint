@@ -7,8 +7,6 @@ use std::fs;
 use std::path::PathBuf;
 
 const CONFIG: &str = "klint/config";
-const V1_WARNING: &str =
-    "This config uses the v1 format — run `klint migrate` to upgrade it in place.";
 
 fn error_config() -> String {
     format!("include: [\"src\"]\nrules:\n  {RULE}: error\n")
@@ -90,7 +88,7 @@ fn invalid_max_values_warn_once_each_and_the_rule_runs_with_fifteen() {
         );
         let json = lint(&fx);
         let warnings = messages(&json, CONFIG);
-        assert_eq!(warnings.len(), 2, "{value}: {warnings:?}");
+        assert_eq!(warnings.len(), 1, "{value}: {warnings:?}");
         let shown = value.trim_matches('"');
         assert!(
             warnings[0].contains(RULE) && warnings[0].contains(shown),
@@ -114,7 +112,7 @@ fn valid_max_raises_no_config_warning() {
         &[("a.ts", &ts_function_scoring("f", 15))],
     );
     let json = lint(&fx);
-    assert_eq!(messages(&json, CONFIG), vec![V1_WARNING], "{json}");
+    assert!(messages(&json, CONFIG).is_empty(), "{json}");
     assert_eq!(violations(&json, RULE).len(), 1);
 }
 

@@ -14,15 +14,11 @@ arch:
       message: "Use logger"
 "#;
 
-const TS_ENGINE_STDERR_BEFORE_DURATION: &str = "klint: 2 warning(s)
+const TS_ENGINE_STDERR_BEFORE_DURATION: &str = "klint: 1 warning(s)
 
 src/index.ts:1  [sonar/prefer-at] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   ⚠ Prefer arr.at(-1) over arr[arr.length - 1] for cleaner negative indexing.
-
-klint.yaml:1  [klint/config] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  ⚠ This config uses the v1 format — run `klint migrate` to upgrade it in place.
 klint: 1 error(s)
 
 src/index.ts:2  [arch/forbidden] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -94,7 +90,7 @@ fn text_mode_with_only_warnings_exits_zero() {
     let (status, _stdout, stderr) = run_text(&root);
 
     assert_eq!(status, 0, "{stderr}");
-    assert!(stderr.starts_with("klint: 2 warning(s)\n\n"), "{stderr}");
+    assert!(stderr.starts_with("klint: 1 warning(s)\n\n"), "{stderr}");
     assert!(stderr.contains("\nklint: finished in "), "{stderr}");
     assert!(!stderr.contains("error(s)"), "{stderr}");
     let _ = remove_dir_all(root);
@@ -108,10 +104,7 @@ fn text_mode_clean_run_reports_zero_violations_on_stdout() {
     let (status, stdout, stderr) = run_text(&root);
 
     assert_eq!(status, 0, "{stderr}");
-    assert!(stdout.is_empty(), "{stdout}");
-    assert!(
-        stderr.starts_with("klint: 1 warning(s)\n\nklint.yaml:1  [klint/config] "),
-        "{stderr}"
-    );
+    assert!(stdout.starts_with("klint: 0 violations in "), "{stdout}");
+    assert!(stderr.is_empty(), "{stderr}");
     let _ = remove_dir_all(root);
 }

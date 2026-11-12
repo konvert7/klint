@@ -63,7 +63,7 @@ fn flags_the_same_lines_as_the_ts_engine() {
     let (status, lines, messages) = lines_flagged(CASES_THE_TS_ENGINE_ALSO_DECIDES);
 
     assert_eq!(status, 2);
-    assert_eq!(lines, vec![4, 5, 6, 7, 10, 1]);
+    assert_eq!(lines, vec![4, 5, 6, 7, 10]);
     assert_eq!(
         messages[0],
         "Async callback passed to .filter() — the returned Promise is always truthy, so the predicate never filters correctly. The array method cannot await it."
@@ -77,5 +77,5 @@ fn flags_any_receiver_because_it_cannot_tell_arrays_apart_without_types() {
         "declare const notArray: { filter(f: (x: number) => unknown): void };\nnotArray.filter(async (n) => n > 0);\n",
     );
 
-    assert_eq!(lines, vec![2, 1]);
+    assert_eq!(lines, vec![2]);
 }

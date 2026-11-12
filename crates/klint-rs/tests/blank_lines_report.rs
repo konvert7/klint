@@ -255,11 +255,7 @@ fn match_is_an_alias_of_switch_for_both_rules() {
         assert!(!switch_hits.is_empty(), "{rule}");
         assert_eq!(match_hits, switch_hits, "{rule}");
         assert_eq!(both_hits, switch_hits, "{rule}");
-        assert_eq!(
-            warnings,
-            vec![("klint.yaml".to_string(), 1)],
-            "{rule}: {warnings:?}"
-        );
+        assert!(warnings.is_empty(), "{rule}: {warnings:?}");
         assert!(
             match_hits.iter().any(|(f, _)| f.ends_with("a.py")),
             "{rule}"
