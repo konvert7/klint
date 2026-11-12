@@ -335,6 +335,24 @@ fn an_invalid_lone_object_warns_once_and_is_ignored() {
     }
 }
 
+#[test]
+fn a_list_entry_mixing_max_with_error_applies_error_and_warns_once() {
+    let config = config_v2(CC, "\n      - {max: 3, error: 15}");
+    let json = lint_json(&setup(&config, &[("src/a.ts", cc_function("f", 16))]).root);
+
+    let warnings = config_warnings(&json);
+    assert_eq!(warnings.len(), 1, "{json}");
+    let message = warnings[0]["message"].as_str().expect("message");
+    assert!(
+        message.contains("entry 1 mixes max/severity with warn/error"),
+        "{message}"
+    );
+    assert_eq!(
+        sev_msgs(&json, CC),
+        vec![("error".to_string(), cc_msg("f", 16, 15))]
+    );
+}
+
 const OLD_WARNING_CC: &str = "`max` and `severity` on cognitive-complexity are the old form — run `klint migrate` to upgrade it in place.";
 
 #[test]

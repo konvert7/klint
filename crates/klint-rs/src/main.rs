@@ -209,7 +209,7 @@ fn migrate_command(values: &Values) -> i32 {
             0
         }
         Ok(MigrateOutcome::NeedsMigration { file }) => {
-            println!("klint: {file} uses the v1 format — run `klint migrate`.");
+            println!("klint: {file} uses an old config form — run `klint migrate` to upgrade it.");
             1
         }
         Ok(MigrateOutcome::Refused { file, reason, .. }) => {
