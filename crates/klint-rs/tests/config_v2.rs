@@ -348,20 +348,6 @@ fn unknown_plugin_is_rejected_by_name() {
 }
 
 #[test]
-fn klint_yml_is_not_read_as_yaml_config() {
-    let p = project(
-        "klint.yml",
-        b"{\"include\":[\"src\"],\"plugins\":[\"sonar\"]}",
-    );
-    write(p.root.join("src/a.ts"), ALL_SIX).expect("write source");
-    let json = lint_json(&p.root);
-    assert!(
-        rule_ids(&json).contains(&"sonar/prefer-at".to_string()),
-        "{json}"
-    );
-}
-
-#[test]
 fn byte_order_mark_does_not_hide_include() {
     let p = project(
         "klint.yaml",

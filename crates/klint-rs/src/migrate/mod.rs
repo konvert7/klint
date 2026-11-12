@@ -115,7 +115,7 @@ pub fn migrate(options: &MigrateOptions) -> Result<MigrateOutcome, String> {
         path: path.clone(),
         raw,
     };
-    if let Err(reason) = proof::prove_same_findings(dir, old, &new_text, format) {
+    if let Err(reason) = proof::prove_same_findings(dir, old, &new_text) {
         return Ok(refused(&file, reason));
     }
     match fs::write(&path, new_text) {
