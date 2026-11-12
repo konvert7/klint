@@ -279,6 +279,12 @@ fn migrate_check_exits_1_for_a_v2_config_with_max_and_0_after_migration() {
 
     let check = klint(&p.root, &["migrate", "--check"]);
     assert_eq!(check.status, 1, "{}", check.all());
+    assert!(
+        check.all().contains("uses an old config form"),
+        "{}",
+        check.all()
+    );
+    assert!(!check.all().contains("v1 format"), "{}", check.all());
     assert_eq!(text(&p, "klint.yaml"), V2_WITH_MAX);
 
     let ran = klint(&p.root, &["migrate"]);
