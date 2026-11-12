@@ -1005,5 +1005,163 @@
         "warnings": 1
       }
     }
+  },
+  {
+    "name": "function-length reports a function counting 51 and not one counting 50",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "function-length": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "function big() {\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n}\nfunction ok() {\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "function-length",
+          "message": "Function `big` has 51 lines (max 50) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "function-length max option reports only counts above it",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "function-length": {
+          "severity": "error",
+          "max": 3
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "function four() {\n  a();\n  a();\n  a();\n  a();\n}\nfunction three() {\n  a();\n  a();\n  a();\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "function-length",
+          "message": "Function `four` has 4 lines (max 3) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "function-length include limits the rule to matching files",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "function-length": {
+          "severity": "warn",
+          "include": [
+            "src/**",
+            "!src/generated/**"
+          ]
+        }
+      }
+    },
+    "files": {
+      "src/a.ts": "function big() {\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n}\n",
+      "src/generated/b.ts": "function big() {\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/a.ts",
+          "line": 1,
+          "rule": "function-length",
+          "message": "Function `big` has 51 lines (max 50) — split it into smaller functions.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
+    }
+  },
+  {
+    "name": "function-length skipBlankLines drops blank lines from the count",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "function-length": {
+          "severity": "error",
+          "max": 2,
+          "skipBlankLines": true
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "function f() {\n a();\n\n b();\n}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "function-length counts blank lines by default",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "function-length": {
+          "severity": "error",
+          "max": 2
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "function f() {\n a();\n\n b();\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "function-length",
+          "message": "Function `f` has 3 lines (max 2) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
   }
 ]
