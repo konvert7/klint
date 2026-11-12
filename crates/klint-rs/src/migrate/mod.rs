@@ -1,5 +1,8 @@
 mod json;
+mod json_levels;
+mod levels;
 mod proof;
+mod yaml_levels;
 mod yaml_lines;
 mod yaml_rules;
 
@@ -10,6 +13,7 @@ use crate::LoadedConfig;
 use crate::config::{ConfigFormat, find_config, parse_config_text};
 use crate::config_shape::{ConfigShape, Group, config_shape};
 use crate::plugins::SONAR_PREFIX;
+use levels::LevelPlan;
 
 pub(crate) fn v2_location(v1_name: &str) -> (Group, &str) {
     match v1_name.strip_prefix(SONAR_PREFIX) {
@@ -70,6 +74,28 @@ fn mixed_reason(keys: &[String]) -> String {
     )
 }
 
+fn rewritten(
+    format: ConfigFormat,
+    text: &str,
+    needs_groups: bool,
+    plans: &[LevelPlan],
+) -> Result<String, String> {
+    let grouped = match (needs_groups, format) {
+        (false, _) => text.to_string(),
+        (true, ConfigFormat::Yaml) => yaml_rules::migrate_yaml(text)?,
+        (true, ConfigFormat::Json) => json::migrate_json(text)?,
+    };
+
+    if plans.is_empty() {
+        return Ok(grouped);
+    }
+
+    match format {
+        ConfigFormat::Yaml => yaml_levels::migrate_levels_yaml(&grouped, plans),
+        ConfigFormat::Json => json_levels::migrate_levels_json(&grouped, plans),
+    }
+}
+
 fn file_name(path: &std::path::Path) -> String {
     path.file_name()
         .map_or_else(String::new, |name| name.to_string_lossy().into_owned())
@@ -94,7 +120,9 @@ pub fn migrate(options: &MigrateOptions) -> Result<MigrateOutcome, String> {
         }
     };
     let shape = config_shape(&raw);
-    if shape == ConfigShape::V2 {
+    let needs_groups = shape != ConfigShape::V2;
+    let needs_levels = levels::needs_levels(&raw);
+    if !needs_groups && !needs_levels {
         return Ok(MigrateOutcome::AlreadyV2 { file });
     }
 
@@ -106,11 +134,11 @@ pub fn migrate(options: &MigrateOptions) -> Result<MigrateOutcome, String> {
         return Ok(refused(&file, mixed_reason(keys)));
     }
 
-    let rewritten = match format {
-        ConfigFormat::Yaml => yaml_rules::migrate_yaml(&text),
-        ConfigFormat::Json => json::migrate_json(&text),
+    let plans = match levels::level_plans(&raw, &text) {
+        Ok(plans) => plans,
+        Err(reason) => return Ok(refused(&file, reason)),
     };
-    let new_text = match rewritten {
+    let new_text = match rewritten(format, &text, needs_groups, &plans) {
         Ok(new_text) => new_text,
         Err(reason) => return Ok(refused(&file, reason)),
     };

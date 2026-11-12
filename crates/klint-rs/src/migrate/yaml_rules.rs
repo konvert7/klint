@@ -375,14 +375,14 @@ fn assemble(migration: &Migration, block: Option<Vec<String>>, eol: &str) -> Vec
     out
 }
 
-fn copy_line(line: &Line) -> Line {
+pub(super) fn copy_line(line: &Line) -> Line {
     Line {
         text: line.text.clone(),
         terminator: line.terminator.clone(),
     }
 }
 
-fn settle_terminators(out: &mut [Line], original: &Lines) {
+pub(super) fn settle_terminators(out: &mut [Line], original: &Lines) {
     let unterminated = original
         .lines
         .last()
