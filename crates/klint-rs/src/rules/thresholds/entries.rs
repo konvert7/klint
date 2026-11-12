@@ -69,13 +69,22 @@ fn parse_mixed<T>(
     config: &RuleConfig,
     extra: impl Fn(&RuleConfig) -> (T, Vec<String>),
 ) -> Entries<T> {
-    let (entries, mut problems) = parse_levels_form(spec, config, &["max", "severity"], extra);
-    let mixed = format!(
-        "{} mixes max/severity with warn/error — max and severity are ignored.",
-        label(spec.rule, None)
-    );
+    let (entry, problems) = parse_mixed_entry(spec, config, &label(spec.rule, None), extra);
+    (entry.into_iter().collect(), problems)
+}
+
+fn parse_mixed_entry<T>(
+    spec: &ThresholdSpec,
+    config: &RuleConfig,
+    label: &str,
+    extra: impl Fn(&RuleConfig) -> (T, Vec<String>),
+) -> (Option<ThresholdEntry<T>>, Vec<String>) {
+    let (entry, mut problems) =
+        parse_levels_entry(spec, config, label, &["max", "severity"], extra);
+    let mixed =
+        format!("{label} mixes max/severity with warn/error — max and severity are ignored.");
     problems.insert(0, mixed);
-    (entries, problems)
+    (entry, problems)
 }
 
 fn parse_levels_form<T>(
@@ -206,7 +215,7 @@ fn parse_list_item<T>(
     }
 
     match serde_json::from_value::<RuleConfig>(item.clone()) {
-        Ok(entry_config) => parse_levels_entry(spec, &entry_config, &entry_label, &[], extra),
+        Ok(entry_config) => parse_list_config(spec, &entry_config, &entry_label, extra),
         Err(_) => (
             None,
             vec![format!(
@@ -214,6 +223,19 @@ fn parse_list_item<T>(
             )],
         ),
     }
+}
+
+fn parse_list_config<T>(
+    spec: &ThresholdSpec,
+    config: &RuleConfig,
+    label: &str,
+    extra: impl Fn(&RuleConfig) -> (T, Vec<String>),
+) -> (Option<ThresholdEntry<T>>, Vec<String>) {
+    if matches!(threshold_form(config), ThresholdForm::Mixed) {
+        return parse_mixed_entry(spec, config, label, extra);
+    }
+
+    parse_levels_entry(spec, config, label, &[], extra)
 }
 
 fn label(rule: &str, entry: Option<usize>) -> String {
