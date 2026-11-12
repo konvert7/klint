@@ -1,3 +1,20 @@
+# [1.3.0](https://github.com/konvert7/klint/compare/v1.2.0...v1.3.0) (2026-11-12)
+
+
+### Bug Fixes
+
+* **klint-rs:** skip line breaks inside comments in function-length ([919bec7](https://github.com/konvert7/klint/commit/919bec712c9a915757f61a41e1757b36ec7343b1))
+
+
+### Features
+
+* **klint-rs:** add the function-length rule ([4f99761](https://github.com/konvert7/klint/commit/4f997611c225d64e07f16514073ff30dc9ec7e69))
+
+
+### Performance Improvements
+
+* **klint-rs:** cut per-node overhead in the function-length walk ([5c7d1ee](https://github.com/konvert7/klint/commit/5c7d1ee731cbe979e1fe9fe3e8eca0b1febb6966))
+
 # [1.2.0](https://github.com/konvert7/klint/compare/v1.1.0...v1.2.0) (2026-11-12)
 
 
