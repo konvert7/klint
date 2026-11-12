@@ -245,6 +245,21 @@ fn fix_with_a_refused_migration_warns_keeps_the_config_and_still_fixes() {
 }
 
 #[test]
+fn migration_refuses_to_write_when_findings_would_differ() {
+    let p = yaml(V1);
+    let ran = std::process::Command::new(env!("CARGO_BIN_EXE_klint-rs"))
+        .args(["migrate", "--config", &p.root.to_string_lossy()])
+        .env("KLINT_NO_STATS", "1")
+        .env("KLINT_MIGRATE_FORCE_MISMATCH", "1")
+        .output()
+        .expect("runs");
+    assert_eq!(ran.status.code(), Some(1));
+    let output = String::from_utf8_lossy(&ran.stderr).to_lowercase();
+    assert!(output.contains("finding"), "{output}");
+    assert_eq!(file(&p, "klint.yaml"), V1);
+}
+
+#[test]
 fn fix_migrates_a_v1_config_then_applies_fixes_and_reports_it() {
     let p = yaml("include: [\"src\"]\nplugins: [sonar]\n");
     let ran = klint(&p.root, &["--fix"]);
