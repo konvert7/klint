@@ -122,6 +122,7 @@ fn drop_null_type(fields: &mut Map<String, Value>) {
         return;
     };
     types.retain(|kind| kind != "null");
+
     if let [only] = types.as_slice() {
         let only = only.clone();
         fields.insert("type".to_string(), only);
@@ -133,11 +134,13 @@ fn drop_null_alternative(fields: &mut Map<String, Value>) {
         return;
     };
     alternatives.retain(|alternative| alternative.get("type") != Some(&json!("null")));
+
     if let [only] = alternatives.as_slice() {
         let Value::Object(only) = only.clone() else {
             return;
         };
         fields.remove("anyOf");
+
         for (key, value) in only {
             fields.entry(key).or_insert(value);
         }

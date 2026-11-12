@@ -26,9 +26,11 @@ pub(crate) fn fix_until_stable<T>(
 ) -> Result<FixPasses<T>, String> {
     let mut last = lint()?;
     let mut applied = 0;
+
     for _ in 0..MAX_FIX_PASSES {
         let applied_this_pass = apply(&last)?;
         applied += applied_this_pass;
+
         if applied_this_pass == 0 {
             return Ok(FixPasses {
                 applied,
@@ -36,6 +38,7 @@ pub(crate) fn fix_until_stable<T>(
                 converged: true,
             });
         }
+
         last = lint()?;
         if !has_fixes(&last) {
             return Ok(FixPasses {
@@ -45,6 +48,7 @@ pub(crate) fn fix_until_stable<T>(
             });
         }
     }
+
     Ok(FixPasses {
         applied,
         last,
@@ -68,6 +72,7 @@ impl Originals {
     pub(crate) fn restore_after(self, error: String) -> String {
         let mut message = error;
         let mut restored = 0;
+
         for (path, original) in self.0 {
             match fs::write(&path, original) {
                 Ok(()) => restored += 1,
@@ -77,11 +82,13 @@ impl Originals {
                 )),
             }
         }
+
         if restored > 0 {
             message.push_str(&format!(
                 "\nklint: restored {restored} file(s) to their state before --fix"
             ));
         }
+
         message
     }
 }
@@ -98,6 +105,7 @@ pub(crate) fn apply_fixes(
     originals: &mut Originals,
 ) -> Result<usize, String> {
     let mut by_file: BTreeMap<&str, Vec<LineFix>> = BTreeMap::new();
+
     for violation in violations {
         if let Some(fix) = line_fix(violation) {
             by_file.entry(&violation.file).or_default().push(fix);
@@ -105,9 +113,11 @@ pub(crate) fn apply_fixes(
     }
 
     let mut applied = 0;
+
     for (file, fixes) in by_file {
         applied += apply_file_fixes(&root.join(file), fixes, originals)?;
     }
+
     Ok(applied)
 }
 
@@ -139,6 +149,7 @@ fn apply_file_fixes(
     let mut lines: Vec<String> = content.split('\n').map(str::to_string).collect();
 
     let mut applied_ranges: Vec<(usize, usize)> = Vec::new();
+
     for fix in largest_range_first(fixes) {
         let overlaps_applied = applied_ranges
             .iter()
@@ -146,6 +157,7 @@ fn apply_file_fixes(
         if overlaps_applied || fix.end_line > lines.len() || changes_nothing(&lines, &fix) {
             continue;
         }
+
         lines.splice(
             fix.start_line - 1..fix.end_line,
             fix.replacement.split('\n').map(str::to_string),
@@ -156,6 +168,7 @@ fn apply_file_fixes(
     if !applied_ranges.is_empty() {
         originals.write(path, &content, &lines.join("\n"))?;
     }
+
     Ok(applied_ranges.len())
 }
 

@@ -47,11 +47,13 @@ pub fn fixture(name: &str, config: &str, files: &[(&str, &str)]) -> Fixture {
     let root = crate::common::temp_root(name);
     create_dir_all(root.join("src")).expect("create fixture dirs");
     write(root.join("klint.yaml"), config).expect("write config");
+
     for (path, text) in files {
         let target = root.join("src").join(path);
         create_dir_all(target.parent().expect("parent dir")).expect("create source dir");
         write(target, text).expect("write source");
     }
+
     Fixture { root }
 }
 
@@ -151,6 +153,7 @@ pub fn assert_case(case: &Case) {
     let got = reported(&json);
     let want = expected_rows(case);
     assert_eq!(got.len(), want.len(), "{}: {got:?} vs {want:?}", case.name);
+
     for (got, want) in got.iter().zip(&want) {
         let name_ok = want.1 == ANY_NAME || got.1 == want.1;
         assert!(

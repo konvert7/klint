@@ -241,6 +241,7 @@ pub(crate) fn plan_rule_passes(
             if severity == "off" {
                 return None;
             }
+
             Some(RulePass {
                 rule: spec.name,
                 check: spec.check,
@@ -260,9 +261,11 @@ pub(crate) fn plan_rule_passes(
 /// what something will read.
 pub(crate) fn rule_wants(passes: &[RulePass]) -> Wants {
     let mut wants = Wants::default();
+
     for pass in passes {
         (pass.wants)(&mut wants);
     }
+
     wants
 }
 
@@ -330,6 +333,7 @@ fn single_line_fix(
     if start_row != end_row {
         return None;
     }
+
     line_fix(
         content,
         start_row,

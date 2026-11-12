@@ -33,14 +33,17 @@ impl CommentLines {
 
 fn line_set(records: &[CommentRecord], count_doc_comments: bool) -> Vec<usize> {
     let mut lines = BTreeSet::new();
+
     for comment in records {
         if !count_doc_comments && comment.is_doc {
             continue;
         }
+
         for line in comment.start_line..=comment.end_line {
             lines.insert(line);
         }
     }
+
     lines.into_iter().collect()
 }
 
@@ -145,6 +148,7 @@ impl CommentPass {
         if self.ignore.is_empty() {
             return BTreeSet::new();
         }
+
         let source: Vec<&str> = content.lines().collect();
         comment_lines
             .iter()
@@ -174,6 +178,7 @@ fn density_overrun(
     if total == 0 {
         return None;
     }
+
     let counted = lines.len() - ignored.len();
     let density = (counted as f64 / total as f64) * 100.0;
     (density > limit).then(|| {
@@ -198,19 +203,24 @@ fn first_comment_block_overrun(
 ) -> Option<usize> {
     let mut counted = 0;
     let mut prev: Option<usize> = None;
+
     for &line in sorted_lines {
         if prev.is_some_and(|prev| line != prev + 1) {
             counted = 0;
         }
+
         prev = Some(line);
+
         if ignored.contains(&line) {
             continue;
         }
+
         counted += 1;
         if counted > limit {
             return Some(line);
         }
     }
+
     None
 }
 

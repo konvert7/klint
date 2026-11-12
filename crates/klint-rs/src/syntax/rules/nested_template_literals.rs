@@ -28,6 +28,7 @@ pub(crate) fn scan_nested_template_literals_from_tree(
 fn walk_template_literals(node: Node<'_>, records: &mut Vec<NestedTemplateLiteralRecord>) {
     if node.kind() == "template_string" {
         let mut cursor = node.walk();
+
         for child in node.children(&mut cursor) {
             if child.kind() == "template_substitution" {
                 find_nested_template_literals(child, records);
@@ -36,6 +37,7 @@ fn walk_template_literals(node: Node<'_>, records: &mut Vec<NestedTemplateLitera
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_template_literals(child, records);
     }
@@ -53,10 +55,12 @@ pub(crate) fn find_nested_template_literals(
         records.push(NestedTemplateLiteralRecord {
             line: node.start_position().row + 1,
         });
+
         return;
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         find_nested_template_literals(child, records);
     }

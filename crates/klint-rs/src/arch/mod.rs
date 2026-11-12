@@ -384,9 +384,11 @@ impl MaxLinesPass {
         if !self.scope.get(file_index).copied().unwrap_or(false) {
             return Vec::new();
         }
+
         if content.lines().count() <= self.limit {
             return Vec::new();
         }
+
         vec![Violation {
             file: relative_path(root, file),
             line: self.limit + 1,

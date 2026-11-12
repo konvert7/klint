@@ -31,6 +31,7 @@ fn walk_prefer_at(node: Node<'_>, source: &[u8], records: &mut Vec<PreferAtRecor
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_prefer_at(child, source, records);
     }
@@ -44,9 +45,11 @@ pub(crate) fn prefer_at_record(node: Node<'_>, source: &[u8]) -> Option<PreferAt
 
     let left = index.child_by_field_name("left")?;
     let right = index.child_by_field_name("right")?;
+
     if !binary_expression_has_operator(index, "-") {
         return None;
     }
+
     if left.kind() != "member_expression" {
         return None;
     }
@@ -91,11 +94,13 @@ fn numeric_literal_integer_value(node: Node<'_>, source: &[u8]) -> Option<i64> {
     if node.kind() != "number" {
         return None;
     }
+
     let value = raw_node_text(node, source)?;
     let parsed = value.parse::<f64>().ok()?;
     if !parsed.is_finite() || parsed.fract() != 0.0 {
         return None;
     }
+
     Some(parsed as i64)
 }
 

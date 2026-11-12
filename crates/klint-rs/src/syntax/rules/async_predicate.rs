@@ -12,6 +12,7 @@ pub(crate) fn async_predicate_record(
     if function.kind() != "member_expression" {
         return None;
     }
+
     let method = raw_node_text(function.child_by_field_name("property")?, source)?;
     if !PREDICATE_METHODS.contains(&method.as_str()) {
         return None;
@@ -21,6 +22,7 @@ pub(crate) fn async_predicate_record(
     if !is_inline_async_function(callback) {
         return None;
     }
+
     Some(AsyncPredicateRecord {
         line: callback.start_position().row + 1,
         method,
@@ -41,6 +43,7 @@ fn is_inline_async_function(node: Node<'_>) -> bool {
     ) {
         return false;
     }
+
     let mut cursor = node.walk();
     node.children(&mut cursor)
         .any(|child| child.kind() == "async")

@@ -37,6 +37,7 @@ static TAG: LazyLock<Regex> =
 
 fn closing_quote(text: &str, quote: char) -> Option<usize> {
     let mut escaped = false;
+
     for (i, c) in text.char_indices() {
         if escaped {
             escaped = false;
@@ -46,6 +47,7 @@ fn closing_quote(text: &str, quote: char) -> Option<usize> {
             return Some(i);
         }
     }
+
     None
 }
 
@@ -102,6 +104,7 @@ pub(super) fn entries(lines: &Lines, body: Span) -> (Option<usize>, Vec<Entry>) 
     };
     let mut found: Vec<Entry> = Vec::new();
     let mut pending: Vec<usize> = Vec::new();
+
     for i in body.start..body.end {
         let text = &lines.lines[i].text;
         if is_blank(text) || is_comment(text) {
@@ -119,9 +122,11 @@ pub(super) fn entries(lines: &Lines, body: Span) -> (Option<usize>, Vec<Entry>) 
             last.lines.push(i);
         }
     }
+
     if let Some(last) = found.last_mut() {
         last.lines.append(&mut pending);
     }
+
     (Some(child), found)
 }
 
@@ -138,6 +143,7 @@ fn token_problem(code: &str, number: usize) -> Option<String> {
     if ANCHOR_OR_ALIAS.is_match(&hidden) {
         return Some(format!("line {number}: YAML anchor or alias in rules"));
     }
+
     TAG.is_match(&hidden)
         .then(|| format!("line {number}: YAML tag in rules"))
 }
@@ -169,8 +175,10 @@ impl DuplicateScan {
                 indent: None,
                 seen: HashSet::new(),
             });
+
             return (!self.top.insert(parts.key.to_string())).then(|| parts.key.to_string());
         }
+
         let group = self.group.as_mut()?;
         let indent = *group.indent.get_or_insert(parts.indent);
         (indent == parts.indent && !group.seen.insert(parts.key.to_string()))
@@ -187,24 +195,29 @@ pub(super) fn check_supported(lines: &Lines, span: Span) -> Result<(), String> {
         },
     );
     let mut scan = DuplicateScan::new(child);
+
     for i in span.start..span.end {
         let text = &lines.lines[i].text;
         let number = i + 1;
         let code = without_comment(text);
+
         if i == span.start && header_flow_map(text) {
             return Err(format!(
                 "line {number}: rules is a flow map — write it as a block map first"
             ));
         }
+
         if let Some(problem) = token_problem(code, number) {
             return Err(problem);
         }
+
         if i > span.start
             && let Some(key) = scan.duplicate_in(text)
         {
             return Err(format!("line {number}: duplicate key \"{key}\""));
         }
     }
+
     Ok(())
 }
 
@@ -240,9 +253,11 @@ fn rules_header(lines: &Lines, rules: Option<Span>) -> Result<String, String> {
     if value.is_empty() {
         return Ok(text.clone());
     }
+
     if value != "{}" {
         return Err(format!("line {}: rules is not a block map", span.start + 1));
     }
+
     Ok(match trailing_comment(text) {
         Some(comment) => format!("rules: {comment}"),
         None => "rules:".to_string(),
@@ -265,9 +280,12 @@ fn group_lines(lines: &Lines, found: &[Entry], group: Group, child: usize) -> Ve
     if members.is_empty() {
         return Vec::new();
     }
+
     let mut out = vec![format!("{}{}:", " ".repeat(child), group.key())];
+
     for entry in members {
         let short = v2_location(&entry.key).1;
+
         for &i in &entry.lines {
             let text = &lines.lines[i].text;
             let text = if i == entry.key_line {
@@ -278,6 +296,7 @@ fn group_lines(lines: &Lines, found: &[Entry], group: Group, child: usize) -> Ve
             out.push(indented(&text, child));
         }
     }
+
     out
 }
 
@@ -293,17 +312,22 @@ impl Migration<'_> {
         };
         let child = found_child.unwrap_or(2);
         let mut out = Vec::new();
+
         if self.recommended {
             if let Some(span) = self.plugins {
                 out.extend(plugin_comments(self.lines, span, child));
             }
+
             out.push(format!("{}recommended: true", " ".repeat(child)));
         }
+
         out.extend(group_lines(self.lines, &found, Group::Core, child));
         out.extend(group_lines(self.lines, &found, Group::Sonar, child));
+
         if out.is_empty() {
             return Ok(None);
         }
+
         if found.is_empty()
             && let Some(body) = body
         {
@@ -313,6 +337,7 @@ impl Migration<'_> {
                     .map(|line| line.text.clone()),
             );
         }
+
         let mut block = vec![rules_header(self.lines, self.rules)?];
         block.extend(out);
         Ok(Some(block))
@@ -327,13 +352,16 @@ fn assemble(migration: &Migration, block: Option<Vec<String>>, eol: &str) -> Vec
     let original = &migration.lines.lines;
     let mut out: Vec<Line> = Vec::new();
     let mut block = block;
+
     for (i, line) in original.iter().enumerate() {
         if migration.plugins.is_some_and(|span| span.contains(i)) {
             if migration.rules.is_none() && migration.plugins.is_some_and(|span| span.start == i) {
                 out.extend(block.take().into_iter().flatten().map(fresh));
             }
+
             continue;
         }
+
         match migration.rules {
             Some(span) if span.start == i => match block.take() {
                 Some(lines) => out.extend(lines.into_iter().map(fresh)),
@@ -343,6 +371,7 @@ fn assemble(migration: &Migration, block: Option<Vec<String>>, eol: &str) -> Vec
             _ => out.push(copy_line(line)),
         }
     }
+
     out
 }
 
@@ -359,6 +388,7 @@ fn settle_terminators(out: &mut [Line], original: &Lines) {
         .last()
         .is_some_and(|line| line.terminator.is_empty());
     let last = out.len().saturating_sub(1);
+
     for (i, line) in out.iter_mut().enumerate() {
         if i == last && unterminated {
             line.terminator.clear();
@@ -375,6 +405,7 @@ pub(super) fn migrate_yaml(text: &str) -> Result<String, String> {
     if let Some(span) = rules {
         check_supported(&lines, span)?;
     }
+
     let recommended = match plugins {
         Some(span) => !plugin_names(&lines, span)?.is_empty(),
         None => false,

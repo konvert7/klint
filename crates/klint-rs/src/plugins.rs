@@ -37,10 +37,12 @@ pub(crate) fn effective_rules(
     explicit: BTreeMap<String, RuleConfig>,
 ) -> Result<BTreeMap<String, RuleConfig>, String> {
     let mut rules = BTreeMap::new();
+
     for plugin in plugins {
         plugin_rules(plugin).ok_or_else(|| format!("klint: Unknown klint plugin: \"{plugin}\""))?;
         rules.extend(recommended_rules());
     }
+
     rules.extend(explicit);
     Ok(rules)
 }

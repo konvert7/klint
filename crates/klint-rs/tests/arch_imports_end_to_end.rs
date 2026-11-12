@@ -13,11 +13,13 @@ struct Run {
 
 fn lint(config: &str, files: &[(&str, &str)]) -> Run {
     let root = temp_root("arch-imports-e2e");
+
     for (relative, content) in files {
         let path = root.join(relative);
         create_dir_all(path.parent().expect("file has a parent")).expect("create dirs");
         write(path, content).expect("write source");
     }
+
     write(root.join("klint.yaml"), config).expect("write config");
     let output = Command::new(env!("CARGO_BIN_EXE_klint-rs"))
         .args(["--config", &root.to_string_lossy(), "--json"])

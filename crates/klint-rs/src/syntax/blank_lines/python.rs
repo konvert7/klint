@@ -21,6 +21,7 @@ impl Grammar for Python {
         if member.kind() == "comment" || is_docstring(member) {
             return Role::Comment;
         }
+
         Role::Statement(target_of(member))
     }
 
@@ -28,6 +29,7 @@ impl Grammar for Python {
         if statement.kind() != "expression_statement" {
             return Vec::new();
         }
+
         named_children(statement)
             .into_iter()
             .flat_map(|expression| assignment_names(expression, source))
@@ -54,12 +56,15 @@ fn is_docstring(statement: Node<'_>) -> bool {
 
 fn only_comments_before(statement: Node<'_>) -> bool {
     let mut sibling = statement.prev_named_sibling();
+
     while let Some(node) = sibling {
         if node.kind() != "comment" {
             return false;
         }
+
         sibling = node.prev_named_sibling();
     }
+
     true
 }
 
@@ -115,12 +120,14 @@ fn assignment_targets(assignment: Node<'_>, source: &[u8]) -> Vec<String> {
     let mut names = assignment
         .child_by_field_name("left")
         .map_or_else(Vec::new, |left| target_names(left, source));
+
     if let Some(right) = assignment
         .child_by_field_name("right")
         .filter(|right| right.kind() == "assignment")
     {
         names.extend(assignment_names(right, source));
     }
+
     names
 }
 

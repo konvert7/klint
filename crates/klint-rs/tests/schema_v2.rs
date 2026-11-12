@@ -18,6 +18,7 @@ fn contains_key(value: &Value, key: &str) -> bool {
 #[test]
 fn schema_documents_v2_groups_and_still_has_v1_shape_and_plugins() {
     let text = schema().to_string();
+
     for key in [
         "recommended",
         "core",
@@ -28,6 +29,7 @@ fn schema_documents_v2_groups_and_still_has_v1_shape_and_plugins() {
     ] {
         assert!(contains_key(&schema(), key), "schema lacks property {key}");
     }
+
     assert!(
         contains_key(&schema(), "anyOf"),
         "rules needs an anyOf of v1 and v2"

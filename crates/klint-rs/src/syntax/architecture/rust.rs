@@ -9,6 +9,7 @@ pub(super) fn walk_rust_imports(node: Node<'_>, source: &[u8], imports: &mut Vec
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_rust_imports(child, source, imports);
     }
@@ -50,6 +51,7 @@ fn collect_rust_use_paths(node: Node<'_>, source: &[u8], prefix: &str, paths: &m
                 return;
             };
             let mut cursor = list.walk();
+
             for child in list.named_children(&mut cursor) {
                 collect_rust_use_paths(child, source, &nested, paths);
             }

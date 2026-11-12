@@ -32,10 +32,13 @@ impl LineTally {
         let breaks = line_breaks_between(source, self.previous_token_end, start)
             .saturating_add(std::mem::take(&mut self.pending_breaks));
         self.previous_token_end = end;
+
         if is_brace_kind(kind) {
             return;
         }
+
         self.totals.lines = self.totals.lines.saturating_add(breaks);
+
         if breaks > 0 {
             self.totals.non_blank_lines = self.totals.non_blank_lines.saturating_add(1);
         }

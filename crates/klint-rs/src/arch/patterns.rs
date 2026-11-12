@@ -60,11 +60,13 @@ pub(super) fn plan_singleton_passes(
                 Some(in_scope) => resolve_layer_mask(in_scope, arch.layers.as_ref(), root, files),
                 None => vec![true; files.len()],
             };
+
             for (index, file) in files.iter().enumerate() {
                 if file == &only_file {
                     scope[index] = false;
                 }
             }
+
             build_pass(
                 "arch/singleton",
                 scope,
@@ -106,6 +108,7 @@ impl PatternPass {
         if !self.scope.get(file_index).copied().unwrap_or(false) {
             return false;
         }
+
         // Only jsx-path files can hold a jsx node, so skip the rest rather
         // than asking for a parse that cannot match.
         self.jsx_targets.is_none() || is_jsx_path(file)

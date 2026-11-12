@@ -23,9 +23,12 @@ fn quoted(text: &str) -> String {
 fn print_members(members: &[(String, Printed)], indent: usize, out: &mut String) {
     if members.is_empty() {
         out.push_str("{}");
+
         return;
     }
+
     out.push_str("{\n");
+
     for (i, (key, member)) in members.iter().enumerate() {
         out.push_str(&" ".repeat(indent + 2));
         out.push_str(&quoted(key));
@@ -33,6 +36,7 @@ fn print_members(members: &[(String, Printed)], indent: usize, out: &mut String)
         print_printed(member, indent + 2, out);
         out.push_str(if i + 1 < members.len() { ",\n" } else { "\n" });
     }
+
     out.push_str(&" ".repeat(indent));
     out.push('}');
 }
@@ -48,14 +52,18 @@ fn print_printed(printed: &Printed, indent: usize, out: &mut String) {
 fn print_array(elements: &[Value], indent: usize, out: &mut String) {
     if elements.is_empty() {
         out.push_str("[]");
+
         return;
     }
+
     out.push_str("[\n");
+
     for (i, element) in elements.iter().enumerate() {
         out.push_str(&" ".repeat(indent + 2));
         print_value(element, indent + 2, out);
         out.push_str(if i + 1 < elements.len() { ",\n" } else { "\n" });
     }
+
     out.push_str(&" ".repeat(indent));
     out.push(']');
 }
@@ -89,6 +97,7 @@ fn lists_sonar(text: &str, plugins: &Value) -> Result<bool, String> {
             ));
         }
     };
+
     for element in elements {
         match element {
             Value::StringLit(lit) if lit.value == "sonar" => {}
@@ -101,6 +110,7 @@ fn lists_sonar(text: &str, plugins: &Value) -> Result<bool, String> {
             }
         }
     }
+
     Ok(!elements.is_empty())
 }
 
@@ -137,15 +147,18 @@ fn new_rules<'v, 'a>(
     recommended: bool,
 ) -> Option<Printed<'v, 'a>> {
     let mut members: Vec<(String, Printed)> = Vec::new();
+
     if recommended {
         members.push(("recommended".to_string(), Printed::True));
     }
+
     for group in [Group::Core, Group::Sonar] {
         let found = flat.map_or_else(Vec::new, |flat| grouped(flat, group));
         if !found.is_empty() {
             members.push((group.key().to_string(), Printed::Object(found)));
         }
     }
+
     (!members.is_empty()).then_some(Printed::Object(members))
 }
 
@@ -155,6 +168,7 @@ fn top_level<'v, 'a>(
 ) -> Vec<(String, Printed<'v, 'a>)> {
     let has_rules_prop = root.get("rules").is_some();
     let mut out = Vec::new();
+
     for prop in &root.properties {
         let name = prop.name.as_str();
         match name {
@@ -167,6 +181,7 @@ fn top_level<'v, 'a>(
             _ => out.push((name.to_string(), Printed::Ast(&prop.value))),
         }
     }
+
     out
 }
 

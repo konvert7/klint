@@ -43,6 +43,7 @@ fn walk_json_parse_calls(
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_json_parse_calls(child, next_inside_try, source, records);
     }

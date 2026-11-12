@@ -1,3 +1,6 @@
+use std::iter::Peekable;
+use std::str::Chars;
+
 pub(super) struct Line {
     pub(super) text: String,
     pub(super) terminator: String,
@@ -56,13 +59,16 @@ fn split_terminator(segment: &str) -> Line {
 
 pub(super) fn join(lines: &Lines) -> String {
     let mut out = String::new();
+
     if lines.bom {
         out.push('\u{feff}');
     }
+
     for line in &lines.lines {
         out.push_str(&line.text);
         out.push_str(&line.terminator);
     }
+
     out
 }
 
@@ -91,35 +97,49 @@ pub(super) fn masked(text: &str) -> String {
     let mut open: Option<char> = None;
     let mut previous: Option<char> = None;
     let mut chars = text.chars().peekable();
+
     while let Some(c) = chars.next() {
-        match open {
+        open = match open {
             None => {
                 out.push(c);
-                if (c == '"' || c == '\'') && opens_string(previous) {
-                    open = Some(c);
-                }
+                ((c == '"' || c == '\'') && opens_string(previous)).then_some(c)
             }
-            Some(quote) => {
-                let escaped = (quote == '"' && c == '\\') || (quote == '\'' && c == quote);
-                if escaped && quote == '\'' && chars.peek() == Some(&'\'') {
-                    out.push_str(&blanks(c));
-                    out.push_str(&blanks(chars.next().unwrap_or(c)));
-                } else if escaped && quote == '"' {
-                    out.push_str(&blanks(c));
-                    if let Some(next) = chars.next() {
-                        out.push_str(&blanks(next));
-                    }
-                } else if c == quote {
-                    out.push(c);
-                    open = None;
-                } else {
-                    out.push_str(&blanks(c));
-                }
-            }
-        }
+            Some(quote) => mask_inside_string(quote, c, &mut chars, &mut out),
+        };
+
         previous = Some(c);
     }
+
     out
+}
+
+fn mask_inside_string(
+    quote: char,
+    c: char,
+    chars: &mut Peekable<Chars<'_>>,
+    out: &mut String,
+) -> Option<char> {
+    let doubled_single_quote = quote == '\'' && c == quote && chars.peek() == Some(&'\'');
+    let backslash_escape = quote == '"' && c == '\\';
+
+    if doubled_single_quote || backslash_escape {
+        out.push_str(&blanks(c));
+
+        if let Some(next) = chars.next() {
+            out.push_str(&blanks(next));
+        }
+
+        return Some(quote);
+    }
+
+    if c == quote {
+        out.push(c);
+
+        return None;
+    }
+
+    out.push_str(&blanks(c));
+    Some(quote)
 }
 
 fn comment_start(text: &str) -> Option<usize> {
@@ -158,9 +178,11 @@ pub(super) fn top_level_entry(lines: &Lines, key: &str) -> Option<Span> {
         .iter()
         .position(|line| ends_top_level_entry(&line.text))
         .map_or(lines.lines.len(), |offset| start + 1 + offset);
+
     while end > start + 1 && is_separator_line(&lines.lines[end - 1].text) {
         end -= 1;
     }
+
     Some(Span { start, end })
 }
 

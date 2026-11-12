@@ -41,6 +41,7 @@ fn walk_single_char_classes(
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_single_char_classes(child, source, records);
     }
@@ -71,14 +72,17 @@ pub(crate) fn single_char_class_record(
 
     let mut fixed_pattern = String::new();
     let mut prev = 0;
+
     for class in &classes {
         if is_char_class_metachar_exception(&class.inner) {
             continue;
         }
+
         fixed_pattern.push_str(pattern.get(prev..class.start)?);
         fixed_pattern.push_str(&class.inner);
         prev = class.end + 1;
     }
+
     fixed_pattern.push_str(pattern.get(prev..)?);
 
     let start = node.start_position();
@@ -93,63 +97,38 @@ pub(crate) fn single_char_class_record(
         end_byte: node.end_byte(),
     })
 }
+
 fn parse_single_char_classes(pattern: &str) -> Vec<CharClass> {
     let mut results = Vec::new();
     let mut i = 0;
+
     while i < pattern.len() {
-        if byte_at(pattern, i) == Some(b'\\') {
-            i += 2;
-            continue;
-        }
-        if byte_at(pattern, i) != Some(b'[') {
-            i += 1;
-            continue;
+        match byte_at(pattern, i) {
+            Some(b'\\') => {
+                i += 2;
+                continue;
+            }
+            Some(b'[') => {}
+            _ => {
+                i += 1;
+                continue;
+            }
         }
 
         let start = i;
-        i += 1;
-        if byte_at(pattern, i) == Some(b'^') {
-            while i < pattern.len() && byte_at(pattern, i) != Some(b']') {
-                if byte_at(pattern, i) == Some(b'\\') {
-                    i += 1;
-                }
-                i += 1;
-            }
-            i += 1;
+
+        if byte_at(pattern, i + 1) == Some(b'^') {
+            i = after_negated_class(pattern, i + 1);
             continue;
         }
 
-        let mut tokens = Vec::new();
-        while i < pattern.len() && byte_at(pattern, i) != Some(b']') {
-            if byte_at(pattern, i) == Some(b'\\') {
-                let token_start = i;
-                i += 1;
-                if i >= pattern.len() {
-                    break;
-                }
-                match byte_at(pattern, i) {
-                    Some(b'u') if i + 5 <= pattern.len() => i += 5,
-                    Some(b'x') if i + 3 <= pattern.len() => i += 3,
-                    Some(b'c') if i + 1 < pattern.len() => i += 2,
-                    Some(_) => i += 1,
-                    None => break,
-                }
-                tokens.push(pattern[token_start..i].to_string());
-            } else {
-                let Some(ch) = pattern[i..].chars().next() else {
-                    break;
-                };
-                let token_start = i;
-                i += ch.len_utf8();
-                tokens.push(pattern[token_start..i].to_string());
-            }
-        }
-
-        if i >= pattern.len() {
+        let (mut tokens, end) = class_tokens(pattern, i + 1);
+        if end >= pattern.len() {
             break;
         }
-        let end = i;
-        i += 1;
+
+        i = end + 1;
+
         if tokens.len() == 1 {
             results.push(CharClass {
                 start,
@@ -158,7 +137,51 @@ fn parse_single_char_classes(pattern: &str) -> Vec<CharClass> {
             });
         }
     }
+
     results
+}
+
+fn after_negated_class(pattern: &str, mut i: usize) -> usize {
+    while i < pattern.len() && byte_at(pattern, i) != Some(b']') {
+        if byte_at(pattern, i) == Some(b'\\') {
+            i += 1;
+        }
+
+        i += 1;
+    }
+
+    i + 1
+}
+
+fn class_tokens(pattern: &str, mut i: usize) -> (Vec<String>, usize) {
+    let mut tokens = Vec::new();
+
+    while i < pattern.len() && byte_at(pattern, i) != Some(b']') {
+        let Some(next) = token_end(pattern, i) else {
+            return (tokens, pattern.len());
+        };
+
+        tokens.push(pattern[i..next].to_string());
+        i = next;
+    }
+
+    (tokens, i)
+}
+
+fn token_end(pattern: &str, i: usize) -> Option<usize> {
+    if byte_at(pattern, i) != Some(b'\\') {
+        return pattern[i..].chars().next().map(|ch| i + ch.len_utf8());
+    }
+
+    let i = i + 1;
+    let len = pattern.len();
+
+    Some(match byte_at(pattern, i)? {
+        b'u' if i + 5 <= len => i + 5,
+        b'x' if i + 3 <= len => i + 3,
+        b'c' if i + 1 < len => i + 2,
+        _ => i + 1,
+    })
 }
 
 fn byte_at(value: &str, index: usize) -> Option<u8> {

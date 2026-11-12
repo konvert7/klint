@@ -39,9 +39,11 @@ pub(crate) fn sort_by_position(scores: &mut [FunctionScore<'_>]) {
 fn score_functions<'a>(roots: &[Node<'a>], language: SourceLanguage) -> Vec<FunctionScore<'a>> {
     let grammar = complexity_grammar_for(language);
     let mut scores = Vec::new();
+
     for root in roots {
         walker::score_root(*root, grammar, &mut scores);
     }
+
     sort_by_position(&mut scores);
     scores
 }

@@ -67,40 +67,37 @@ impl ImportPass {
         source: &[u8],
         context: &ResolveContext,
     ) -> Vec<Violation> {
-        let mut violations = Vec::new();
-        for import in scan_imports_from_tree(file, node, source) {
-            if self.allow_type_only && import.is_type_only {
-                continue;
-            }
-            let Some(resolved) = resolve_import(file, root, &import.specifier, context) else {
-                if denies_package(file, &import.specifier, &self.deny_packages) {
-                    violations.push(self.violation(
-                        file,
-                        root,
-                        import.line,
-                        "Import of a denied package",
-                    ));
-                }
-                continue;
-            };
+        scan_imports_from_tree(file, node, source)
+            .into_iter()
+            .filter(|import| !(self.allow_type_only && import.is_type_only))
+            .filter_map(|import| {
+                let message = self.import_message(file, root, &import.specifier, context)?;
+                Some(self.violation(file, root, import.line, message))
+            })
+            .collect()
+    }
 
-            let message = if let Some(prefixes) = &self.deny_prefixes {
-                if !in_prefixes(&resolved, prefixes) {
-                    continue;
-                }
-                "Import crosses a denied boundary"
-            } else if let Some(prefixes) = &self.allow_prefixes {
-                if in_prefixes(&resolved, prefixes) {
-                    continue;
-                }
-                "Import is not in the allowed list"
-            } else {
-                continue;
-            };
-
-            violations.push(self.violation(file, root, import.line, message));
+    fn import_message(
+        &self,
+        file: &Path,
+        root: &Path,
+        specifier: &str,
+        context: &ResolveContext,
+    ) -> Option<&'static str> {
+        match resolve_import(file, root, specifier, context) {
+            Some(resolved) => self.boundary_message(&resolved),
+            None => denies_package(file, specifier, &self.deny_packages)
+                .then_some("Import of a denied package"),
         }
-        violations
+    }
+
+    fn boundary_message(&self, resolved: &Path) -> Option<&'static str> {
+        if let Some(prefixes) = &self.deny_prefixes {
+            return in_prefixes(resolved, prefixes).then_some("Import crosses a denied boundary");
+        }
+
+        let prefixes = self.allow_prefixes.as_ref()?;
+        (!in_prefixes(resolved, prefixes)).then_some("Import is not in the allowed list")
     }
 
     fn violation(&self, file: &Path, root: &Path, line: usize, fallback: &str) -> Violation {

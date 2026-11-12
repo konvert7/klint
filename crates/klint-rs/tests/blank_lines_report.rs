@@ -121,6 +121,7 @@ fn messages_name_the_keyword_as_written() {
             "Missing blank line before `loop` — separate it from the statement above.",
         ),
     ];
+
     for (file, text, rule, expected) in cases {
         let fx = single(file, text, &format!("  {rule}: error\n"));
         assert!(
@@ -128,6 +129,7 @@ fn messages_name_the_keyword_as_written() {
             "{file}"
         );
     }
+
     let fx = single("a.ts", TS_AFTER, &format!("  {AFTER}: error\n"));
     assert!(messages(&lint(&fx), AFTER).contains(
         &"Missing blank line after `if` block — separate it from the statement below.".to_string()
@@ -307,6 +309,7 @@ fn expressions_are_not_statements() {
     let json = lint(&fx);
     assert_eq!(lines_of(&json, BEFORE, "a.rs"), vec![20]);
     assert!(lines_of(&json, AFTER, "a.rs").is_empty());
+
     for file in ["a.swift", "a.cs"] {
         assert!(lines_of(&json, BEFORE, file).is_empty(), "{file}");
         assert!(lines_of(&json, AFTER, file).is_empty(), "{file}");
@@ -338,6 +341,7 @@ fn files_with_a_syntax_error_get_no_report() {
     let json = lint(&fx);
     assert!(hits(&json, BEFORE).is_empty() && hits(&json, AFTER).is_empty());
     fix(&fx);
+
     for (file, original) in broken {
         assert_eq!(text(&fx, file), original, "{file}");
     }

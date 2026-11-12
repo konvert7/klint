@@ -89,6 +89,7 @@ fn is_accessor(function: Node<'_>) -> bool {
     if function.kind() != "method_definition" {
         return false;
     }
+
     let mut cursor = function.walk();
     function
         .children(&mut cursor)
@@ -117,6 +118,7 @@ pub(crate) fn measured_body<'a>(language: SourceLanguage, function: Node<'a>) ->
     if !function.is_named() || !is_length_kind(language, function.kind()) || is_accessor(function) {
         return None;
     }
+
     match function.kind() {
         "lambda_literal" => child_of_kind(function, "statements"),
         "anonymous_method_expression" => last_child_of_kind(function, "block"),
@@ -144,14 +146,17 @@ mod tests {
 
     fn first_of_kind<'a>(root: Node<'a>, kind: &str) -> Node<'a> {
         let mut stack = vec![root];
+
         while let Some(node) = stack.pop() {
             if node.kind() == kind {
                 return node;
             }
+
             let mut cursor = node.walk();
             let children: Vec<Node<'a>> = node.children(&mut cursor).collect();
             stack.extend(children.into_iter().rev());
         }
+
         panic!("snippet has no {kind} node");
     }
 

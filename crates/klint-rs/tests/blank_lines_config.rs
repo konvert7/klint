@@ -114,10 +114,12 @@ fn committed_schema_describes_both_rules_with_their_options() {
     let schema: Value = serde_json::from_str(&committed("klint.schema.json")).expect("schema json");
     let before = rule_schema(&schema, BEFORE);
     let after = rule_schema(&schema, AFTER);
+
     for rule in [&before, &after] {
         assert!(rule["description"].as_str().is_some_and(|d| !d.is_empty()));
         assert!(rule["examples"].as_array().is_some_and(|e| !e.is_empty()));
     }
+
     let before_props = options_properties(&before);
     let after_props = options_properties(&after);
     assert!(

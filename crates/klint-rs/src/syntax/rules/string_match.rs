@@ -34,6 +34,7 @@ fn walk_string_match(node: Node<'_>, source: &[u8], records: &mut Vec<StringMatc
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_string_match(child, source, records);
     }
@@ -82,9 +83,11 @@ fn single_named_argument(node: Node<'_>) -> Option<Node<'_>> {
         .named_children(&mut cursor)
         .filter(|child| child.kind() != "comment");
     let argument = arguments.next()?;
+
     if arguments.next().is_some() {
         return None;
     }
+
     Some(argument)
 }
 

@@ -47,6 +47,7 @@ fn walk_python_imports(
         .flatten();
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         let child_type_only =
             type_only || guarded_branch.is_some_and(|branch| branch.id() == child.id());

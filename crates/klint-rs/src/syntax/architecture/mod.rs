@@ -52,6 +52,7 @@ pub(crate) fn scan_imports_from_tree(
     source: &[u8],
 ) -> Vec<ImportRecord> {
     let mut imports = Vec::new();
+
     match source_language_for_path(path) {
         SourceLanguage::Python => imports.extend(scan_python_imports(root, source)),
         SourceLanguage::Swift => walk_swift_imports(root, source, &mut imports),
@@ -59,6 +60,7 @@ pub(crate) fn scan_imports_from_tree(
         SourceLanguage::CSharp => walk_csharp_imports(root, source, &mut imports),
         SourceLanguage::JavaScriptLike => walk_imports(root, source, &mut imports),
     }
+
     imports
 }
 
@@ -73,6 +75,7 @@ pub(crate) fn scan_csharp_namespaces(content: &str) -> Vec<String> {
     {
         return Vec::new();
     }
+
     let Some(tree) = parser.parse(content, None) else {
         return Vec::new();
     };

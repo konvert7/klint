@@ -86,6 +86,7 @@ pub(super) fn first_descendant_of_kind<'a>(node: Node<'a>, kind: &str) -> Option
     if node.kind() == kind {
         return Some(node);
     }
+
     let mut cursor = node.walk();
     node.children(&mut cursor)
         .find_map(|child| first_descendant_of_kind(child, kind))
@@ -130,13 +131,16 @@ pub(super) mod testing {
         let mut found = Vec::new();
         let mut cursor = root.walk();
         let mut stack = vec![root];
+
         while let Some(node) = stack.pop() {
             if node.kind() == kind {
                 found.push(node);
             }
+
             let children: Vec<Node<'a>> = node.children(&mut cursor).collect();
             stack.extend(children.into_iter().rev());
         }
+
         found
     }
 }

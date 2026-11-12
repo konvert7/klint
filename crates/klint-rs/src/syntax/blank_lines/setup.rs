@@ -15,6 +15,7 @@ pub(super) fn setup_applies(
     ) {
         return false;
     }
+
     let assigned = grammar.assigned_names(previous.node, source);
     !assigned.is_empty()
         && condition_names(target, grammar, source)
@@ -35,9 +36,11 @@ fn condition_names(target: &Target<'_>, grammar: &dyn Grammar, source: &[u8]) ->
 fn subtree(node: Node<'_>) -> Vec<Node<'_>> {
     let mut nodes = vec![node];
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         nodes.extend(subtree(child));
     }
+
     nodes
 }
 

@@ -46,6 +46,7 @@ fn walk_sync_calls(
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_sync_calls(child, next_nearest_function_is_async, source, records);
     }

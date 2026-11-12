@@ -383,11 +383,13 @@ fn alias_import_violations(name: &str, tsconfigs: &[(&str, &str)]) -> usize {
     let root = temp_root(name);
     create_dir_all(root.join("assets/skills/demo")).expect("create skill dirs");
     create_dir_all(root.join("src/lib")).expect("create core dirs");
+
     for (path, content) in tsconfigs {
         let file = root.join(path);
         create_dir_all(file.parent().expect("tsconfig has a parent")).expect("create tsconfig dir");
         write(file, content).expect("write tsconfig");
     }
+
     write(
         root.join("klint.yaml"),
         "include: [\".\"]\nrules: {}\narch:\n  layers:\n    skills: [\"assets/skills/**\"]\n    core: [\"src/**\"]\n  imports:\n    - from: skills\n      deny: core\n      message: \"no\"\n",

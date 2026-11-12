@@ -39,6 +39,7 @@ pub(crate) fn missing_blank_before(
     if targets == KeywordSet::default() {
         return Vec::new();
     }
+
     let lines = SourceLines::new(content);
     let grammar = grammar_for(language);
     let mut findings: Vec<BlankLineFinding> = blocks
@@ -68,6 +69,7 @@ pub(crate) fn missing_blank_after(
     if targets == KeywordSet::default() {
         return Vec::new();
     }
+
     let lines = SourceLines::new(content);
     let grammar = grammar_for(language);
     let mut findings: Vec<BlankLineFinding> = blocks

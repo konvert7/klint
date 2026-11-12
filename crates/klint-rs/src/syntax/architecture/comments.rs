@@ -54,6 +54,7 @@ fn walk_comments(
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_comments(language, child, source, comments);
     }
