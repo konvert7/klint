@@ -10,24 +10,38 @@ use crate::syntax::SourceLanguage;
 use grammar::complexity_grammar_for;
 use tree_sitter::Node;
 
+#[derive(Clone)]
 pub(crate) struct FunctionScore<'a> {
     pub node: Node<'a>,
     pub score: u32,
 }
 
-pub(crate) fn score_functions<'a>(
-    roots: &[Node<'a>],
+pub(crate) type ScoringContext<'a> = walker::Context<'a>;
+
+pub(crate) fn score_node<'a>(
+    node: Node<'a>,
+    context: ScoringContext<'a>,
     language: SourceLanguage,
-) -> Vec<FunctionScore<'a>> {
+    scores: &mut Vec<FunctionScore<'a>>,
+) -> ScoringContext<'a> {
+    walker::visit(node, context, complexity_grammar_for(language), scores)
+}
+
+pub(crate) fn sort_by_position(scores: &mut [FunctionScore<'_>]) {
+    scores.sort_by_key(|score| {
+        let start = score.node.start_position();
+        (start.row, start.column)
+    });
+}
+
+#[cfg(test)]
+fn score_functions<'a>(roots: &[Node<'a>], language: SourceLanguage) -> Vec<FunctionScore<'a>> {
     let grammar = complexity_grammar_for(language);
     let mut scores = Vec::new();
     for root in roots {
         walker::score_root(*root, grammar, &mut scores);
     }
-    scores.sort_by_key(|score| {
-        let start = score.node.start_position();
-        (start.row, start.column)
-    });
+    sort_by_position(&mut scores);
     scores
 }
 

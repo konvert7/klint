@@ -21,6 +21,10 @@ const BOOLEAN_KINDS: &[&str] = &[
 ];
 
 impl ComplexityGrammar for Swift {
+    fn scores_leaf_kind(&self, kind: &str) -> bool {
+        matches!(kind, "else" | "where_keyword")
+    }
+
     fn function_kinds(&self) -> &'static [&'static str] {
         FUNCTION_KINDS
     }

@@ -19,6 +19,10 @@ const FUNCTION_KINDS: &[&str] = &[
 ];
 
 impl ComplexityGrammar for CSharp {
+    fn scores_leaf_kind(&self, kind: &str) -> bool {
+        kind == "else"
+    }
+
     fn function_kinds(&self) -> &'static [&'static str] {
         FUNCTION_KINDS
     }

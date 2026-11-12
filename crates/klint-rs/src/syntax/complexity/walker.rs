@@ -1,21 +1,25 @@
-use tree_sitter::{Node, TreeCursor};
+use tree_sitter::Node;
+#[cfg(test)]
+use tree_sitter::TreeCursor;
 
 use super::FunctionScore;
 use super::grammar::{BooleanOperator, ComplexityGrammar, Construct};
 
-#[derive(Clone, Copy)]
-struct Context<'a> {
+#[derive(Clone, Copy, Default)]
+pub(crate) struct Context<'a> {
     nesting: u32,
     frame: Option<usize>,
     parent: Option<Node<'a>>,
 }
 
+#[cfg(test)]
 const ROOT_CONTEXT: Context<'static> = Context {
     nesting: 0,
     frame: None,
     parent: None,
 };
 
+#[cfg(test)]
 pub(super) fn score_root<'a>(
     root: Node<'a>,
     grammar: &dyn ComplexityGrammar,
@@ -35,6 +39,7 @@ pub(super) fn score_root<'a>(
     }
 }
 
+#[cfg(test)]
 fn next_sibling_context<'a>(
     cursor: &mut TreeCursor<'a>,
     stack: &mut Vec<Context<'a>>,
@@ -50,12 +55,15 @@ fn next_sibling_context<'a>(
     }
 }
 
-fn visit<'a>(
+pub(super) fn visit<'a>(
     node: Node<'a>,
     context: Context<'a>,
     grammar: &dyn ComplexityGrammar,
     scores: &mut Vec<FunctionScore<'a>>,
 ) -> Context<'a> {
+    if node.child_count() == 0 && !grammar.scores_leaf_kind(node.kind()) {
+        return child_context(node, context.nesting, context.frame);
+    }
     let construct = construct_of(node, context.parent, grammar);
     if construct == Construct::Function {
         return enter_function(node, context, scores);

@@ -14,6 +14,9 @@ static CSHARP: CSharp = CSharp;
 
 pub(super) trait ComplexityGrammar: Sync {
     fn function_kinds(&self) -> &'static [&'static str];
+    fn scores_leaf_kind(&self, _kind: &str) -> bool {
+        false
+    }
     fn construct(&self, node: Node<'_>, parent: Option<Node<'_>>) -> Construct;
     fn is_boolean_expression(&self, node: Node<'_>) -> bool;
     fn boolean_operator(&self, token_kind: &str) -> Option<BooleanOperator>;

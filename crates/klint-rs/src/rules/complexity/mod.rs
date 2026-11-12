@@ -6,7 +6,7 @@ pub(super) use options::cognitive_complexity_options;
 pub(super) use schema_shapes::cognitive_complexity_schema;
 
 use super::{Report, RuleOptions, RuleScan};
-use crate::syntax::{function_name, score_functions};
+use crate::syntax::{function_name, sort_by_position};
 
 pub(super) fn run_cognitive_complexity(scan: RuleScan<'_>) -> Vec<Report> {
     let RuleOptions::CognitiveComplexity(options) = scan.options else {
@@ -15,7 +15,9 @@ pub(super) fn run_cognitive_complexity(scan: RuleScan<'_>) -> Vec<Report> {
     if scan.index.has_syntax_error {
         return Vec::new();
     }
-    score_functions(&scan.index.functions, scan.language)
+    let mut scores = scan.index.scores.clone();
+    sort_by_position(&mut scores);
+    scores
         .into_iter()
         .filter(|function| function.score > options.max)
         .map(|function| Report {
