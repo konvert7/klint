@@ -1,15 +1,14 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { CORPUS, SCORING_ROWS } from "./complexity-sonarjs-corpus";
 
 const repoRoot = join(import.meta.dir, "..");
 
-const scratchParent = join(repoRoot, "target");
-mkdirSync(scratchParent, { recursive: true });
-const root = mkdtempSync(join(scratchParent, "klint-complexity-sonarjs-"));
+const root = mkdtempSync(join(tmpdir(), "klint-complexity-sonarjs-"));
 
 afterAll(() => {
   rmSync(root, { recursive: true, force: true });
