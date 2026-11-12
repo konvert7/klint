@@ -55,6 +55,10 @@ struct Linted {
     advisories: Vec<Violation>,
 }
 
+pub fn config_key_paths() -> Vec<String> {
+    todo!("factory stub: the code writer implements config_key_paths")
+}
+
 pub fn run(options: RunOptions) -> Result<JsonOutput, String> {
     let Linted {
         mut findings,
