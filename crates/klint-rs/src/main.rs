@@ -196,24 +196,35 @@ fn migrate_command(values: &Values) -> i32 {
         }
     };
     let options = MigrateOptions {
-        config_dir,
+        config_dir: config_dir.clone(),
         check_only: values.flag("check"),
     };
+    let shown = |file: &str| shown_config_path(&config_dir, file);
+
     match migrate(&options) {
         Ok(MigrateOutcome::AlreadyV2 { file }) => {
-            println!("klint: {file} is already v2 — nothing to migrate.");
+            println!(
+                "klint: {} is already v2 — nothing to migrate.",
+                shown(&file)
+            );
             0
         }
         Ok(MigrateOutcome::Migrated { file }) => {
-            println!("klint: migrated {file} to v2.");
+            println!("klint: migrated {} to v2.", shown(&file));
             0
         }
         Ok(MigrateOutcome::NeedsMigration { file }) => {
-            println!("klint: {file} uses an old config form — run `klint migrate` to upgrade it.");
+            println!(
+                "klint: {} uses an old config form — run `klint migrate` to upgrade it.",
+                shown(&file)
+            );
             1
         }
         Ok(MigrateOutcome::Refused { file, reason, .. }) => {
-            eprintln!("{}", MigrateOutcome::refusal_message(&file, &reason));
+            eprintln!(
+                "{}",
+                MigrateOutcome::refusal_message(&shown(&file), &reason)
+            );
             1
         }
         Err(err) => {
@@ -234,6 +245,15 @@ fn refusal_warning(file: String, line: usize, reason: &str) -> Violation {
     }
 }
 
+fn shown_config_path(config_dir: &std::path::Path, file: &str) -> String {
+    let path = config_dir.join(file);
+    let cwd = std::env::current_dir().unwrap_or_default();
+    path.strip_prefix(&cwd)
+        .unwrap_or(&path)
+        .display()
+        .to_string()
+}
+
 fn migrate_before_fixing(config_dir: &std::path::Path) -> Option<Violation> {
     let outcome = migrate(&MigrateOptions {
         config_dir: config_dir.to_path_buf(),
@@ -241,7 +261,10 @@ fn migrate_before_fixing(config_dir: &std::path::Path) -> Option<Violation> {
     });
     match outcome {
         Ok(MigrateOutcome::Migrated { file }) => {
-            eprintln!("klint: migrated {file} to v2.");
+            eprintln!(
+                "klint: migrated {} to v2.",
+                shown_config_path(config_dir, &file)
+            );
             None
         }
         Ok(MigrateOutcome::Refused { file, line, reason }) => {

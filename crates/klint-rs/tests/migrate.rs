@@ -406,3 +406,42 @@ fn json_with_a_non_object_root_is_refused_and_unchanged() {
     assert_ne!(ran.status, 0, "{}", ran.all());
     assert_eq!(file(&p, "klint.config.json"), v1);
 }
+
+fn run_from_parent(p: &Project, args: &[&str]) -> (String, String) {
+    let parent = p.root.parent().expect("parent dir");
+    let dir = p
+        .root
+        .file_name()
+        .expect("dir name")
+        .to_string_lossy()
+        .into_owned();
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_klint-rs"))
+        .args(args)
+        .args(["--config", &dir])
+        .current_dir(parent)
+        .env("KLINT_NO_STATS", "1")
+        .output()
+        .expect("klint-rs runs");
+    let shown = std::path::Path::new(&dir)
+        .join("klint.yaml")
+        .display()
+        .to_string();
+    let all = format!(
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    (shown, all)
+}
+
+#[test]
+fn migrate_and_fix_name_the_config_with_its_directory() {
+    for args in [&["migrate"][..], &["--fix"][..]] {
+        let (shown, all) = run_from_parent(&yaml(V1), args);
+
+        assert!(
+            all.contains(&format!("migrated {shown} to v2")),
+            "{args:?}: {all}"
+        );
+    }
+}
