@@ -30,7 +30,7 @@ pub const CASES: &[Case] = &[
         expected: &[("function f", "f", 3)],
     },
     Case {
-        name: "else if inside for gets the nesting increment",
+        name: "else if inside for adds one with no nesting increment",
         file: "a.ts",
         source: r#"function f(xs, a, b) {
   for (const x of xs) {
@@ -42,7 +42,7 @@ pub const CASES: &[Case] = &[
   }
 }
 "#,
-        expected: &[("function f", "f", 5)],
+        expected: &[("function f", "f", 4)],
     },
     Case {
         name: "ternary",
@@ -125,7 +125,7 @@ pub const CASES: &[Case] = &[
   }
 }
 "#,
-        expected: &[("function f", "f", 5)],
+        expected: &[("function f", "f", 4)],
     },
     Case {
         name: "labeled break",
@@ -175,34 +175,42 @@ pub const CASES: &[Case] = &[
         name: "runs of boolean operators",
         file: "a.ts",
         source: r#"function r1(a, b, c, d) {
-  return a && b && c || d;
-}
-function r2(a, b, c) {
-  return a && (b || c);
-}
-function r3(a, b, c) {
-  return a && (b || c) && a;
-}
-function r6(a, b, c) {
-  return a && (b && c);
-}
-function r4(a, b, c) {
   if (a) {
     g();
   }
-  return a ?? b ?? c;
+  return a && b && c || d;
 }
-function r5(a, b, c) {
-  return (a ?? b) && c;
+function r2(a, b, c) {
+  if (a) {
+    g();
+  }
+  return a && (b || c);
+}
+function r3(a, b, c) {
+  if (a) {
+    g();
+  }
+  return a && (b || c) && a;
+}
+function r6(a, b, c) {
+  if (a) {
+    g();
+  }
+  return a && (b && c);
+}
+function r7(a, b, c) {
+  if (a) {
+    g();
+  }
+  return a && b || c && a;
 }
 "#,
         expected: &[
             ("function r1", "r1", 2),
             ("function r2", "r2", 2),
-            ("function r3", "r3", 2),
+            ("function r3", "r3", 3),
             ("function r6", "r6", 2),
-            ("function r4", "r4", 2),
-            ("function r5", "r5", 2),
+            ("function r7", "r7", 3),
         ],
     },
     Case {
@@ -243,10 +251,10 @@ function n2(a, b) {
   }
 }
 "#,
-        expected: &[("function f", "f", 3)],
+        expected: &[("function f", "f", 2)],
     },
     Case {
-        name: "finally adds one flat and its body is not nested",
+        name: "finally adds nothing and its body is not nested",
         file: "a.ts",
         source: r#"function e1(a) {
   if (a) {
@@ -268,10 +276,10 @@ function e2(a, b) {
   }
 }
 "#,
-        expected: &[("function e1", "e1", 2), ("function e2", "e2", 4)],
+        expected: &[("function e2", "e2", 3)],
     },
     Case {
-        name: "arrow directly in a body starts at nesting one",
+        name: "arrow directly in a body starts at nesting zero",
         file: "a.ts",
         source: r#"function outer(a) {
   if (a) {
@@ -289,10 +297,10 @@ function e2(a, b) {
   return inner;
 }
 "#,
-        expected: &[("function outer", "outer", 2), ("const inner", "inner", 4)],
+        expected: &[("function outer", "outer", 2), ("const inner", "inner", 2)],
     },
     Case {
-        name: "closure inside an if inherits the nesting and does not add to the outer",
+        name: "closure inside an if starts at nesting zero and does not add to the outer",
         file: "a.ts",
         source: r#"function outer(a, b, c) {
   if (a) {
@@ -310,10 +318,10 @@ function e2(a, b) {
   }
 }
 "#,
-        expected: &[("function outer", "outer", 2), ("const inner", "inner", 7)],
+        expected: &[("function outer", "outer", 2), ("const inner", "inner", 3)],
     },
     Case {
-        name: "function nested in a nested function keeps accumulating",
+        name: "function nested in a nested function starts at nesting zero",
         file: "a.ts",
         source: r#"function a1(a, b) {
   if (a) {
@@ -335,14 +343,10 @@ function e2(a, b) {
   b1();
 }
 "#,
-        expected: &[
-            ("function a1", "a1", 2),
-            ("const b1", "b1", 2),
-            ("const c1", "c1", 4),
-        ],
+        expected: &[("function a1", "a1", 2)],
     },
     Case {
-        name: "class declared in a function adds no nesting and its methods start one deeper",
+        name: "class declared in a function adds no nesting and its methods start at nesting zero",
         file: "a.ts",
         source: r#"function f(a) {
   if (a) {
@@ -359,10 +363,10 @@ function e2(a, b) {
   }
 }
 "#,
-        expected: &[("function f", "f", 2), ("      m(b)", "m", 3)],
+        expected: &[("function f", "f", 2)],
     },
     Case {
-        name: "boolean operators are counted per function across a nested boundary",
+        name: "boolean operators are counted per function across a nested boundary and || is not counted",
         file: "a.ts",
         source: r#"function f(a, b, c) {
   if (a) {
@@ -376,7 +380,7 @@ function e2(a, b) {
   })();
 }
 "#,
-        expected: &[("function f", "f", 2), ("(() => {", "<anonymous>", 3)],
+        expected: &[("function f", "f", 2)],
     },
     Case {
         name: "methods getters setters and generators",
@@ -468,5 +472,18 @@ function real(a) {
 }
 "#,
         expected: &[("function real", "real", 2)],
+    },
+    Case {
+        name: "a short-circuit directly inside JSX adds nothing",
+        file: "a.tsx",
+        source: r#"function f(a) {
+  if (a) {
+  }
+  if (a) {
+  }
+  return <div>{a && <X/>}</div>;
+}
+"#,
+        expected: &[("function f", "f", 2)],
     },
 ];

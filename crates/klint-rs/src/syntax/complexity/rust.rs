@@ -1,6 +1,6 @@
 use super::grammar::{
-    BooleanOperator, ComplexityGrammar, Construct, field_text, has_child_of_kind, operator_kind_is,
-    text_of,
+    BooleanOperator, ComplexityGrammar, Construct, field_text, has_child_of_kind, is_in_any_field,
+    operator_kind_is, text_of,
 };
 use tree_sitter::Node;
 
@@ -45,6 +45,10 @@ impl ComplexityGrammar for Rust {
         }
     }
 
+    fn is_head(&self, node: Node<'_>, parent: Node<'_>) -> bool {
+        is_in_any_field(parent, head_fields(parent.kind()), node)
+    }
+
     fn declared_name(&self, function: Node<'_>, source: &[u8]) -> Option<String> {
         field_text(function, "name", source)
     }
@@ -56,6 +60,15 @@ impl ComplexityGrammar for Rust {
         }
         let pattern = parent.child_by_field_name("pattern")?;
         (pattern.kind() == "identifier").then(|| text_of(pattern, source))
+    }
+}
+
+fn head_fields(kind: &str) -> &'static [&'static str] {
+    match kind {
+        "if_expression" | "while_expression" => &["condition"],
+        "match_expression" => &["value"],
+        "for_expression" => &["pattern", "value"],
+        _ => &[],
     }
 }
 
@@ -116,5 +129,74 @@ mod tests {
             Rust.assigned_name(closures[0], source.as_bytes()),
             Some("g".to_string())
         );
+    }
+
+    fn fields_of<'a>(parent: Node<'a>, field: &str) -> Vec<Node<'a>> {
+        let mut cursor = parent.walk();
+        parent.children_by_field_name(field, &mut cursor).collect()
+    }
+
+    fn assert_heads_are_the_listed_fields(source: &str, parent_kind: &str, heads: &[&str]) {
+        let tree = parse("a.rs", source);
+        let parent = all_of_kind(tree.root_node(), parent_kind)[0];
+        let head_ids: Vec<usize> = heads
+            .iter()
+            .flat_map(|field| {
+                let nodes = fields_of(parent, field);
+                assert!(!nodes.is_empty(), "{source}: no `{field}` child");
+                nodes
+            })
+            .map(|node| node.id())
+            .collect();
+        for index in 0..parent.named_child_count() {
+            let child = parent.named_child(index).expect("named child");
+            assert_eq!(
+                Rust.is_head(child, parent),
+                head_ids.contains(&child.id()),
+                "{source}: `{}` child of {parent_kind}",
+                child.kind()
+            );
+        }
+    }
+
+    #[test]
+    fn tuple_is_not_parenthesized() {
+        let tree = parse("a.rs", "fn f(a: i32, b: i32) { let x = (a, b); }");
+        let tuple = all_of_kind(tree.root_node(), "tuple_expression")[0];
+        assert!(!Rust.is_parenthesized(tuple));
+    }
+
+    #[test]
+    fn listed_fields_of_each_construct_are_heads_and_its_body_is_not() {
+        assert_heads_are_the_listed_fields(
+            "fn f(a: bool) { if a {} }",
+            "if_expression",
+            &["condition"],
+        );
+        assert_heads_are_the_listed_fields(
+            "fn f(v: i32) { match v { _ => {} } }",
+            "match_expression",
+            &["value"],
+        );
+        assert_heads_are_the_listed_fields(
+            "fn f(xs: Vec<i32>) { for x in xs {} }",
+            "for_expression",
+            &["pattern", "value"],
+        );
+        assert_heads_are_the_listed_fields(
+            "fn f(a: bool) { while a {} }",
+            "while_expression",
+            &["condition"],
+        );
+    }
+
+    #[test]
+    fn conditional_branch_positions_are_not_overridden_for_rust() {
+        let tree = parse("a.rs", "fn f(a: bool) { if a { } else { } }");
+        let if_expression = all_of_kind(tree.root_node(), "if_expression")[0];
+        let consequence = if_expression
+            .child_by_field_name("consequence")
+            .expect("consequence");
+        assert!(!Rust.is_conditional_branch(consequence, if_expression));
     }
 }

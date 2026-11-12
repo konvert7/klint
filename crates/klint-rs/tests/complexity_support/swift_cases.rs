@@ -17,7 +17,7 @@ pub const CASES: &[Case] = &[
         expected: &[("func f", "f", 3)],
     },
     Case {
-        name: "else if inside for gets the nesting increment",
+        name: "else if inside for adds one with no nesting increment",
         file: "a.swift",
         source: r#"func f(_ xs: [Int], _ a: Bool, _ b: Bool) {
     for x in xs {
@@ -29,7 +29,7 @@ pub const CASES: &[Case] = &[
     }
 }
 "#,
-        expected: &[("func f", "f", 5)],
+        expected: &[("func f", "f", 4)],
     },
     Case {
         name: "nested if",
@@ -156,19 +156,34 @@ func c2(_ a: Bool) {
         name: "runs of boolean operators and nil coalescing",
         file: "a.swift",
         source: r#"func r1(_ a: Bool, _ b: Bool, _ c: Bool) -> Bool {
+    if a {
+        g()
+    }
     return a && b || c
 }
 func r2(_ a: Bool, _ b: Bool, _ c: Bool) -> Bool {
+    if a {
+        g()
+    }
     return a || b && c
 }
 func r3(_ a: Bool, _ b: Bool, _ c: Bool) -> Bool {
+    if a {
+        g()
+    }
     return a && (b || c) && a
 }
 func r7(_ a: Bool, _ b: Bool, _ c: Bool) -> Bool {
+    if a {
+        g()
+    }
     return a && (b && c)
 }
 func r4(_ a: Int?, _ b: Int?, _ c: Int) -> Int {
     if a == nil {
+        g()
+    }
+    if b == nil {
         g()
     }
     return a ?? b ?? c
@@ -179,17 +194,30 @@ func r5(_ a: Bool, _ b: Bool) {
     }
 }
 func r6(_ a: Bool, _ b: Bool, _ c: Bool, _ d: Bool) -> Bool {
+    if a {
+        g()
+    }
     return a && b && c || d
+}
+func r8(_ a: Bool, _ b: Bool, _ c: Bool) -> Bool {
+    if a {
+        g()
+    }
+    if b {
+        g()
+    }
+    return a || b || c
 }
 "#,
         expected: &[
             ("func r1", "r1", 2),
             ("func r2", "r2", 2),
-            ("func r3", "r3", 2),
+            ("func r3", "r3", 3),
             ("func r7", "r7", 2),
             ("func r4", "r4", 2),
             ("func r5", "r5", 2),
             ("func r6", "r6", 2),
+            ("func r8", "r8", 2),
         ],
     },
     Case {
@@ -231,7 +259,7 @@ func l3(_ xs: [Int]) {
         ],
     },
     Case {
-        name: "closure inside an if inherits the nesting",
+        name: "closure inside an if starts at nesting zero",
         file: "a.swift",
         source: r#"func f(_ a: Bool, _ b: Bool, _ c: Bool) {
     if a {
@@ -249,7 +277,7 @@ func l3(_ xs: [Int]) {
     }
 }
 "#,
-        expected: &[("func f", "f", 2), ("let g = {", "g", 7)],
+        expected: &[("func f", "f", 2), ("let g = {", "g", 3)],
     },
     Case {
         name: "anonymous trailing closure",
@@ -268,7 +296,7 @@ func l3(_ xs: [Int]) {
     }
 }
 "#,
-        expected: &[("func f", "f", 2), ("xs.forEach", "<anonymous>", 2)],
+        expected: &[("func f", "f", 2)],
     },
     Case {
         name: "empty function and protocol requirement are skipped",
@@ -316,5 +344,51 @@ func real(_ a: Bool) {
 }
 "#,
         expected: &[("func real", "real", 2)],
+    },
+    Case {
+        name: "head constructs get no nesting increment but bodies do",
+        file: "a.swift",
+        source: r#"func h1(_ a: Bool, _ b: Bool, _ c: Bool) {
+    if (a ? b : c) {
+        g()
+    }
+}
+func h2(_ a: Bool, _ b: Bool, _ c: Bool) {
+    while (a ? b : c) {
+        g()
+    }
+}
+func h3(_ a: Bool, _ xs: [Int], _ ys: [Int]) {
+    for x in (a ? xs : ys) {
+        g(x)
+    }
+}
+func h4(_ a: Bool, _ b: Int, _ c: Int) {
+    switch (a ? b : c) {
+    case 1:
+        g()
+    default:
+        h()
+    }
+}
+func h5(_ a: Bool, _ b: Bool, _ c: Bool) -> Int {
+    return (a ? b : c) ? 1 : 2
+}
+func h6(_ a: Bool, _ b: Bool, _ c: Bool) {
+    if a {
+        while (b ? a : c) {
+            g()
+        }
+    }
+}
+"#,
+        expected: &[
+            ("func h1", "h1", 2),
+            ("func h2", "h2", 2),
+            ("func h3", "h3", 2),
+            ("func h4", "h4", 2),
+            ("func h5", "h5", 2),
+            ("func h6", "h6", 5),
+        ],
     },
 ];

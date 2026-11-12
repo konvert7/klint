@@ -4,5 +4,10 @@
   "project": ["**/*.ts"],
   "includeEntryExports": true,
   "tags": ["-lintignore"],
-  "ignoreDependencies": ["@semantic-release/github"]
+  "ignoreDependencies": [
+    "@semantic-release/github",
+    "@typescript-eslint/parser",
+    "eslint",
+    "eslint-plugin-sonarjs"
+  ]
 }

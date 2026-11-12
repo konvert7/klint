@@ -18,11 +18,8 @@ interface CorpusEntry {
   row: (typeof SCORING_ROWS)[number];
   code: string;
   offset?: number;
-  known?: { biome: number; klint: number; reason: string };
+  expected?: number;
 }
-
-export const BIOME_ELSE_REASON =
-  "Biome lowers nesting after a plain else (unbalanced decrement in on_leave)";
 
 export const CORPUS: CorpusEntry[] = [
   {
@@ -79,7 +76,7 @@ export const CORPUS: CorpusEntry[] = [
   },
   {
     row: "finally",
-    code: "function e14(a) {\n  try {\n    g();\n  } finally {\n    if (a) {\n      g();\n    }\n  }\n}\n",
+    code: "function e14(a) {\n  if (x) {\n  }\n  try {\n    g();\n  } finally {\n    if (a) {\n      g();\n    }\n  }\n}\n",
   },
   {
     row: "catch",
@@ -99,11 +96,11 @@ export const CORPUS: CorpusEntry[] = [
   },
   {
     row: "boolean-run",
-    code: "function e19(a, b, c, d) {\n  return a && b && c || d;\n}\n",
+    code: "function e19(a, b, c, d) {\n  if (x) {\n  }\n  return a && b && c || d;\n}\n",
   },
   {
     row: "boolean-run",
-    code: "function e20(a, b, c) {\n  return a && (b || c);\n}\n",
+    code: "function e20(a, b, c) {\n  if (x) {\n  }\n  return a && (b || c);\n}\n",
   },
   {
     row: "boolean-run",
@@ -111,11 +108,11 @@ export const CORPUS: CorpusEntry[] = [
   },
   {
     row: "boolean-run",
-    code: "function e22(a, b, c) {\n  if (a) {\n    g();\n  }\n  return a ?? b ?? c;\n}\n",
+    code: "function e22(a, b, c) {\n  if (x) {\n  }\n  if (a) {\n    g();\n  }\n  return a ?? b ?? c;\n}\n",
   },
   {
     row: "boolean-run",
-    code: "function e23(a, b, c) {\n  return (a ?? b) && c;\n}\n",
+    code: "function e23(a, b, c) {\n  if (x) {\n  }\n  return (a ?? b) && c;\n}\n",
   },
   {
     row: "no-increment",
@@ -169,7 +166,7 @@ export const CORPUS: CorpusEntry[] = [
   },
   {
     row: "finally",
-    code: "function e36(a) {\n  if (a) {\n    g();\n  }\n  try {\n    g();\n  } finally {\n  }\n}\n",
+    code: "function e36(a) {\n  if (x) {\n  }\n  if (a) {\n    g();\n  }\n  try {\n    g();\n  } finally {\n  }\n}\n",
   },
   {
     row: "finally",
@@ -177,28 +174,100 @@ export const CORPUS: CorpusEntry[] = [
   },
   {
     row: "boolean-run",
-    code: "function e38(a, b, c) {\n  return a && (b && c);\n}\n",
+    code: "function e38(a, b, c) {\n  if (x) {\n  }\n  return a && (b && c);\n}\n",
   },
   {
     row: "else",
-    known: { biome: 8, klint: 9, reason: BIOME_ELSE_REASON },
     code: "function e39(xs, a, b, c) {\n  for (const x of xs) {\n    if (a) {\n      if (b) {\n        g();\n      } else {\n        h();\n      }\n    } else if (c) {\n      g();\n    }\n  }\n}\n",
   },
   {
     row: "else",
-    known: { biome: 10, klint: 11, reason: BIOME_ELSE_REASON },
     code: "function e40(x, y, z) {\n  if (x) {\n    if (y) {\n      g();\n    } else {\n      for (;;) {\n        g();\n      }\n    }\n  } else {\n    if (z) {\n      g();\n    } else {\n      h();\n    }\n  }\n}\n",
   },
   {
     row: "boolean-run",
-    code: "function e41(a, b) {\n  if (a) {\n    g();\n  }\n  return a ?? b;\n}\n",
+    code: "function e41(a, b) {\n  if (x) {\n  }\n  if (a) {\n    g();\n  }\n  return a ?? b;\n}\n",
   },
   {
     row: "boolean-run",
-    code: "function e42(a, b, c, d) {\n  return a ?? b && c || d;\n}\n",
+    code: "function e42(a, b, c, d) {\n  if (x) {\n  }\n  return a ?? b && c || d;\n}\n",
   },
   {
     row: "boolean-run",
-    code: "function e43(a, b, c) {\n  return a ? b ?? c : c;\n}\n",
+    code: "function e43(a, b, c) {\n  if (x) {\n  }\n  return a ? b ?? c : c;\n}\n",
+  },
+  {
+    row: "boolean-run",
+    expected: 2,
+    code: 'function s1(a, b) {\n  if (a) {\n    g();\n  }\n  if (b) {\n    g();\n  }\n  return a ?? "y";\n}\n',
+  },
+  {
+    row: "boolean-run",
+    expected: 2,
+    code: "function s2(a, b) {\n  if (a || b) {\n  }\n  return a && b;\n}\n",
+  },
+  {
+    row: "else",
+    expected: 6,
+    code: "function s3(a, b, c) {\n  if (a) {\n    if (b) {\n    } else {\n    }\n    if (c) {\n    }\n  }\n}\n",
+  },
+  {
+    row: "else",
+    expected: 5,
+    code: "function s4(a, b, c) {\n  if (a) {\n    if (b) {\n    }\n    if (c) {\n    }\n  }\n}\n",
+  },
+  {
+    row: "else-if",
+    expected: 4,
+    code: "function s5(xs, a, c) {\n  for (const x of xs) {\n    if (a) {\n    } else if (c) {\n    }\n  }\n}\n",
+  },
+  {
+    row: "else-if",
+    expected: 8,
+    code: "function s6(xs, a, b, c) {\n  for (const x of xs) {\n    if (a) {\n      if (b) {\n      } else {\n      }\n    } else if (c) {\n    }\n  }\n}\n",
+  },
+  {
+    row: "if",
+    code: "function h1(a, b, c) {\n  if (a) {\n  }\n  if (a) {\n  }\n  if (a ? b : c) {\n  }\n}\n",
+  },
+  {
+    row: "loop",
+    code: "function h2(a, b, c) {\n  if (a) {\n  }\n  if (a) {\n  }\n  while (a ? b : c) {\n  }\n}\n",
+  },
+  {
+    row: "loop",
+    code: "function h3(a, b) {\n  if (a) {\n  }\n  if (a) {\n  }\n  for (let i = a ? 0 : 1; i < b; i++) {\n  }\n}\n",
+  },
+  {
+    row: "switch",
+    code: "function h4(a, b, c) {\n  if (a) {\n  }\n  if (a) {\n  }\n  switch (a ? b : c) {\n    case 1:\n      g();\n      break;\n  }\n}\n",
+  },
+  {
+    row: "ternary",
+    code: "function h5(a, b, c) {\n  if (a) {\n  }\n  if (a) {\n  }\n  return (a ? b : c) ? 1 : 2;\n}\n",
+  },
+  {
+    row: "ternary",
+    code: "function h6(a, b, c) {\n  if (a) {\n    if (b ? c : a) {\n    }\n  }\n}\n",
+  },
+  {
+    row: "nested-function",
+    code: "function t1(a, b) {\n  if (a) {\n  }\n  if (a) {\n  }\n  return a ? () => {\n    if (b) {\n      if (b) {\n      }\n    }\n  } : b;\n}\n",
+  },
+  {
+    row: "nested-function",
+    code: "function t2(a, b) {\n  if (a) {\n  }\n  if (a) {\n  }\n  return a ? b : () => {\n    if (b) {\n      if (b) {\n      }\n    }\n  };\n}\n",
+  },
+  {
+    row: "nested-function",
+    code: "function t3(a, b) {\n  if (a) {\n  }\n  if (a) {\n  }\n  return a ? function () {\n    if (b) {\n      if (b) {\n      }\n    }\n  } : b;\n}\n",
+  },
+  {
+    row: "nested-function",
+    code: "function t4(a, b) {\n  const r = a ? () => {\n    if (b) {\n      if (b) {\n      }\n    }\n  } : b;\n  if (a) {\n    if (b) {\n    }\n  }\n  return r;\n}\n",
+  },
+  {
+    row: "nested-function",
+    code: "function n1(a, b, c, d, e, f) {\n  if (a) {\n  }\n  if (a) {\n  }\n  return a ? () => {\n    const r = b ? () => {\n      if (c) {\n        if (c) {\n        }\n      }\n    } : d;\n    if (e) {\n    }\n    return r;\n  } : f;\n}\n",
   },
 ];

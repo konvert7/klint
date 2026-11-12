@@ -1,5 +1,6 @@
 use super::grammar::{
-    BooleanOperator, ComplexityGrammar, Construct, field_text, is_field_of, text_of,
+    BooleanOperator, ComplexityGrammar, Construct, field_text, is_field_of, is_in_any_field,
+    text_of,
 };
 use tree_sitter::Node;
 
@@ -32,13 +33,29 @@ impl ComplexityGrammar for Python {
             "else_clause" if is_loop_else(parent) => Construct::LoopElse,
             "else_clause" => Construct::Increment,
             "if_clause" if is_comprehension(parent) => Construct::Increment,
-            "finally_clause" => Construct::Increment,
             _ => Construct::Plain,
         }
     }
 
     fn is_boolean_expression(&self, node: Node<'_>) -> bool {
         node.kind() == "boolean_operator"
+    }
+
+    fn is_head(&self, node: Node<'_>, parent: Node<'_>) -> bool {
+        match parent.kind() {
+            "conditional_expression" => is_conditional_test(parent, node),
+            "except_group_clause" => node.is_named() && node.kind() != "block",
+            kind => is_in_any_field(parent, head_fields(kind), node),
+        }
+    }
+
+    fn is_conditional_branch(&self, node: Node<'_>, parent: Node<'_>) -> bool {
+        parent.kind() == "conditional_expression"
+            && [0, 2].iter().any(|&index| {
+                parent
+                    .named_child(index)
+                    .is_some_and(|branch| branch.id() == node.id())
+            })
     }
 
     fn boolean_operator(&self, token_kind: &str) -> Option<BooleanOperator> {
@@ -69,6 +86,22 @@ fn is_loop_else(parent: Option<Node<'_>>) -> bool {
 
 fn is_comprehension(parent: Option<Node<'_>>) -> bool {
     parent.is_some_and(|p| COMPREHENSION_KINDS.contains(&p.kind()))
+}
+
+fn is_conditional_test(conditional: Node<'_>, node: Node<'_>) -> bool {
+    conditional
+        .named_child(1)
+        .is_some_and(|test| test.id() == node.id())
+}
+
+fn head_fields(kind: &str) -> &'static [&'static str] {
+    match kind {
+        "if_statement" | "elif_clause" | "while_statement" => &["condition"],
+        "match_statement" => &["subject"],
+        "for_statement" => &["left", "right"],
+        "except_clause" => &["value", "alias"],
+        _ => &[],
+    }
 }
 
 #[cfg(test)]
@@ -129,5 +162,121 @@ mod tests {
             ),
             None
         );
+    }
+
+    fn fields_of<'a>(parent: Node<'a>, field: &str) -> Vec<Node<'a>> {
+        let mut cursor = parent.walk();
+        parent.children_by_field_name(field, &mut cursor).collect()
+    }
+
+    fn assert_heads_are_the_listed_fields(source: &str, parent_kind: &str, heads: &[&str]) {
+        let tree = parse("a.py", source);
+        let parent = all_of_kind(tree.root_node(), parent_kind)[0];
+        let head_ids: Vec<usize> = heads
+            .iter()
+            .flat_map(|field| {
+                let nodes = fields_of(parent, field);
+                assert!(!nodes.is_empty(), "{source}: no `{field}` child");
+                nodes
+            })
+            .map(|node| node.id())
+            .collect();
+        for index in 0..parent.named_child_count() {
+            let child = parent.named_child(index).expect("named child");
+            assert_eq!(
+                Python.is_head(child, parent),
+                head_ids.contains(&child.id()),
+                "{source}: `{}` child of {parent_kind}",
+                child.kind()
+            );
+        }
+    }
+
+    #[test]
+    fn finally_clause_adds_nothing() {
+        let tree = parse("a.py", "try:\n    pass\nfinally:\n    pass\n");
+        let finally = all_of_kind(tree.root_node(), "finally_clause")[0];
+        assert_eq!(
+            Python.construct(finally, finally.parent()),
+            Construct::Plain
+        );
+    }
+
+    #[test]
+    fn else_of_a_try_still_increments() {
+        let tree = parse(
+            "a.py",
+            "try:\n    pass\nexcept Exception:\n    pass\nelse:\n    pass\n",
+        );
+        let else_clause = all_of_kind(tree.root_node(), "else_clause")[0];
+        assert_eq!(
+            Python.construct(else_clause, else_clause.parent()),
+            Construct::Increment
+        );
+    }
+
+    #[test]
+    fn parenthesized_tuple_is_not_parenthesized() {
+        let tree = parse("a.py", "x = (a, b)\n");
+        let tuple = all_of_kind(tree.root_node(), "tuple")[0];
+        assert!(!Python.is_parenthesized(tuple));
+    }
+
+    #[test]
+    fn listed_fields_of_each_construct_are_heads_and_its_body_is_not() {
+        assert_heads_are_the_listed_fields("if a:\n    pass\n", "if_statement", &["condition"]);
+        assert_heads_are_the_listed_fields(
+            "if a:\n    pass\nelif b:\n    pass\n",
+            "elif_clause",
+            &["condition"],
+        );
+        assert_heads_are_the_listed_fields(
+            "match v:\n    case 1:\n        pass\n",
+            "match_statement",
+            &["subject"],
+        );
+        assert_heads_are_the_listed_fields(
+            "for x in xs:\n    pass\n",
+            "for_statement",
+            &["left", "right"],
+        );
+        assert_heads_are_the_listed_fields(
+            "while c:\n    pass\n",
+            "while_statement",
+            &["condition"],
+        );
+        assert_heads_are_the_listed_fields(
+            "try:\n    pass\nexcept Exception as e:\n    pass\n",
+            "except_clause",
+            &["value"],
+        );
+    }
+
+    #[test]
+    fn every_named_child_of_an_except_star_clause_but_the_block_is_a_head() {
+        let tree = parse("a.py", "try:\n    pass\nexcept* ValueError:\n    pass\n");
+        let group = all_of_kind(tree.root_node(), "except_group_clause")[0];
+        assert!(Python.is_head(group.named_child(0).expect("exception"), group));
+        assert!(!Python.is_head(group.named_child(1).expect("block"), group));
+    }
+
+    #[test]
+    fn only_the_middle_operand_of_a_conditional_expression_is_its_head() {
+        let tree = parse("a.py", "1 if a else 2\n");
+        let conditional = all_of_kind(tree.root_node(), "conditional_expression")[0];
+        let operand = |index: usize| conditional.named_child(index).expect("operand");
+        assert!(!Python.is_head(operand(0), conditional));
+        assert!(Python.is_head(operand(1), conditional));
+        assert!(!Python.is_head(operand(2), conditional));
+    }
+
+    #[test]
+    fn conditional_branches_are_conditional_branches_and_its_test_is_not() {
+        let tree = parse("a.py", "1 if a else 2\n");
+        let conditional = all_of_kind(tree.root_node(), "conditional_expression")[0];
+        let operand = |index: usize| conditional.named_child(index).expect("operand");
+        assert!(Python.is_conditional_branch(operand(0), conditional));
+        assert!(Python.is_conditional_branch(operand(2), conditional));
+        assert!(!Python.is_conditional_branch(operand(1), conditional));
     }
 }

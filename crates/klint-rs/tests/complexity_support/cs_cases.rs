@@ -19,7 +19,7 @@ pub const CASES: &[Case] = &[
         expected: &[("void F", "F", 3)],
     },
     Case {
-        name: "else if inside foreach gets the nesting increment",
+        name: "else if inside foreach adds one with no nesting increment",
         file: "a.cs",
         source: r#"class C {
     void F(int[] xs, bool a, bool b) {
@@ -33,7 +33,7 @@ pub const CASES: &[Case] = &[
     }
 }
 "#,
-        expected: &[("void F", "F", 5)],
+        expected: &[("void F", "F", 4)],
     },
     Case {
         name: "nested if",
@@ -127,12 +127,18 @@ pub const CASES: &[Case] = &[
         return false;
     }
     bool H(int a) {
+        if (a > 9) {
+            return false;
+        }
         if (a is 1 or 2 or 3) {
             return true;
         }
         return false;
     }
     bool J(int a) {
+        if (a > 9) {
+            return false;
+        }
         if (a is 1 or (2 or 3)) {
             return true;
         }
@@ -140,7 +146,7 @@ pub const CASES: &[Case] = &[
     }
 }
 "#,
-        expected: &[("bool F", "F", 2), ("bool H", "H", 2), ("bool J", "J", 3)],
+        expected: &[("bool F", "F", 2), ("bool H", "H", 2), ("bool J", "J", 2)],
     },
     Case {
         name: "goto",
@@ -190,10 +196,10 @@ pub const CASES: &[Case] = &[
     }
 }
 "#,
-        expected: &[("void F", "F", 5)],
+        expected: &[("void F", "F", 4)],
     },
     Case {
-        name: "finally adds one flat and its body is not nested",
+        name: "finally adds nothing and its body is not nested",
         file: "a.cs",
         source: r#"class C {
     void E1(bool a) {
@@ -217,26 +223,41 @@ pub const CASES: &[Case] = &[
     }
 }
 "#,
-        expected: &[("void E1", "E1", 2), ("void E2", "E2", 4)],
+        expected: &[("void E2", "E2", 3)],
     },
     Case {
         name: "runs of boolean operators",
         file: "a.cs",
         source: r#"class C {
     bool R1(bool a, bool b, bool c, bool d) {
+        if (a) {
+            G();
+        }
         return a && b && c || d;
     }
     bool R2(bool a, bool b, bool c) {
+        if (a) {
+            G();
+        }
         return a && (b || c);
     }
     bool R3(bool a, bool b, bool c) {
+        if (a) {
+            G();
+        }
         return a && (b || c) && a;
     }
     bool R6(bool a, bool b, bool c) {
+        if (a) {
+            G();
+        }
         return a && (b && c);
     }
     object R4(object a, object b, object c) {
         if (a == null) {
+            G();
+        }
+        if (b == null) {
             G();
         }
         return a ?? b ?? c;
@@ -246,19 +267,35 @@ pub const CASES: &[Case] = &[
             G();
         }
     }
+    bool R7(bool a, bool b, bool c) {
+        if (a) {
+            G();
+        }
+        return a || b || c;
+    }
+    bool R8(bool a, bool b, bool c) {
+        if (a) {
+            G();
+        }
+        if (b) {
+            G();
+        }
+        return a || b || c;
+    }
 }
 "#,
         expected: &[
             ("bool R1", "R1", 2),
             ("bool R2", "R2", 2),
-            ("bool R3", "R3", 2),
+            ("bool R3", "R3", 3),
             ("bool R6", "R6", 2),
             ("object R4", "R4", 2),
             ("void R5", "R5", 2),
+            ("bool R8", "R8", 2),
         ],
     },
     Case {
-        name: "local function inside an if inherits the nesting",
+        name: "local function inside an if starts at nesting zero",
         file: "a.cs",
         source: r#"class C {
     void F(bool a, bool b, bool c) {
@@ -278,7 +315,7 @@ pub const CASES: &[Case] = &[
     }
 }
 "#,
-        expected: &[("void F", "F", 2), ("void G2", "G2", 7)],
+        expected: &[("void F", "F", 2), ("void G2", "G2", 3)],
     },
     Case {
         name: "lambda assigned to a variable",
@@ -295,7 +332,7 @@ pub const CASES: &[Case] = &[
     }
 }
 "#,
-        expected: &[("void F", "F", 2), ("Func<bool, int> g", "g", 2)],
+        expected: &[("void F", "F", 2)],
     },
     Case {
         name: "anonymous lambda and anonymous method",
@@ -317,11 +354,7 @@ pub const CASES: &[Case] = &[
     }
 }
 "#,
-        expected: &[
-            ("void F", "F", 2),
-            ("xs.ForEach", "<anonymous>", 2),
-            ("Action h", "h", 2),
-        ],
+        expected: &[("void F", "F", 2)],
     },
     Case {
         name: "abstract and interface members and empty bodies are skipped",
@@ -373,5 +406,68 @@ class C {
 }
 "#,
         expected: &[("void Real", "Real", 2)],
+    },
+    Case {
+        name: "head constructs get no nesting increment but bodies do",
+        file: "a.cs",
+        source: r#"class C {
+    void H1(bool a, bool b, bool c) {
+        if (a ? b : c) {
+            G();
+        }
+    }
+    void H2(bool a, bool b, bool c) {
+        while (a ? b : c) {
+            G();
+        }
+    }
+    void H3(bool a, int[] xs, int[] ys) {
+        foreach (var x in a ? xs : ys) {
+            G();
+        }
+    }
+    void H4(bool a) {
+        for (int i = a ? 0 : 1; i < 3; i++) {
+            G();
+        }
+    }
+    void H5(bool a, int b, int c) {
+        switch (a ? b : c) {
+            case 1:
+                G();
+                break;
+            default:
+                H();
+                break;
+        }
+    }
+    int H6(bool a, bool b, bool c) {
+        return (a ? b : c) ? 1 : 2;
+    }
+    int H7(bool a, int b, int c) {
+        return (a ? b : c) switch {
+            1 => 1,
+            _ => 2,
+        };
+    }
+    void H8(bool a, bool b, bool c) {
+        if (a) {
+            while (b ? a : c) {
+                G();
+            }
+        }
+    }
+}
+"#,
+        expected: &[
+            ("void H1", "H1", 2),
+            ("void H2", "H2", 2),
+            ("void H3", "H3", 2),
+            ("void H4", "H4", 2),
+            ("void H5", "H5", 2),
+            ("int H6", "H6", 2),
+            ("int H7", "H7", 2),
+            ("void H8", "H8", 5),
+        ],
     },
 ];
