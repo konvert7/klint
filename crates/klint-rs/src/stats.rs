@@ -102,6 +102,7 @@ fn is_code_violation(violation: &Violation) -> bool {
 fn next_stats(previous: &KlintStats, violations: &[Violation], source: RunSource) -> KlintStats {
     let mut stats = previous.clone();
     stats.runs.bump(source);
+
     for violation in violations
         .iter()
         .filter(|violation| is_code_violation(violation))
@@ -114,6 +115,7 @@ fn next_stats(previous: &KlintStats, violations: &[Violation], source: RunSource
         .filter(|violation| violation.severity == "error")
         .collect();
     let mut still_open = Vec::new();
+
     for error in &previous.open {
         match unmatched
             .iter()
@@ -126,6 +128,7 @@ fn next_stats(previous: &KlintStats, violations: &[Violation], source: RunSource
             None => stats.prevented.bump(&error.rule, error.caught_by),
         }
     }
+
     still_open.extend(unmatched.into_iter().map(|violation| OpenError {
         rule: violation.rule.clone(),
         file: violation.file.clone(),
@@ -151,6 +154,7 @@ fn write_stats(config_dir: &Path, stats: &KlintStats) -> std::io::Result<()> {
     if !ignore_file.exists() {
         fs::write(&ignore_file, SELF_IGNORE)?;
     }
+
     let target = dir.join(STATS_FILE);
     let staging = dir.join(format!("{STATS_FILE}.{}.tmp", std::process::id()));
     let json = serde_json::to_string_pretty(stats).map_err(std::io::Error::other)?;
@@ -166,6 +170,7 @@ pub fn record_run(config_dir: &Path, violations: &[Violation], source: RunSource
     if stats_disabled() {
         return;
     }
+
     let _best_effort = write_stats(
         config_dir,
         &next_stats(&read_stats(config_dir), violations, source),
@@ -271,6 +276,7 @@ fn format_stats(stats: &KlintStats) -> String {
         lines.push(String::new());
         lines.extend(rule_table(&rows));
     }
+
     format!("{}\n", lines.join("\n"))
 }
 
@@ -373,13 +379,17 @@ mod tests {
     fn report_lists_rules_by_reported_then_prevented_then_name() {
         let mut stats = KlintStats::empty();
         stats.runs = SourceCounts { hook: 3, direct: 1 };
+
         for (rule, count) in [("arch/imports", 5), ("c-rule", 3), ("a-rule", 3)] {
             stats.reported.by_rule.insert(rule.to_string(), count);
         }
+
         stats.reported.by_source = SourceCounts { hook: 9, direct: 2 };
+
         for (rule, count) in [("b-rule", 1), ("a-rule", 1), ("arch/imports", 2)] {
             stats.prevented.by_rule.insert(rule.to_string(), count);
         }
+
         stats.prevented.by_source = SourceCounts { hook: 3, direct: 1 };
 
         assert_eq!(

@@ -8,10 +8,12 @@ pub(crate) fn resolve_files(root: &Path, include: &[String]) -> Result<Vec<PathB
         .iter()
         .filter_map(|pattern| pattern.strip_prefix('!'))
         .collect();
+
     for pattern in include.iter().filter(|pattern| !pattern.starts_with('!')) {
         let base = include_base(root, pattern);
         collect_source_files(&base, root, pattern, &excludes, &mut files)?;
     }
+
     files.sort();
     files.dedup();
     Ok(files)
@@ -31,6 +33,7 @@ pub(crate) fn read_files(files: &[PathBuf]) -> Result<Vec<String>, String> {
             .map(|_| {
                 scope.spawn(|| {
                     let mut read = Vec::new();
+
                     loop {
                         let index = next.fetch_add(1, AtomicOrdering::Relaxed);
                         let Some(file) = files.get(index) else {
@@ -52,20 +55,25 @@ pub(crate) fn read_files(files: &[PathBuf]) -> Result<Vec<String>, String> {
     });
 
     let mut contents = vec![String::new(); files.len()];
+
     for (index, result) in claimed {
         contents[index] = result?;
     }
+
     Ok(contents)
 }
 
 fn include_base(root: &Path, pattern: &str) -> PathBuf {
     let mut base = PathBuf::new();
+
     for segment in pattern.split('/') {
         if segment.contains('*') {
             break;
         }
+
         base.push(segment);
     }
+
     normalize_path(&root.join(base))
 }
 
@@ -88,6 +96,7 @@ fn collect_source_files(
             if is_excluded(&rel, excludes) || is_excluded(&format!("{rel}/"), excludes) {
                 continue;
             }
+
             collect_source_files(&path, root, include_pattern, excludes, files)?;
         } else if is_supported_source(&path) {
             let rel = relative_path(root, &path);
@@ -96,6 +105,7 @@ fn collect_source_files(
             }
         }
     }
+
     Ok(())
 }
 
@@ -140,6 +150,7 @@ pub(crate) fn supports_import_scan(path: &Path) -> bool {
 
 pub(crate) fn normalize_path(path: &Path) -> PathBuf {
     let mut normalized = PathBuf::new();
+
     for component in path.components() {
         match component {
             Component::CurDir => {}
@@ -164,9 +175,11 @@ pub(crate) fn relative_path(root: &Path, file: &Path) -> String {
 
 fn without_leading_dot_slash(pattern: &str) -> String {
     let mut rest = pattern;
+
     while let Some(stripped) = rest.strip_prefix("./") {
         rest = stripped;
     }
+
     rest.to_string()
 }
 
@@ -176,6 +189,7 @@ pub(crate) fn match_pattern(rel_path: &str, pattern: &str) -> bool {
     if pattern == "." || pattern == "**" {
         return true;
     }
+
     if !pattern.contains('*') {
         return norm == pattern || norm.starts_with(&format!("{pattern}/"));
     }
@@ -319,6 +333,7 @@ mod tests {
         for pattern in ["./src", "./src/**", "./src/*.ts", "./**/*.ts"] {
             assert!(match_pattern("src/app.ts", pattern), "{pattern}");
         }
+
         assert!(!match_pattern("lib/app.ts", "./src/**"));
     }
 

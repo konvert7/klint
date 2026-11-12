@@ -59,6 +59,7 @@ impl PathOptions {
         if parent.base_url.is_some() {
             self.base_url = parent.base_url;
         }
+
         if parent.paths.is_some() {
             self.paths = parent.paths;
         }
@@ -94,9 +95,11 @@ pub(super) fn load_path_aliases(root: &Path) -> Vec<AliasEntry> {
 
 fn path_options(config_path: &Path, depth: usize) -> PathOptions {
     let mut options = PathOptions::default();
+
     if depth > MAX_EXTENDS_DEPTH {
         return options;
     }
+
     let Some(tsconfig) = read_tsconfig(config_path) else {
         return options;
     };
@@ -111,14 +114,17 @@ fn path_options(config_path: &Path, depth: usize) -> PathOptions {
             options.inherit(path_options(&parent_path, depth + 1));
         }
     }
+
     if let Some(own) = tsconfig.compiler_options {
         if let Some(base_url) = own.base_url {
             options.base_url = Some(normalize_path(&dir.join(base_url)));
         }
+
         if let Some(paths) = own.paths {
             options.paths = Some((paths, normalize_path(dir)));
         }
     }
+
     options
 }
 
@@ -132,10 +138,12 @@ fn relative_extends_path(dir: &Path, spec: &str) -> Option<PathBuf> {
     if !is_relative && !Path::new(spec).is_absolute() {
         return None;
     }
+
     let path = dir.join(spec);
     if path.is_file() {
         return Some(path);
     }
+
     let with_json = PathBuf::from(format!("{}.json", path.display()));
     with_json.is_file().then_some(with_json)
 }
@@ -209,6 +217,7 @@ fn rust_crate_src_dir(file: &Path, crate_roots: &BTreeSet<PathBuf>) -> Option<Pa
 /// any other file owns a directory named after its stem.
 fn rust_module_dir(file: &Path) -> Option<PathBuf> {
     let parent = file.parent()?;
+
     match file.file_name().and_then(|name| name.to_str()) {
         Some("mod.rs" | "lib.rs" | "main.rs") => Some(parent.to_path_buf()),
         _ => Some(parent.join(file.file_stem()?)),
@@ -233,6 +242,7 @@ fn resolve_rust_module(
         _ => return None,
     };
     let mut rest: Vec<&str> = segments.collect();
+
     while rest.first() == Some(&"super") {
         base = base.parent()?.to_path_buf();
         rest.remove(0);
@@ -249,12 +259,14 @@ fn rust_module_file(base: &Path, segments: &[&str]) -> Option<PathBuf> {
         let candidate = segments[..depth]
             .iter()
             .fold(base.to_path_buf(), |path, segment| path.join(segment));
+
         for module in [candidate.with_extension("rs"), candidate.join("mod.rs")] {
             if module.is_file() {
                 return Some(normalize_path(&module));
             }
         }
     }
+
     None
 }
 
@@ -292,6 +304,7 @@ impl PythonContext {
 
 fn infer_python_source_roots(root: &Path, files: &[PathBuf]) -> Vec<PathBuf> {
     let mut roots = vec![normalize_path(root)];
+
     for file in files.iter().filter(|file| is_python_source(file)) {
         let Ok(rel) = file.strip_prefix(root) else {
             continue;
@@ -300,11 +313,14 @@ fn infer_python_source_roots(root: &Path, files: &[PathBuf]) -> Vec<PathBuf> {
         let Some(first) = components.next() else {
             continue;
         };
+
         if components.next().is_none() {
             continue;
         }
+
         roots.push(normalize_path(&root.join(first.as_os_str())));
     }
+
     roots.sort();
     roots.dedup();
     roots
@@ -313,19 +329,24 @@ fn infer_python_source_roots(root: &Path, files: &[PathBuf]) -> Vec<PathBuf> {
 fn index_python_package_dirs(root: &Path, files: &[PathBuf]) -> BTreeSet<PathBuf> {
     let root = normalize_path(root);
     let mut dirs = BTreeSet::new();
+
     for file in files.iter().filter(|file| is_python_source(file)) {
         let mut current = normalize_path(file);
+
         while let Some(parent) = current.parent() {
             if parent == root || !parent.starts_with(&root) {
                 break;
             }
+
             let parent = parent.to_path_buf();
             if !dirs.insert(parent.clone()) {
                 break;
             }
+
             current = parent;
         }
     }
+
     dirs
 }
 
@@ -352,6 +373,7 @@ fn resolve_python_module(specifier: &str, python: &PythonContext) -> Option<Path
 
 pub(super) fn index_swift_modules(root: &Path, files: &[PathBuf]) -> BTreeMap<String, PathBuf> {
     let mut modules = BTreeMap::new();
+
     for file in files.iter().filter(|file| is_swift_source(file)) {
         if let Some(stem) = file.file_stem().and_then(|stem| stem.to_str()) {
             modules
@@ -364,6 +386,7 @@ pub(super) fn index_swift_modules(root: &Path, files: &[PathBuf]) -> BTreeMap<St
         };
         let mut current = normalize_path(root);
         let components = rel.components().collect::<Vec<_>>();
+
         for component in components.iter().take(components.len().saturating_sub(1)) {
             current = normalize_path(&current.join(component.as_os_str()));
             let Some(name) = component.as_os_str().to_str() else {
@@ -374,6 +397,7 @@ pub(super) fn index_swift_modules(root: &Path, files: &[PathBuf]) -> BTreeMap<St
                 .or_insert_with(|| current.clone());
         }
     }
+
     modules
 }
 
@@ -396,16 +420,19 @@ pub(super) struct CSharpContext {
 impl CSharpContext {
     pub(super) fn index(files: &[PathBuf]) -> Self {
         let mut namespaces = BTreeMap::new();
+
         for file in files.iter().filter(|file| is_csharp_source(file)) {
             let Ok(content) = fs::read_to_string(file) else {
                 continue;
             };
+
             for namespace in scan_csharp_namespaces(&content) {
                 namespaces
                     .entry(namespace)
                     .or_insert_with(|| normalize_path(file));
             }
         }
+
         Self { namespaces }
     }
 }
@@ -418,6 +445,7 @@ fn resolve_csharp_namespace(
     if !is_csharp_source(file) {
         return None;
     }
+
     csharp.namespaces.get(specifier).cloned()
 }
 

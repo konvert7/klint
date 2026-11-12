@@ -13,9 +13,11 @@ pub(super) fn run_blank_line_before_control_flow(scan: RuleScan<'_>) -> Vec<Repo
     let RuleOptions::BlankLines(options) = scan.options else {
         return Vec::new();
     };
+
     if scan.index.has_syntax_error {
         return Vec::new();
     }
+
     let findings = missing_blank_before(
         &scan.index.statement_blocks,
         scan.content,
@@ -30,9 +32,11 @@ pub(super) fn run_blank_line_after_block(scan: RuleScan<'_>) -> Vec<Report> {
     let RuleOptions::BlankLines(options) = scan.options else {
         return Vec::new();
     };
+
     if scan.index.has_syntax_error {
         return Vec::new();
     }
+
     let findings = missing_blank_after(
         &scan.index.statement_blocks,
         scan.content,
@@ -62,6 +66,7 @@ fn insert_blank_line_fix(content: &str, insertion_line: usize) -> Option<serde_j
     if insertion_line < 2 || insertion_line > lines.len() {
         return None;
     }
+
     let text = lines[insertion_line - 1];
     let above = lines[insertion_line - 2];
     let empty = if above.ends_with('\r') { "\r" } else { "" };

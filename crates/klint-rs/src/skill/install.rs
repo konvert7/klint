@@ -16,6 +16,7 @@ pub struct InstallRequest {
 
 pub fn install_skill(request: &InstallRequest) -> Result<Vec<String>, String> {
     let dirs = agent_dirs_for(&request.agents)?;
+
     if request.shared {
         install_shared(request, &dirs)
     } else {
@@ -31,12 +32,14 @@ fn install_shared(request: &InstallRequest, dirs: &[String]) -> Result<Vec<Strin
         if dir == CANONICAL_SKILL_DIR {
             continue;
         }
+
         report.push(link_to_hub(
             request,
             &format!("{dir}/{SKILL_DIR_NAME}"),
             &hub,
         )?);
     }
+
     Ok(report)
 }
 
@@ -84,6 +87,7 @@ fn remove_link(path: &Path) -> std::io::Result<()> {
 fn relative_to_parent(target: &str, hub: &str) -> String {
     let depth = target.matches('/').count();
     let link_path = format!("{}{hub}", "../".repeat(depth));
+
     if cfg!(windows) {
         link_path.replace('/', "\\")
     } else {
@@ -161,6 +165,7 @@ mod tests {
             fs::read_to_string(dest.join(SKILL_FILE_NAME)).expect("skill should resolve"),
             SKILL_MARKDOWN
         );
+
         if let Ok(target) = fs::read_link(dest) {
             assert!(!target.to_string_lossy().contains("node_modules"));
             assert_eq!(
@@ -235,6 +240,7 @@ mod tests {
             };
             assert_eq!(report[index + 1], expected);
         }
+
         let _ = fs::remove_dir_all(root);
     }
 
@@ -261,6 +267,7 @@ mod tests {
         let report = install_skill(&request(&root, false, false)).expect("install should succeed");
 
         assert_eq!(report.len(), 3);
+
         for dir in [".agents", ".claude", ".cursor"] {
             let skill_dir = root.join(dir).join("skills/klint-rules");
             assert!(
@@ -270,6 +277,7 @@ mod tests {
             );
             assert!(skill_dir.join(RECEIPT_FILE_NAME).exists());
         }
+
         let _ = fs::remove_dir_all(root);
     }
 
@@ -347,6 +355,7 @@ mod tests {
             let target = fs::read_link(root.join(linked)).expect("link should exist");
             assert!(!target.to_string_lossy().contains("node_modules"));
         }
+
         let _ = fs::remove_dir_all(root);
     }
 }

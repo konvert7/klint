@@ -97,12 +97,15 @@ pub fn migrate(options: &MigrateOptions) -> Result<MigrateOutcome, String> {
     if shape == ConfigShape::V2 {
         return Ok(MigrateOutcome::AlreadyV2 { file });
     }
+
     if options.check_only {
         return Ok(MigrateOutcome::NeedsMigration { file });
     }
+
     if let ConfigShape::Mixed { keys } = &shape {
         return Ok(refused(&file, mixed_reason(keys)));
     }
+
     let rewritten = match format {
         ConfigFormat::Yaml => yaml_rules::migrate_yaml(&text),
         ConfigFormat::Json => json::migrate_json(&text),
@@ -118,6 +121,7 @@ pub fn migrate(options: &MigrateOptions) -> Result<MigrateOutcome, String> {
     if let Err(reason) = proof::prove_same_findings(dir, old, &new_text) {
         return Ok(refused(&file, reason));
     }
+
     match fs::write(&path, new_text) {
         Ok(()) => Ok(MigrateOutcome::Migrated { file }),
         Err(err) => Ok(refused(

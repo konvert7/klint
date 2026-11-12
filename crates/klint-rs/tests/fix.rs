@@ -212,12 +212,14 @@ fn fix_leaves_every_file_untouched_when_one_write_fails() {
     let read_only = root.join("src/b.ts");
     std::fs::set_permissions(&read_only, std::fs::Permissions::from_mode(0o444))
         .expect("make b read-only");
+
     if std::fs::OpenOptions::new()
         .write(true)
         .open(&read_only)
         .is_ok()
     {
         let _ = remove_dir_all(root);
+
         return;
     }
 

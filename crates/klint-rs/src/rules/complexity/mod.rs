@@ -12,9 +12,11 @@ pub(super) fn run_cognitive_complexity(scan: RuleScan<'_>) -> Vec<Report> {
     let RuleOptions::CognitiveComplexity(options) = scan.options else {
         return Vec::new();
     };
+
     if scan.index.has_syntax_error {
         return Vec::new();
     }
+
     let mut scores = scan.index.scores.clone();
     sort_by_position(&mut scores);
     scores

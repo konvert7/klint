@@ -38,6 +38,7 @@ fn every_help_form_prints_usage_and_runs_nothing() {
     let root = project("cli-help");
     let commands =
         regex::Regex::new(r"Commands:\n {2}stats +\S.*\n {2}install-skill +\S").expect("regex");
+
     for flag in ["help", "-h", "--help"] {
         let out = klint(&root, &[flag], &[]);
         assert_eq!((out.exit, out.stderr.as_str()), (0, ""), "{flag}");
@@ -48,6 +49,7 @@ fn every_help_form_prints_usage_and_runs_nothing() {
         );
         assert!(commands.is_match(&out.stdout), "{flag}: {}", out.stdout);
     }
+
     for command in ["stats", "install-skill"] {
         for flag in ["help", "-h", "--help"] {
             let out = klint(&root, &[command, flag], &[]);
@@ -61,6 +63,7 @@ fn every_help_form_prints_usage_and_runs_nothing() {
             assert!(out.stdout.contains("-h, --help"), "{command} {flag}");
         }
     }
+
     assert!(!root.join(".klint").exists());
     assert!(!root.join(".agents").exists());
     let _ = remove_dir_all(root);
@@ -91,6 +94,7 @@ fn usage_errors_exit_one_with_the_usage_of_the_command() {
             "error: option '--config' needs <dir>\n\nUsage:",
         ),
     ];
+
     for (args, stderr_start) in cases {
         let out = klint(&root, args, &[]);
         assert_eq!((out.exit, out.stdout.as_str()), (1, ""), "{args:?}");
@@ -100,6 +104,7 @@ fn usage_errors_exit_one_with_the_usage_of_the_command() {
             out.stderr
         );
     }
+
     assert!(!root.join(".klint").exists());
     assert!(!root.join(".agents").exists());
     assert!(!root.join(".claude").exists());
@@ -139,6 +144,7 @@ fn install_skill_without_a_terminal_shares_one_copy_across_agents() {
             .is_dir()
     );
     assert!(canonical.join(".klint-skill.json").is_file());
+
     for agent in [".claude", ".cursor"] {
         let dir = root.join(agent).join("skills/klint-rules");
         assert_eq!(
@@ -146,6 +152,7 @@ fn install_skill_without_a_terminal_shares_one_copy_across_agents() {
             shipped_skill(),
             "{agent}"
         );
+
         match fs::read_link(&dir) {
             Ok(target) => assert!(
                 !target.to_string_lossy().contains("node_modules"),

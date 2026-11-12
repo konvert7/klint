@@ -22,12 +22,15 @@ pub fn render(violations: &[Violation], elapsed: Duration) -> TextReport {
     }
 
     let mut stderr = String::new();
+
     if !warnings.is_empty() {
         stderr.push_str(&section("warning(s)", &warnings));
     }
+
     if !errors.is_empty() {
         stderr.push_str(&section("error(s)", &errors));
     }
+
     stderr.push_str(&format!("\nklint: finished in {duration}\n"));
     TextReport {
         stdout: String::new(),

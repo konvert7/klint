@@ -41,6 +41,7 @@ fn walk_prefer_string_replaceall(
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_prefer_string_replaceall(child, source, records);
     }
@@ -74,6 +75,7 @@ pub(crate) fn prefer_string_replaceall_record(
     if flags != "g" {
         return None;
     }
+
     let pattern = regex_pattern(&regex)?;
     if !is_plain_regex_literal(pattern) {
         return None;

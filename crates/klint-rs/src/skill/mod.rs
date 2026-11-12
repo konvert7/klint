@@ -117,6 +117,7 @@ fn symlink_target(path: &Path) -> Option<String> {
     if !metadata.is_symlink() {
         return None;
     }
+
     Some(fs::read_link(path).ok()?.to_string_lossy().to_string())
 }
 
@@ -164,11 +165,13 @@ fn unique_agent_dirs() -> Vec<String> {
 
 fn deduplicated(dirs: &[&str]) -> Vec<String> {
     let mut unique: Vec<String> = Vec::new();
+
     for dir in dirs {
         if !unique.iter().any(|seen| seen == dir) {
             unique.push((*dir).to_string());
         }
     }
+
     unique
 }
 
@@ -293,6 +296,7 @@ pub(crate) mod tests {
     #[test]
     fn separate_copies_warn_once_each() {
         let root = temp_root("advisory-copies");
+
         for dir in unique_agent_dirs() {
             write_receipt(&root, &dir, &stale_receipt());
         }

@@ -232,6 +232,7 @@ mod tests {
             })
             .map(|node| node.id())
             .collect();
+
         for index in 0..parent.named_child_count() {
             let child = parent.named_child(index).expect("named child");
             assert_eq!(
@@ -315,6 +316,7 @@ mod tests {
             "class C { void M(bool a) { try { } catch (System.Exception e) when (a) { } } }",
         );
         let catch = all_of_kind(tree.root_node(), "catch_clause")[0];
+
         for index in 0..catch.named_child_count() {
             let child = catch.named_child(index).expect("catch child");
             let expected = matches!(child.kind(), "catch_declaration" | "catch_filter_clause");

@@ -88,6 +88,7 @@ pub(super) fn in_prefixes(path: &Path, prefixes: &[PathBuf]) -> bool {
         if path_in_prefix(path, prefix) {
             return true;
         }
+
         let Some(prefix_text) = prefix.to_str() else {
             return false;
         };

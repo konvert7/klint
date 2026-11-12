@@ -40,11 +40,14 @@ fn write_case(root: &Path, case: &ParityCase) {
         create_dir_all(file.parent().expect("case file has a parent")).expect("create case dir");
         write(file, content).expect("write case file");
     }
+
     if let Some(text) = &case.config_text {
         let file = case.config_file.as_deref().unwrap_or("klint.yaml");
         write(root.join(file), with_current_version(text)).expect("write case config text");
+
         return;
     }
+
     let mut config = case.config.clone();
     config.insert("root".to_string(), json!("."));
     write(
@@ -276,11 +279,14 @@ fn stats_mismatches(sequence: &StatsSequence) -> Vec<String> {
     let root = temp_root("parity-stats");
     create_dir_all(&root).expect("create root");
     write(root.join("klint.yaml"), &sequence.config_text).expect("write config");
+
     if let Some(initial) = &sequence.initial_stats {
         create_dir_all(root.join(".klint")).expect("create .klint");
         write(root.join(".klint/stats.json"), initial).expect("write initial stats");
     }
+
     let mut mismatches = Vec::new();
+
     for (index, (step, expected)) in sequence.steps.iter().zip(&sequence.stats_after).enumerate() {
         write_tree(&root, &step.files);
         klint_rs(&root, if step.hook { &["--hook"] } else { &[] });
@@ -294,10 +300,12 @@ fn stats_mismatches(sequence: &StatsSequence) -> Vec<String> {
             ));
         }
     }
+
     let gitignore = read_to_string(root.join(".klint/.gitignore")).unwrap_or_default();
     if gitignore != sequence.gitignore {
         mismatches.push(format!("gitignore {gitignore:?}"));
     }
+
     let output = klint_rs(&root, &["stats"]);
     let text = json!({
         "exit": output.status.code(),
@@ -310,6 +318,7 @@ fn stats_mismatches(sequence: &StatsSequence) -> Vec<String> {
             sequence.stats_text
         ));
     }
+
     let _ = remove_dir_all(&root);
     mismatches
 }

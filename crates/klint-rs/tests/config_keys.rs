@@ -47,15 +47,18 @@ fn refresh_if_requested() {
     if std::env::var("KLINT_KEYS_UPDATE").is_err() {
         return;
     }
+
     let current = generated();
     let old = read_to_string(manifest_path())
         .ok()
         .and_then(|t| serde_json::from_str::<Value>(&t).ok());
     let mut retired = BTreeSet::new();
+
     if let Some(old) = old {
         retired.extend(read_set(&old, "retired"));
         retired.extend(read_set(&old, "current").difference(&current).cloned());
     }
+
     let body = json!({"current": current, "retired": retired});
     let text = serde_json::to_string_pretty(&body).expect("serialize");
     write(manifest_path(), format!("{text}\n")).expect("write manifest");
@@ -81,6 +84,7 @@ fn generated_keys_equal_the_manifest_current_list() {
         listed.windows(2).all(|w| w[0] <= w[1]),
         "current must be sorted"
     );
+
     for key in [
         "$schema",
         "include",
@@ -92,7 +96,9 @@ fn generated_keys_equal_the_manifest_current_list() {
     ] {
         assert!(current.contains(key), "current lacks {key}");
     }
+
     let retired = read_set(&manifest, "retired");
+
     for key in [
         "plugins",
         "rules.sonar/prefer-at",
@@ -101,6 +107,7 @@ fn generated_keys_equal_the_manifest_current_list() {
     ] {
         assert!(retired.contains(key), "retired lacks {key}");
     }
+
     assert!(current.is_disjoint(&retired));
 }
 
@@ -114,21 +121,25 @@ fn retired_flat_rules() -> Vec<String> {
 
 fn v1_config_planting_every_retired_key() -> String {
     let mut text = String::from("include: [\"src\"]\nplugins: [sonar]\nrules:\n");
+
     for name in retired_flat_rules() {
         text.push_str(&format!("  {name}: warn\n"));
     }
+
     text
 }
 
 fn hand_written_v2() -> String {
     let mut core = String::new();
     let mut sonar = String::new();
+
     for name in retired_flat_rules() {
         match name.strip_prefix("sonar/") {
             Some(bare) => sonar.push_str(&format!("    {bare}: warn\n")),
             None => core.push_str(&format!("    {name}: warn\n")),
         }
     }
+
     format!("include: [\"src\"]\nrules:\n  recommended: true\n  core:\n{core}  sonar:\n{sonar}")
 }
 
@@ -194,6 +205,7 @@ fn a_second_migrate_changes_nothing() {
 #[test]
 fn public_key_paths_list_a_group_entry_then_each_option_path() {
     let paths = klint_rs::config_key_paths();
+
     for expected in [
         "rules.sonar.prefer-at",
         "rules.sonar.prefer-at.severity",
@@ -205,6 +217,7 @@ fn public_key_paths_list_a_group_entry_then_each_option_path() {
             "{expected} in {paths:?}"
         );
     }
+
     let mut sorted = paths.clone();
     sorted.sort();
     sorted.dedup();

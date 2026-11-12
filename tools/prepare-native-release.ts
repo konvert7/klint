@@ -33,6 +33,7 @@ const options = parseArgs();
 if (existsSync(options.outDir)) {
   rmSync(options.outDir, { recursive: true, force: true });
 }
+
 mkdirSync(options.outDir, { recursive: true });
 
 try {
@@ -40,6 +41,7 @@ try {
   const nativeResults = nativePackages().map(prepareNativePackage);
 
   validateRootPackageJson(releaseRootPackageJson);
+
   for (const result of nativeResults) validateNativePackage(result.packageJson);
 
   const missing = nativeResults
@@ -74,6 +76,7 @@ function prepareRootPackageJson(): PackageJson {
 
   const outPath = join(options.outDir, "package.json");
   writeJson(outPath, packageJson);
+
   return packageJson;
 }
 
@@ -104,6 +107,7 @@ function prepareNativePackage(nativePackage: ReturnType<typeof nativePackages>[n
 
 function validateRootPackageJson(packageJson: PackageJson): void {
   const optionalDependencies = packageJson.optionalDependencies ?? {};
+
   for (const nativePackage of nativePackages()) {
     if (nativePackage.packageName in optionalDependencies) {
       fail(
@@ -119,6 +123,7 @@ function validateNativePackage(packageJson: PackageJson): void {
       `${packageJson.name} version is ${packageJson.version}, expected ${options.version}`
     );
   }
+
   if (packageJson.private !== false) {
     fail(`${packageJson.name} private must be false in release prep output`);
   }

@@ -126,6 +126,7 @@ fn is_labeled_jump(node: Node<'_>) -> bool {
 
 fn enclosing_property_name(accessor: Node<'_>, source: &[u8]) -> Option<String> {
     let mut current = accessor.parent();
+
     while let Some(ancestor) = current {
         match ancestor.kind() {
             "property_declaration" => return property_name(ancestor, source),
@@ -133,6 +134,7 @@ fn enclosing_property_name(accessor: Node<'_>, source: &[u8]) -> Option<String> 
             _ => current = ancestor.parent(),
         }
     }
+
     None
 }
 
@@ -223,6 +225,7 @@ mod tests {
             })
             .map(|node| node.id())
             .collect();
+
         for index in 0..parent.named_child_count() {
             let child = parent.named_child(index).expect("named child");
             assert_eq!(

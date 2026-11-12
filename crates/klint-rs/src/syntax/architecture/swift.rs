@@ -9,6 +9,7 @@ pub(super) fn walk_swift_imports(node: Node<'_>, source: &[u8], imports: &mut Ve
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_swift_imports(child, source, imports);
     }

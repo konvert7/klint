@@ -31,6 +31,7 @@ fn recommended_true_matches_plugins_sonar_on_all_six_rules() {
 
     assert_eq!(without_config_warnings(&v1), without_config_warnings(&v2));
     let ids = rule_ids(&v2);
+
     for rule in [
         "sonar/prefer-string-replaceall",
         "sonar/prefer-string-raw-regexp",
@@ -41,6 +42,7 @@ fn recommended_true_matches_plugins_sonar_on_all_six_rules() {
     ] {
         assert!(ids.iter().any(|i| i == rule), "{rule} missing in {ids:?}");
     }
+
     assert!(
         without_config_warnings(&v2)
             .iter()

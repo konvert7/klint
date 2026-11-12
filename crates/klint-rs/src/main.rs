@@ -39,80 +39,88 @@ fn klint_command() -> Group {
     Group {
         summary: "Architecture-as-Code linter: layer boundaries, import rules and forbidden patterns",
         aliases: &[("h", "help")],
-        default_command: Some(Leaf {
-            summary: "Lints the project",
-            options: vec![
-                OptionSpec::valued(
-                    "config",
-                    "<dir>",
-                    "Directory containing klint.yaml or klint.config.json (default: cwd)",
-                ),
-                OptionSpec::flag("json", "Emit structured JSON to stdout"),
-                OptionSpec::flag("fix", "Apply autofixes, then report what is left"),
-                OptionSpec::flag("hook", "Count this run as an agent hook run in klint stats"),
-                OptionSpec::flag("version", "Print the installed klint version").short('V'),
-            ],
-            details: Vec::new(),
-        }),
+        default_command: Some(lint_leaf()),
         commands: vec![
-            (
-                "stats",
-                Leaf {
-                    summary: "Print runs, violations reported and errors prevented, in total and per rule",
-                    options: vec![OptionSpec::valued(
-                        "config",
-                        "<dir>",
-                        "Directory holding .klint/stats.json (default: cwd)",
-                    )],
-                    details: vec!["Set KLINT_NO_STATS=1 to stop recording.".to_string()],
-                },
-            ),
-            (
-                "install-skill",
-                Leaf {
-                    summary: "Install the embedded klint-rules skill into agent config directories",
-                    options: vec![
-                        OptionSpec::valued(
-                            "agents",
-                            "<list>",
-                            format!("Comma-separated: {} (default: all)", known_agent_names()),
-                        ),
-                        OptionSpec::flag(
-                            "symlink",
-                            "Keep one skill in .agents/skills and symlink the others to it (default)",
-                        )
-                        .aliases(&["--shared"]),
-                        OptionSpec::flag("copy", "Give every agent directory its own copy"),
-                        OptionSpec::flag("force", "Replace a skill directory klint did not install"),
-                    ],
-                    details: vec![
-                        "Asks which agents and how to store the skill when run on a terminal without".to_string(),
-                        "--agents, --symlink or --copy.".to_string(),
-                    ],
-                },
-            ),
-            (
-                "migrate",
-                Leaf {
-                    summary: "Upgrade a v1 klint.yaml or klint.config.json to the v2 rule groups in place",
-                    options: vec![
-                        OptionSpec::valued(
-                            "config",
-                            "<dir>",
-                            "Directory containing klint.yaml or klint.config.json (default: cwd)",
-                        ),
-                        OptionSpec::flag(
-                            "check",
-                            "Exit 1 when the config is v1, 0 when it is v2; never writes",
-                        ),
-                    ],
-                    details: vec![
-                        "Comments, blank lines and key order are kept. The config is written only when the findings stay identical.".to_string(),
-                    ],
-                },
-            ),
+            ("stats", stats_leaf()),
+            ("install-skill", install_skill_leaf()),
+            ("migrate", migrate_leaf()),
         ],
         details: Vec::new(),
+    }
+}
+
+fn config_dir_option() -> OptionSpec {
+    OptionSpec::valued(
+        "config",
+        "<dir>",
+        "Directory containing klint.yaml or klint.config.json (default: cwd)",
+    )
+}
+
+fn lint_leaf() -> Leaf {
+    Leaf {
+        summary: "Lints the project",
+        options: vec![
+            config_dir_option(),
+            OptionSpec::flag("json", "Emit structured JSON to stdout"),
+            OptionSpec::flag("fix", "Apply autofixes, then report what is left"),
+            OptionSpec::flag("hook", "Count this run as an agent hook run in klint stats"),
+            OptionSpec::flag("version", "Print the installed klint version").short('V'),
+        ],
+        details: Vec::new(),
+    }
+}
+
+fn stats_leaf() -> Leaf {
+    Leaf {
+        summary: "Print runs, violations reported and errors prevented, in total and per rule",
+        options: vec![OptionSpec::valued(
+            "config",
+            "<dir>",
+            "Directory holding .klint/stats.json (default: cwd)",
+        )],
+        details: vec!["Set KLINT_NO_STATS=1 to stop recording.".to_string()],
+    }
+}
+
+fn install_skill_leaf() -> Leaf {
+    Leaf {
+        summary: "Install the embedded klint-rules skill into agent config directories",
+        options: vec![
+            OptionSpec::valued(
+                "agents",
+                "<list>",
+                format!("Comma-separated: {} (default: all)", known_agent_names()),
+            ),
+            OptionSpec::flag(
+                "symlink",
+                "Keep one skill in .agents/skills and symlink the others to it (default)",
+            )
+            .aliases(&["--shared"]),
+            OptionSpec::flag("copy", "Give every agent directory its own copy"),
+            OptionSpec::flag("force", "Replace a skill directory klint did not install"),
+        ],
+        details: vec![
+            "Asks which agents and how to store the skill when run on a terminal without"
+                .to_string(),
+            "--agents, --symlink or --copy.".to_string(),
+        ],
+    }
+}
+
+fn migrate_leaf() -> Leaf {
+    Leaf {
+        summary: "Upgrade a v1 klint.yaml or klint.config.json to the v2 rule groups in place",
+        options: vec![
+            config_dir_option(),
+            OptionSpec::flag(
+                "check",
+                "Exit 1 when the config is v1, 0 when it is v2; never writes",
+            ),
+        ],
+        details: vec![
+            "Comments, blank lines and key order are kept. The config is written only when the findings stay identical.".to_string(),
+        ],
     }
 }
 
@@ -127,14 +135,18 @@ fn config_dir(values: &Values) -> Result<PathBuf, String> {
 
 fn lint_command(values: &Values) -> i32 {
     let started_at = Instant::now();
+
     if values.flag("version") {
         println!("klint {}", klint_rs::reported_version());
+
         return 0;
     }
+
     let config_dir = match config_dir(values) {
         Ok(dir) => dir,
         Err(err) => {
             eprintln!("{err}");
+
             return 1;
         }
     };
@@ -143,14 +155,17 @@ fn lint_command(values: &Values) -> i32 {
     } else {
         RunSource::Direct
     };
+
     if values.flag("fix") {
         return fix_command(config_dir, source, started_at);
     }
+
     match run(RunOptions {
         config_dir: config_dir.clone(),
     }) {
         Ok(output) => {
             record_run(&config_dir, &output.violations, source);
+
             if values.flag("json") {
                 println!(
                     "{}",
@@ -161,6 +176,7 @@ fn lint_command(values: &Values) -> i32 {
                 print!("{}", report.stdout);
                 eprint!("{}", report.stderr);
             }
+
             if output.summary.errors > 0 { 2 } else { 0 }
         }
         Err(err) => {
@@ -175,6 +191,7 @@ fn migrate_command(values: &Values) -> i32 {
         Ok(dir) => dir,
         Err(err) => {
             eprintln!("{err}");
+
             return 1;
         }
     };
@@ -241,6 +258,7 @@ fn migrate_before_fixing(config_dir: &std::path::Path) -> Option<Violation> {
 
 fn fix_command(config_dir: PathBuf, source: RunSource, started_at: Instant) -> i32 {
     let refusal = migrate_before_fixing(&config_dir);
+
     match fix(RunOptions {
         config_dir: config_dir.clone(),
     }) {
@@ -250,12 +268,15 @@ fn fix_command(config_dir: PathBuf, source: RunSource, started_at: Instant) -> i
                 outcome.remaining.violations.push(warning);
                 outcome.remaining.summary.warnings += 1;
             }
+
             record_run(&config_dir, &outcome.remaining.violations, source);
+
             if outcome.stopped_at_pass_limit {
                 eprintln!(
                     "klint: stopped after {MAX_FIX_PASSES} fix passes — some fixes keep producing new fixable violations."
                 );
             }
+
             println!(
                 "{} Finished in {}.",
                 fix_summary(outcome.applied, outcome.remaining.violations.len()),
@@ -298,6 +319,7 @@ fn install_skill_command(values: &Values) -> i32 {
         Ok(parsed) => parsed,
         Err(err) => {
             eprintln!("{err}");
+
             return 1;
         }
     };
@@ -305,6 +327,7 @@ fn install_skill_command(values: &Values) -> i32 {
         match prompt::ask_install_choices(&known_agents()) {
             Ok(Some(choices)) if choices.agents.is_empty() => {
                 println!("klint: no agents selected — nothing to install");
+
                 return 0;
             }
             Ok(Some(choices)) => {
@@ -313,10 +336,12 @@ fn install_skill_command(values: &Values) -> i32 {
             }
             Ok(None) => {
                 println!("klint: cancelled");
+
                 return 0;
             }
             Err(err) => {
                 eprintln!("{err}");
+
                 return 1;
             }
         }
@@ -327,6 +352,7 @@ fn install_skill_command(values: &Values) -> i32 {
             for line in installed {
                 println!("klint: {line}");
             }
+
             0
         }
         Err(err) => {

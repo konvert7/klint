@@ -235,6 +235,7 @@ mod tests {
             })
             .map(|node| node.id())
             .collect();
+
         for index in 0..parent.named_child_count() {
             let child = parent.named_child(index).expect("named child");
             assert_eq!(

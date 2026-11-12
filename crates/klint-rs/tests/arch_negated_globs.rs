@@ -13,11 +13,13 @@ const FILES: &[&str] = &[
 
 fn files_flagged_by_comment_block_in(name: &str, scope: &str) -> Vec<String> {
     let root = temp_root(name);
+
     for file in FILES {
         let path = root.join(file);
         create_dir_all(path.parent().expect("fixture file has a parent")).expect("create dirs");
         write(path, LONG_COMMENT).expect("write source");
     }
+
     write(
         root.join("klint.yaml"),
         format!(

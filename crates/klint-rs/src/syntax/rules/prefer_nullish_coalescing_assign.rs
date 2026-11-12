@@ -42,6 +42,7 @@ fn walk_prefer_nullish_coalescing_assign(
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_prefer_nullish_coalescing_assign(child, source, records);
     }
@@ -86,6 +87,7 @@ fn assignment_expression(
         if child.kind() != "expression_statement" {
             return None;
         }
+
         child.named_child(0)?
     } else {
         return None;
@@ -159,12 +161,14 @@ fn equality_nullish_target(
             value: right_text,
         });
     }
+
     if left_text == "null" || left_text == "undefined" {
         return Some(PreferNullishCoalescingAssignTarget {
             target: right_text,
             value: left_text,
         });
     }
+
     None
 }
 

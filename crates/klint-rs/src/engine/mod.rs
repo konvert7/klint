@@ -67,19 +67,23 @@ impl Engine<'_> {
         });
 
         let mut scanned: Vec<FileBuckets> = (0..self.files.len()).map(|_| Vec::new()).collect();
+
         for (index, buckets) in claimed {
             scanned[index] = buckets;
         }
+
         scanned
     }
 
     fn drain_queue(&self, next: &AtomicUsize) -> Vec<(usize, FileBuckets)> {
         let mut done = Vec::new();
+
         loop {
             let index = next.fetch_add(1, Ordering::Relaxed);
             if index >= self.files.len() {
                 return done;
             }
+
             done.push((index, self.scan_file(index)));
         }
     }
@@ -104,6 +108,7 @@ impl Engine<'_> {
         };
 
         let mut buckets = Vec::with_capacity(self.pass_count());
+
         for pass in self.rule_passes {
             buckets.push(if scans_rules && pass.covers(file_index) {
                 pass.scan(
@@ -135,6 +140,7 @@ impl Engine<'_> {
                 &mut buckets,
             );
         }
+
         buckets
     }
 
@@ -148,6 +154,7 @@ impl Engine<'_> {
     fn assemble(&self, scanned: Vec<FileBuckets>) -> Vec<Violation> {
         let mut scanned = scanned;
         let mut violations = Vec::new();
+
         for pass in 0..self.pass_count() {
             for buckets in &mut scanned {
                 if let Some(bucket) = buckets.get_mut(pass) {
@@ -155,6 +162,7 @@ impl Engine<'_> {
                 }
             }
         }
+
         violations
     }
 }

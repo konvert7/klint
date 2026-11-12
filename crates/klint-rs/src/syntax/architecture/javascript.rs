@@ -12,6 +12,7 @@ pub(super) fn walk_imports(node: Node<'_>, source: &[u8], imports: &mut Vec<Impo
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_imports(child, source, imports);
     }

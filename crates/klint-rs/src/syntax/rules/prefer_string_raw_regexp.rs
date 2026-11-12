@@ -41,6 +41,7 @@ fn walk_prefer_string_raw_regexp(
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_prefer_string_raw_regexp(child, source, records);
     }
@@ -85,6 +86,7 @@ fn template_to_string_raw(raw: &str) -> Option<String> {
     let inner = raw.strip_prefix('`')?.strip_suffix('`')?;
     let mut result = String::from("String.raw`");
     let mut index = 0;
+
     while index < inner.len() {
         let rest = &inner[index..];
         if rest.starts_with("${") {
@@ -93,15 +95,18 @@ fn template_to_string_raw(raw: &str) -> Option<String> {
             index = end;
             continue;
         }
+
         if rest.starts_with("\\\\") {
             result.push('\\');
             index += 2;
             continue;
         }
+
         let ch = rest.chars().next()?;
         result.push(ch);
         index += ch.len_utf8();
     }
+
     result.push('`');
     Some(result)
 }
@@ -116,12 +121,14 @@ fn scan_template_literal_chunks(raw: &str, mut predicate: impl FnMut(&str) -> bo
 
     let mut chunk_start = 0;
     let mut index = 0;
+
     while index < inner.len() {
         let rest = &inner[index..];
         if rest.starts_with("${") {
             if predicate(&inner[chunk_start..index]) {
                 return true;
             }
+
             let Some(end) = template_expression_end(inner, index + 2) else {
                 return false;
             };
@@ -129,17 +136,20 @@ fn scan_template_literal_chunks(raw: &str, mut predicate: impl FnMut(&str) -> bo
             chunk_start = index;
             continue;
         }
+
         let Some(ch) = rest.chars().next() else {
             break;
         };
         index += ch.len_utf8();
     }
+
     predicate(&inner[chunk_start..])
 }
 
 fn template_expression_end(inner: &str, expression_start: usize) -> Option<usize> {
     let mut depth = 1;
     let mut index = expression_start;
+
     while index < inner.len() {
         let rest = &inner[index..];
         let ch = rest.chars().next()?;
@@ -151,8 +161,10 @@ fn template_expression_end(inner: &str, expression_start: usize) -> Option<usize
                 return Some(index + 1);
             }
         }
+
         index += ch.len_utf8();
     }
+
     None
 }
 fn first_named_argument(arguments: Node<'_>) -> Option<Node<'_>> {

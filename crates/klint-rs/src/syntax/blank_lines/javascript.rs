@@ -27,6 +27,7 @@ impl Grammar for JavaScript {
         if matches!(member.kind(), "comment" | "hash_bang_line") {
             return Role::Comment;
         }
+
         Role::Statement(target_of(unwrap_labels(member)))
     }
 

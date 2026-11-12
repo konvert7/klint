@@ -58,6 +58,7 @@ impl ComplexityGrammar for Rust {
         if parent.kind() != "let_declaration" {
             return None;
         }
+
         let pattern = parent.child_by_field_name("pattern")?;
         (pattern.kind() == "identifier").then(|| text_of(pattern, source))
     }
@@ -148,6 +149,7 @@ mod tests {
             })
             .map(|node| node.id())
             .collect();
+
         for index in 0..parent.named_child_count() {
             let child = parent.named_child(index).expect("named child");
             assert_eq!(

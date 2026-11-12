@@ -31,8 +31,10 @@ pub(super) fn run_no_string_match(scan: RuleScan<'_>) -> Vec<Report> {
 
 pub(super) fn run_no_nested_template_literals(scan: RuleScan<'_>) -> Vec<Report> {
     let mut records = Vec::new();
+
     for template in &scan.index.templates {
         let mut cursor = template.walk();
+
         for child in template.children(&mut cursor) {
             if child.kind() == "template_substitution" {
                 find_nested_template_literals(child, &mut records);
@@ -54,6 +56,7 @@ pub(super) fn run_no_nested_template_literals(scan: RuleScan<'_>) -> Vec<Report>
 
 pub(super) fn run_no_consecutive_array_push(scan: RuleScan<'_>) -> Vec<Report> {
     let mut records = Vec::new();
+
     for container in &scan.index.containers {
         scan_statement_run(*container, scan.source, &mut records);
     }

@@ -12,9 +12,11 @@ pub(super) fn run_function_length(scan: RuleScan<'_>) -> Vec<Report> {
     let RuleOptions::FunctionLength(options) = scan.options else {
         return Vec::new();
     };
+
     if scan.index.has_syntax_error {
         return Vec::new();
     }
+
     let mut lengths = scan.index.function_lengths.clone();
     lengths.sort_by_key(|length| {
         let start = length.node.start_position();

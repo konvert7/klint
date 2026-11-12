@@ -24,6 +24,7 @@ pub(super) fn block_items<'a>(
 ) -> Vec<Item<'a>> {
     let mut items = Vec::new();
     let mut pending_start: Option<(usize, usize)> = None;
+
     for member in body_members(container, grammar) {
         match grammar.classify(member) {
             Role::Prefix => {
@@ -36,6 +37,7 @@ pub(super) fn block_items<'a>(
             }
         }
     }
+
     attach_leading_comments(&mut items, lines);
     items
 }
@@ -43,17 +45,20 @@ pub(super) fn block_items<'a>(
 fn body_members<'a>(container: Node<'a>, grammar: &dyn Grammar) -> Vec<Node<'a>> {
     let mut cursor = container.walk();
     let mut members = Vec::new();
+
     if cursor.goto_first_child() {
         loop {
             let child = cursor.node();
             if grammar.is_body_member(child, cursor.field_name()) {
                 members.push(child);
             }
+
             if !cursor.goto_next_sibling() {
                 break;
             }
         }
     }
+
     members
 }
 
@@ -91,10 +96,12 @@ fn leading_comment_head(
 ) -> (usize, usize) {
     let mut head = (items[index].start_row, items[index].start_column);
     let mut position = index;
+
     while position > 0 && is_leading_comment(&items[position - 1], head.0, lines) {
         position -= 1;
         head = (items[position].start_row, items[position].start_column);
     }
+
     head
 }
 

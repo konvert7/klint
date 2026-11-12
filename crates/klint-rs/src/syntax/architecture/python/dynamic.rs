@@ -44,6 +44,7 @@ fn collect_importlib_bindings(node: Node<'_>, source: &[u8], bindings: &mut Impo
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         collect_importlib_bindings(child, source, bindings);
     }
@@ -54,10 +55,12 @@ fn importlib_module_binding(name: Node<'_>, source: &[u8]) -> Option<String> {
     if target == "importlib" {
         return Some(python_import_alias(name, source).unwrap_or(target));
     }
+
     // `import importlib.util` binds the top-level package name, not the submodule.
     if target.starts_with("importlib.") && python_import_alias(name, source).is_none() {
         return Some("importlib".to_string());
     }
+
     None
 }
 
@@ -65,6 +68,7 @@ fn python_import_alias(name: Node<'_>, source: &[u8]) -> Option<String> {
     if name.kind() != "aliased_import" {
         return None;
     }
+
     node_text(name.child_by_field_name("alias")?, source)
 }
 
@@ -73,6 +77,7 @@ fn python_from_import_module(node: Node<'_>, source: &[u8]) -> Option<String> {
     if module.kind() == "relative_import" {
         return None;
     }
+
     node_text(module, source)
 }
 
@@ -105,6 +110,7 @@ fn is_python_dynamic_import_call(
     let Some(text) = node_text(function, source) else {
         return false;
     };
+
     match function.kind() {
         "identifier" => text == "__import__" || importlib.functions.contains(&text),
         "attribute" => function
@@ -127,10 +133,12 @@ fn python_dynamic_specifier(raw: &str) -> Option<String> {
     if dots == 0 {
         return (!raw.is_empty()).then(|| raw.to_string());
     }
+
     let module_path = raw[dots..].replace('.', "/");
     if module_path.is_empty() {
         return None;
     }
+
     Some(format!("{}{module_path}", python_dot_prefix(dots)))
 }
 

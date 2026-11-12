@@ -25,6 +25,7 @@ impl Grammar for CSharp {
         if member.kind() == "comment" {
             return Role::Comment;
         }
+
         Role::Statement(target_of(unwrap_wrappers(member)))
     }
 
@@ -131,6 +132,7 @@ fn assignment_names(expression: Node<'_>, source: &[u8]) -> Vec<String> {
     if expression.kind() != "assignment_expression" {
         return Vec::new();
     }
+
     let Some(left) = expression.child_by_field_name("left") else {
         return Vec::new();
     };

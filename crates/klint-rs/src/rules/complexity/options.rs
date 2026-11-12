@@ -137,6 +137,7 @@ mod tests {
             (serde_json::json!(2.5), "2.5"),
             (serde_json::json!("x"), "\"x\""),
         ];
+
         for (value, text) in values {
             let (max, problems) = parse_max("function-length", Some(&value), 50);
             assert_eq!(max, 50);

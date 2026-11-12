@@ -75,6 +75,7 @@ impl ComplexityGrammar for Python {
         if parent.kind() != "assignment" || !is_field_of(parent, "right", function) {
             return None;
         }
+
         let left = parent.child_by_field_name("left")?;
         (left.kind() == "identifier").then(|| text_of(left, source))
     }
@@ -181,6 +182,7 @@ mod tests {
             })
             .map(|node| node.id())
             .collect();
+
         for index in 0..parent.named_child_count() {
             let child = parent.named_child(index).expect("named child");
             assert_eq!(

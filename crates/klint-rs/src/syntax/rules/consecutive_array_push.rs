@@ -39,6 +39,7 @@ fn walk_statement_containers(
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_statement_containers(child, source, records);
     }
@@ -66,12 +67,14 @@ pub(crate) fn scan_statement_run(
                 receiver: run_receiver.clone(),
             });
         }
+
         *run_start = None;
         run_receiver.clear();
         *run_count = 0;
     };
 
     let mut cursor = node.walk();
+
     for child in node.named_children(&mut cursor) {
         let receiver = push_receiver(child, source);
         if let Some(receiver) = receiver {
@@ -87,6 +90,7 @@ pub(crate) fn scan_statement_run(
             flush(records, &mut run_start, &mut run_receiver, &mut run_count);
         }
     }
+
     flush(records, &mut run_start, &mut run_receiver, &mut run_count);
 }
 

@@ -47,6 +47,7 @@ fn walk_jsx_elements(node: Node<'_>, source: &[u8], elements: &mut Vec<JsxElemen
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_jsx_elements(child, source, elements);
     }

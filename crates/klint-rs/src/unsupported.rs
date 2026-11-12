@@ -68,6 +68,7 @@ pub(crate) fn unsupported_rule_advisories(
             ),
         ));
     }
+
     advisories
 }
 

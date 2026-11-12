@@ -38,6 +38,7 @@ fn walk_prefer_string_raw(node: Node<'_>, source: &[u8], records: &mut Vec<Prefe
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_prefer_string_raw(child, source, records);
     }
@@ -74,6 +75,7 @@ fn string_literal_value(raw: &str) -> Option<String> {
     if quote != '"' && quote != '\'' {
         return None;
     }
+
     if !raw.ends_with(quote) {
         return None;
     }
@@ -81,6 +83,7 @@ fn string_literal_value(raw: &str) -> Option<String> {
     let inner = raw.get(1..raw.len() - 1)?;
     let mut result = String::new();
     let mut chars = inner.chars();
+
     while let Some(ch) = chars.next() {
         if ch != '\\' {
             result.push(ch);
@@ -103,6 +106,7 @@ fn string_literal_value(raw: &str) -> Option<String> {
             other => result.push(other),
         }
     }
+
     Some(result)
 }
 

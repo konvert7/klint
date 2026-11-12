@@ -28,6 +28,7 @@ pub(super) fn score_root<'a>(
     let mut cursor = root.walk();
     let mut stack: Vec<Context<'a>> = Vec::new();
     let mut next = Some(ROOT_CONTEXT);
+
     while let Some(context) = next {
         let children = visit(cursor.node(), context, grammar, scores);
         next = if cursor.goto_first_child() {
@@ -48,9 +49,11 @@ fn next_sibling_context<'a>(
         if cursor.goto_next_sibling() {
             return stack.last().copied();
         }
+
         if !cursor.goto_parent() {
             return None;
         }
+
         stack.pop();
     }
 }
@@ -64,10 +67,12 @@ pub(super) fn visit<'a>(
     if node.child_count() == 0 && !grammar.scores_leaf_kind(node.kind()) {
         return child_context(node, context.nesting, context.frame);
     }
+
     let construct = construct_of(node, context.parent, grammar);
     if construct == Construct::Function {
         return enter_function(node, context.frame, grammar, scores);
     }
+
     let Some(frame) = context.frame else {
         return child_context(node, 0, None);
     };
@@ -118,10 +123,12 @@ fn leak_into_enclosing(
 fn is_nesting_branch(function: Node<'_>, grammar: &dyn ComplexityGrammar) -> bool {
     let mut reached = function;
     let mut parent = function.parent();
+
     while let Some(ancestor) = parent.filter(|ancestor| grammar.is_parenthesized(*ancestor)) {
         reached = ancestor;
         parent = ancestor.parent();
     }
+
     parent.is_some_and(|parent| grammar.is_conditional_branch(reached, parent))
 }
 
@@ -158,6 +165,7 @@ fn boolean_points(
     if !starts_boolean_sequence(node, parent, grammar) {
         return 0;
     }
+
     let operators = sequence_operators(node, grammar);
     if grammar.skips_sequence(node, enclosing_expression(parent, grammar), &operators) {
         0
@@ -181,9 +189,11 @@ fn enclosing_expression<'a>(
     grammar: &dyn ComplexityGrammar,
 ) -> Option<Node<'a>> {
     let mut current = parent;
+
     while let Some(ancestor) = current.filter(|ancestor| grammar.is_parenthesized(*ancestor)) {
         current = ancestor.parent();
     }
+
     current
 }
 
@@ -199,6 +209,7 @@ fn collect_sequence_operators(
     operators: &mut Vec<BooleanOperator>,
 ) {
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         if is_sequence_member(child, grammar) {
             collect_sequence_operators(child, grammar, operators);

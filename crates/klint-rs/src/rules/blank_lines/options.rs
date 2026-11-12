@@ -45,6 +45,7 @@ fn parse_statements(
     };
     let mut set = KeywordSet::default();
     let mut problems = Vec::new();
+
     for element in elements {
         match element.as_str().map(|word| (word, Keyword::parse(word))) {
             Some((_, Some(Keyword::Return))) if rule == AFTER_RULE => {
@@ -55,6 +56,7 @@ fn parse_statements(
             None => problems.push(unknown_statement_problem(rule, &element.to_string())),
         }
     }
+
     (set, problems)
 }
 

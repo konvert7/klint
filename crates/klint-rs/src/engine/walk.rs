@@ -88,9 +88,11 @@ impl<'a> NodeIndex<'a> {
             has_syntax_error: root.has_error(),
             ..Self::default()
         };
+
         if wants.wants_anything() {
             index.visit(root, source, wants, language, Descent::default());
         }
+
         index
     }
 
@@ -126,6 +128,7 @@ impl<'a> NodeIndex<'a> {
         if *body_id != node.id() {
             return None;
         }
+
         self.pending_bodies.pop().map(|(_, function)| function)
     }
 
@@ -152,14 +155,17 @@ impl<'a> NodeIndex<'a> {
                 self.pending_bodies.push((body.id(), node));
             }
         }
+
         let absorbs_jsx_text = measures_lengths
             && language == SourceLanguage::JavaScriptLike
             && node.kind() == "jsx_element";
         let mut cursor = node.walk();
+
         for (position, child) in node.children(&mut cursor).enumerate() {
             if absorbs_jsx_text && position > 0 {
                 self.tally.absorb_gap_before(child.start_byte());
             }
+
             self.visit(child, source, wants, language, descent);
         }
     }
@@ -175,16 +181,20 @@ impl<'a> NodeIndex<'a> {
         let measured_function = self.take_pending_body(node);
         let before_body = self.tally.totals();
         let scoring = self.score(node, wants, language, descent);
+
         if wants.function_lengths && !descent.in_uncounted {
             self.tally_node(node, source, language);
         }
+
         let descent = Descent {
             scoring,
             ..descent.enter(node, source, wants, language)
         };
+
         if wants.statement_blocks && is_statement_container(language, node.kind()) {
             self.statement_blocks.push(node);
         }
+
         match node.kind() {
             "call_expression" if wants.calls => self.calls.push(IndexedCall {
                 node,
@@ -202,6 +212,7 @@ impl<'a> NodeIndex<'a> {
         }
 
         self.visit_children(node, source, wants, language, descent);
+
         if let Some(function) = measured_function {
             self.record_length(function, before_body);
         }

@@ -105,9 +105,11 @@ struct Parsed {
 fn parse_options(args: &[String], options: &[OptionSpec], stop_at_positional: bool) -> Parsed {
     let mut parsed = Parsed::default();
     let mut i = 0;
+
     while i < args.len() {
         let token = args[i].as_str();
         let matched = options.iter().find(|spec| spec.matches(token));
+
         if is_help_flag(token) {
             parsed.help = true;
         } else if let Some(spec) = matched.filter(|spec| spec.value.is_some()) {
@@ -122,6 +124,7 @@ fn parse_options(args: &[String], options: &[OptionSpec], stop_at_positional: bo
                         .get_or_insert(format!("option '--{}' needs {needs}", spec.name));
                 }
             }
+
             i += 1;
         } else if let Some(spec) = matched {
             parsed.values.0.insert(spec.name, None);
@@ -132,12 +135,15 @@ fn parse_options(args: &[String], options: &[OptionSpec], stop_at_positional: bo
         } else if stop_at_positional {
             parsed.positionals.push(token.to_string());
             parsed.rest = args[i + 1..].to_vec();
+
             return parsed;
         } else {
             parsed.positionals.push(token.to_string());
         }
+
         i += 1;
     }
+
     parsed
 }
 
@@ -154,6 +160,7 @@ pub fn dispatch(group: &Group, args: &[String], path: &str) -> Dispatch {
     if parsed.help || resolved == Some(HELP_WORD) {
         return show_help(&help);
     }
+
     if let Some(resolved) = resolved {
         let Some((command, leaf)) = group.commands.iter().find(|(n, _)| *n == resolved) else {
             return usage_failure(
@@ -161,12 +168,16 @@ pub fn dispatch(group: &Group, args: &[String], path: &str) -> Dispatch {
                 &help,
             );
         };
+
         if let Some(error) = &parsed.error {
             return usage_failure(error, &help);
         }
+
         let leaf_help = leaf_help(leaf, &format!("{path} {command}"));
+
         return dispatch_leaf(leaf, &parsed.rest, &leaf_help, Some(command));
     }
+
     match &group.default_command {
         Some(leaf) => dispatch_leaf(leaf, args, &help, None),
         None => show_help(&help),
@@ -191,12 +202,15 @@ fn dispatch_leaf(
     if parsed.help || parsed.positionals.iter().any(|p| p == HELP_WORD) {
         return show_help(help);
     }
+
     if let Some(error) = &parsed.error {
         return usage_failure(error, help);
     }
+
     if let Some(extra) = parsed.positionals.first() {
         return usage_failure(&format!("unexpected argument '{extra}'"), help);
     }
+
     Dispatch::Run {
         command,
         values: parsed.values,
@@ -258,14 +272,18 @@ fn group_help(group: &Group, path: &str) -> String {
             .map(|(name, leaf)| (name.to_string(), leaf.summary.to_string()))
             .collect(),
     ));
+
     if let Some(leaf) = fallback {
         lines.extend([String::new(), "Options:".to_string()]);
         lines.extend(option_rows(&leaf.options));
     }
+
     lines.push(String::new());
+
     if let Some(leaf) = fallback {
         lines.push(format!("With no command, {}.", leaf.summary.to_lowercase()));
     }
+
     lines.push(format!("Run '{path} <command> --help' for its options."));
     lines.extend(detail_lines(&group.details));
     lines.join("\n")
@@ -275,6 +293,7 @@ fn detail_lines(details: &[String]) -> Vec<String> {
     if details.is_empty() {
         return Vec::new();
     }
+
     std::iter::once(String::new())
         .chain(details.iter().cloned())
         .collect()

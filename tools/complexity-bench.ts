@@ -27,14 +27,17 @@ type Language = {
 
 function functionsOf(language: Language): string {
   const functions: string[] = [];
+
   for (let k = 0; k < FUNCTIONS_PER_FILE; k++) {
     functions.push(language.template(k).join("\n"));
   }
+
   return functions.join("\n\n");
 }
 
 function fileContent(language: Language, index: number): string {
   const body = functionsOf(language).split("\n");
+
   return `${language.wrap(index, body).join("\n")}\n`;
 }
 
@@ -134,6 +137,7 @@ function writeCorpus(files: string): void {
   for (const language of LANGUAGES) {
     const dir = join(files, language.dir);
     mkdirSync(dir, { recursive: true });
+
     for (let i = 0; i < FILES_PER_LANGUAGE; i++) {
       writeFileSync(join(dir, `f${i}.${language.ext}`), fileContent(language, i));
     }
@@ -166,24 +170,29 @@ function timedRun(configDir: string): number {
     maxBuffer: Number.POSITIVE_INFINITY,
   });
   const elapsed = performance.now() - start;
+
   if (result.status === null || (result.status !== 0 && result.status !== 1)) {
     throw new Error(
       `klint exited with ${result.status} (${result.signal}, ${result.error}) for ${configDir}`
     );
   }
+
   return elapsed;
 }
 
 function median(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
+
   if (sorted.length % 2 === 1) {
     return sorted[middle];
   }
+
   return (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
 const root = mkdtempSync(join(tmpdir(), "klint-complexity-bench-"));
+
 try {
   const files = join(root, "files");
   writeCorpus(files);
@@ -195,6 +204,7 @@ try {
   const blankTimes: number[] = [];
   const complexityTimes: number[] = [];
   const lengthTimes: number[] = [];
+
   for (let round = 0; round < ROUNDS; round++) {
     blankTimes.push(timedRun(join(root, "blank")));
     complexityTimes.push(timedRun(join(root, "complexity")));

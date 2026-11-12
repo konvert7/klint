@@ -81,6 +81,7 @@ export function nativePackageForPlatform(
   libc: string | undefined = currentLibc()
 ): NativePackage | undefined {
   const muslSuffix = platform === "linux" && libc === "musl" ? "-musl" : "";
+
   return (
     NATIVE_PACKAGES[`${platform}-${arch}${muslSuffix}`] ??
     emulatingPackage(platform, arch, muslSuffix)
@@ -105,6 +106,7 @@ function currentLibc(): NativeLibc | undefined {
   const report = process.report.getReport() as {
     header?: { glibcVersionRuntime?: string };
   };
+
   return report.header?.glibcVersionRuntime ? "glibc" : "musl";
 }
 
@@ -130,11 +132,13 @@ export function resolveNativePackageBinary({
     resolvePackageJson
   );
   if (!packageJsonPath) return undefined;
+
   if (!nativePackageVersionMatches(packageRoot, packageJsonPath, readPackageJson)) {
     return undefined;
   }
 
   const binaryPath = join(dirname(packageJsonPath), nativePackage.binaryPath);
+
   return exists(binaryPath) ? binaryPath : undefined;
 }
 
@@ -147,6 +151,7 @@ function nativePackageVersionMatches(
     const rootVersion = readPackageJson(join(packageRoot, "package.json")).version;
     const nativeVersion = readPackageJson(nativePackageJsonPath).version;
     if (!rootVersion || !nativeVersion) return true;
+
     return rootVersion === nativeVersion;
   } catch {
     return true;
@@ -168,6 +173,7 @@ function resolveOptionalPackageJson(
 ): string | undefined {
   try {
     if (resolvePackageJson) return resolvePackageJson(packageName);
+
     return createRequire(join(packageRoot, "package.json")).resolve(
       `${packageName}/package.json`
     );

@@ -109,7 +109,9 @@ fn collect_descendants_of_kind<'a>(node: Node<'a>, kinds: &[&str], found: &mut V
     if kinds.contains(&node.kind()) {
         found.push(node);
     }
+
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         collect_descendants_of_kind(child, kinds, found);
     }

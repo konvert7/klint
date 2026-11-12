@@ -9,6 +9,7 @@ pub(super) fn walk_csharp_imports(node: Node<'_>, source: &[u8], imports: &mut V
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_csharp_imports(child, source, imports);
     }
@@ -47,6 +48,7 @@ pub(super) fn walk_csharp_namespaces(node: Node<'_>, source: &[u8], out: &mut Ve
 
 fn walk_namespaces_with_prefix(node: Node<'_>, source: &[u8], prefix: &str, out: &mut Vec<String>) {
     let mut child_prefix = prefix.to_string();
+
     if matches!(
         node.kind(),
         "namespace_declaration" | "file_scoped_namespace_declaration"
@@ -63,6 +65,7 @@ fn walk_namespaces_with_prefix(node: Node<'_>, source: &[u8], prefix: &str, out:
     }
 
     let mut cursor = node.walk();
+
     for child in node.children(&mut cursor) {
         walk_namespaces_with_prefix(child, source, &child_prefix, out);
     }

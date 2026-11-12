@@ -59,6 +59,7 @@ pub(super) fn prove_same_findings(
                 .into(),
         );
     }
+
     let new = LoadedConfig {
         path: old.path.clone(),
         raw: read_candidate(&old.path, new_text)?,

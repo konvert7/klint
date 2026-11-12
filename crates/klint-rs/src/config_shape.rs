@@ -109,10 +109,13 @@ pub(crate) fn config_shape(raw: &RawConfig) -> ConfigShape {
 
 fn shape_with_v2_keys(raw: &RawConfig, v1_names: &[&str]) -> ConfigShape {
     let mut keys = Vec::new();
+
     if raw.plugins.is_some() {
         keys.push("plugins".to_string());
     }
+
     keys.extend(v1_names.iter().map(|name| format!("rules.{name}")));
+
     if keys.is_empty() {
         ConfigShape::V2
     } else {
@@ -132,9 +135,11 @@ pub(crate) fn resolve_rules(raw: &RawConfig) -> Result<ResolvedRules, ResolveErr
 fn resolve_v1(raw: &RawConfig) -> Result<ResolvedRules, ResolveError> {
     let all = all_rules(raw);
     let mut flat = BTreeMap::new();
+
     for (key, value) in all.iter().filter(|(key, _)| !is_reserved_key(key)) {
         flat.insert(key.clone(), to_rule_config(value)?);
     }
+
     let written: BTreeMap<String, String> =
         flat.keys().map(|key| (key.clone(), key.clone())).collect();
     let plugins = raw.plugins.clone().unwrap_or_default();
@@ -161,17 +166,20 @@ fn resolve_v2(raw: &RawConfig, shape: ConfigShape) -> Result<ResolvedRules, Reso
     };
     let mut written = BTreeMap::new();
     let mut misplaced = Vec::new();
+
     for group in [Group::Core, Group::Sonar] {
         for (name, value) in group_entries(&all, group)? {
             if is_misplaced(group, name) {
                 misplaced.push(name.to_string());
                 continue;
             }
+
             let id = rule_id(group, name);
             rules.insert(id.clone(), to_rule_config(value)?);
             written.insert(id, name.to_string());
         }
     }
+
     Ok(ResolvedRules {
         rules,
         written,

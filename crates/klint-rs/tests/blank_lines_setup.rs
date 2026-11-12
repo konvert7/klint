@@ -224,6 +224,7 @@ fn allow_setup_false_turns_the_exception_off() {
     let config = config_for(&format!(
         "  {BEFORE}:\n    severity: error\n    allowSetup: false\n"
     ));
+
     for (file, source) in [
         ("a.ts", "x = f();\nif (x) {\n  g();\n}\n"),
         ("a.py", "x = f()\nif x:\n    g()\n"),
