@@ -252,9 +252,9 @@ pub const CASES: &[Case] = &[
             ("bool R1", "R1", 2),
             ("bool R2", "R2", 2),
             ("bool R3", "R3", 2),
+            ("bool R6", "R6", 2),
             ("object R4", "R4", 2),
             ("void R5", "R5", 2),
-            ("bool R6", "R6", 2),
         ],
     },
     Case {

@@ -200,9 +200,9 @@ function r5(a, b, c) {
             ("function r1", "r1", 2),
             ("function r2", "r2", 2),
             ("function r3", "r3", 2),
+            ("function r6", "r6", 2),
             ("function r4", "r4", 2),
             ("function r5", "r5", 2),
-            ("function r6", "r6", 2),
         ],
     },
     Case {

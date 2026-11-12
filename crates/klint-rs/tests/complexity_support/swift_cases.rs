@@ -186,10 +186,10 @@ func r6(_ a: Bool, _ b: Bool, _ c: Bool, _ d: Bool) -> Bool {
             ("func r1", "r1", 2),
             ("func r2", "r2", 2),
             ("func r3", "r3", 2),
+            ("func r7", "r7", 2),
             ("func r4", "r4", 2),
             ("func r5", "r5", 2),
             ("func r6", "r6", 2),
-            ("func r7", "r7", 2),
         ],
     },
     Case {
