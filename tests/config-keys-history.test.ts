@@ -57,7 +57,6 @@ describe("the config-keys manifest", () => {
     () => {
       const now = everyListedKey(readFileSync(resolve(REPO, MANIFEST), "utf-8"));
       expect([...baseManifest()].filter((key) => !now.has(key))).toEqual([]);
-    },
-    60_000
+    }
   );
 });
