@@ -17,7 +17,7 @@ pub const CASES: &[Case] = &[
         expected: &[("fn f", "f", 3)],
     },
     Case {
-        name: "else if inside for gets the nesting increment",
+        name: "else if inside for adds one with no nesting increment",
         file: "a.rs",
         source: r#"fn f(xs: Vec<i32>, a: bool, b: bool) {
     for x in xs {
@@ -29,7 +29,7 @@ pub const CASES: &[Case] = &[
     }
 }
 "#,
-        expected: &[("fn f", "f", 5)],
+        expected: &[("fn f", "f", 4)],
     },
     Case {
         name: "nested if",
@@ -166,16 +166,43 @@ pub const CASES: &[Case] = &[
         name: "runs of boolean operators",
         file: "a.rs",
         source: r#"fn r1(a: bool, b: bool, c: bool, d: bool) -> bool {
+    if a {
+        g();
+    }
     a && b && c || d
 }
 fn r2(a: bool, b: bool, c: bool) -> bool {
+    if a {
+        g();
+    }
     a && (b || c)
 }
 fn r3(a: bool, b: bool, c: bool) -> bool {
+    if a {
+        g();
+    }
     a && (b || c) && a
 }
 fn r5(a: bool, b: bool, c: bool) -> bool {
+    if a {
+        g();
+    }
     a && (b && c)
+}
+fn r6(a: bool, b: bool, c: bool) -> bool {
+    if a {
+        g();
+    }
+    if b {
+        g();
+    }
+    a || b || c
+}
+fn r7(a: bool, b: bool, c: bool) -> bool {
+    if a {
+        g();
+    }
+    a && b || c && a
 }
 fn r4(a: bool, b: bool) {
     if !a && !b {
@@ -186,13 +213,15 @@ fn r4(a: bool, b: bool) {
         expected: &[
             ("fn r1", "r1", 2),
             ("fn r2", "r2", 2),
-            ("fn r3", "r3", 2),
+            ("fn r3", "r3", 3),
             ("fn r5", "r5", 2),
+            ("fn r6", "r6", 2),
+            ("fn r7", "r7", 3),
             ("fn r4", "r4", 2),
         ],
     },
     Case {
-        name: "closure inside an if inherits the nesting",
+        name: "closure inside an if starts at nesting zero",
         file: "a.rs",
         source: r#"fn f(a: bool, b: bool, c: bool) {
     if a {
@@ -210,7 +239,7 @@ fn r4(a: bool, b: bool) {
     }
 }
 "#,
-        expected: &[("fn f", "f", 2), ("let g = ||", "g", 7)],
+        expected: &[("fn f", "f", 2), ("let g = ||", "g", 3)],
     },
     Case {
         name: "anonymous closure passed as an argument",
@@ -229,7 +258,7 @@ fn r4(a: bool, b: bool) {
     });
 }
 "#,
-        expected: &[("fn f", "f", 2), ("for_each(|x|", "<anonymous>", 2)],
+        expected: &[("fn f", "f", 2)],
     },
     Case {
         name: "impl methods start at nesting zero and bodiless trait methods are skipped",
@@ -299,5 +328,45 @@ impl A {
 }
 "#,
         expected: &[("fn ll", "ll", 3)],
+    },
+    Case {
+        name: "head constructs get no nesting increment but bodies do",
+        file: "a.rs",
+        source: r#"fn h1(a: bool, b: bool, c: bool) {
+    if (if a { b } else { c }) {
+        g();
+    }
+}
+fn h2(a: bool, b: bool, c: bool) {
+    while (if a { b } else { c }) {
+        g();
+    }
+}
+fn h3(a: bool, xs: Vec<i32>, ys: Vec<i32>) {
+    for x in (if a { xs } else { ys }) {
+        g(x);
+    }
+}
+fn h4(a: bool, b: i32, c: i32) {
+    match (if a { b } else { c }) {
+        1 => g(),
+        _ => h(),
+    }
+}
+fn h5(a: bool, b: bool, c: bool) {
+    if a {
+        while (if b { a } else { c }) {
+            g();
+        }
+    }
+}
+"#,
+        expected: &[
+            ("fn h1", "h1", 3),
+            ("fn h2", "h2", 3),
+            ("fn h3", "h3", 3),
+            ("fn h4", "h4", 3),
+            ("fn h5", "h5", 6),
+        ],
     },
 ];
