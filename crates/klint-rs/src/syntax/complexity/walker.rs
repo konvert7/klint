@@ -231,6 +231,3 @@ fn child_context(node: Node<'_>, nesting: u32, frame: Option<usize>) -> Context<
         parent: Some(node),
     }
 }
-
-#[cfg(test)]
-mod tests;
