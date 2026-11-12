@@ -3,16 +3,29 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CORPUS, SCORING_ROWS } from "./complexity-biome-corpus";
+import { BIOME_ELSE_REASON, CORPUS, SCORING_ROWS } from "./complexity-biome-corpus";
 
 const repoRoot = join(import.meta.dir, "..");
-const ALLOWED_DIFFERENCES: Record<number, string> = {};
 
 const root = mkdtempSync(join(tmpdir(), "klint-complexity-biome-"));
 
 afterAll(() => {
   rmSync(root, { recursive: true, force: true });
 });
+
+function knownDifferences(): Map<
+  number,
+  { biome: number; klint: number; reason: string }
+> {
+  const known = new Map<number, { biome: number; klint: number; reason: string }>();
+  for (const [index, start] of corpusLayout().starts.entries()) {
+    const entry = CORPUS[index];
+    if (entry?.known) {
+      known.set(start, entry.known);
+    }
+  }
+  return known;
+}
 
 function corpusLayout(): { source: string; starts: number[] } {
   const starts: number[] = [];
@@ -113,13 +126,14 @@ describe("cognitive-complexity matches Biome 2.6.5 on the TypeScript corpus", ()
     }
   });
 
-  test("scores are equal per function start line", () => {
+  test("scores are equal per function start line, except the known differences", () => {
     const biome = biomeScores();
     const klint = klintScores();
+    const known = knownDifferences();
     const lines = new Set([...biome.keys(), ...klint.keys()]);
     const differences: string[] = [];
     for (const line of [...lines].sort((a, b) => a - b)) {
-      if (biome.get(line) !== klint.get(line) && !(line in ALLOWED_DIFFERENCES)) {
+      if (biome.get(line) !== klint.get(line) && !known.has(line)) {
         differences.push(
           `line ${line}: biome ${biome.get(line)} klint ${klint.get(line)}`
         );
@@ -128,9 +142,31 @@ describe("cognitive-complexity matches Biome 2.6.5 on the TypeScript corpus", ()
     expect(differences).toEqual([]);
   });
 
-  test("the allow-list of differences carries a reason per entry", () => {
-    for (const [line, reason] of Object.entries(ALLOWED_DIFFERENCES)) {
-      expect(reason.length, `line ${line}`).toBeGreaterThan(10);
+  test("each known difference is exactly the recorded biome and klint score", () => {
+    const biome = biomeScores();
+    const klint = klintScores();
+    const known = knownDifferences();
+    expect(known.size).toBeGreaterThanOrEqual(2);
+    for (const [line, expected] of known) {
+      expect({ biome: biome.get(line), klint: klint.get(line) }, `line ${line}`).toEqual({
+        biome: expected.biome,
+        klint: expected.klint,
+      });
+    }
+  });
+
+  test("known differences carry the plain-else reason and a biome score below klint", () => {
+    for (const [line, known] of knownDifferences()) {
+      expect(known.reason, `line ${line}`).toBe(BIOME_ELSE_REASON);
+      expect(known.biome, `line ${line}`).toBeLessThan(known.klint);
+    }
+  });
+
+  test("the ?? entries have no known difference", () => {
+    const withNullish = CORPUS.filter((entry) => entry.code.includes("??"));
+    expect(withNullish.length).toBeGreaterThanOrEqual(3);
+    for (const entry of withNullish) {
+      expect(entry.known).toBeUndefined();
     }
   });
 });
