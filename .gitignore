@@ -15,3 +15,4 @@ klint.sln
 .DS_Store
 crates/klint-rs/skill/
 .tmp/
+.alpine-cache/
