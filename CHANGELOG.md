@@ -1,3 +1,11 @@
+## [1.3.1](https://github.com/konvert7/klint/compare/v1.3.0...v1.3.1) (2026-11-12)
+
+
+### Bug Fixes
+
+* **arch:** strip .mjs and .cjs from single-file layer prefixes ([78fe7ae](https://github.com/konvert7/klint/commit/78fe7ae20cd85bb8c0d3792757160869df1da4f1))
+* **files:** lint .mjs and .cjs sources like other JavaScript ([5132604](https://github.com/konvert7/klint/commit/51326046ec32a78065789a07a2c6e9c657b36a7f))
+
 # [1.3.0](https://github.com/konvert7/klint/compare/v1.2.0...v1.3.0) (2026-11-12)
 
 
