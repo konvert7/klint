@@ -14,3 +14,4 @@ nuget/*.nupkg
 klint.sln
 .DS_Store
 crates/klint-rs/skill/
+.tmp/

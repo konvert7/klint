@@ -1,14 +1,15 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { CORPUS, SCORING_ROWS } from "./complexity-sonarjs-corpus";
 
 const repoRoot = join(import.meta.dir, "..");
 
-const root = realpathSync(mkdtempSync(join(tmpdir(), "klint-complexity-sonarjs-")));
+const scratchParent = join(repoRoot, ".tmp");
+mkdirSync(scratchParent, { recursive: true });
+const root = realpathSync(mkdtempSync(join(scratchParent, "klint-complexity-sonarjs-")));
 
 afterAll(() => {
   rmSync(root, { recursive: true, force: true });
@@ -121,11 +122,26 @@ const sonarScores = memo(computeSonarScores);
 const klintScores = memo(computeKlintScores);
 const SLOW = 300_000;
 
-describe("cognitive-complexity matches SonarJS 3.0.5 on the TypeScript corpus", () => {
-  const { source, starts } = corpusLayout();
-  writeFileSync(join(root, "corpus.ts"), source);
-  writeFileSync(join(root, "corpus.tsx"), corpusLayout(JSX_CORPUS).source);
+function expectNoDifferences(file: string): void {
+  const sonar = sonarScores(file);
+  const klint = klintScores(file);
+  const lines = new Set([...sonar.keys(), ...klint.keys()]);
+  const differences: string[] = [];
+  for (const line of [...lines].sort((a, b) => a - b)) {
+    if (sonar.get(line) !== klint.get(line)) {
+      differences.push(
+        `line ${line}: sonarjs ${sonar.get(line)} klint ${klint.get(line)}`
+      );
+    }
+  }
+  expect(differences).toEqual([]);
+}
 
+const { source, starts } = corpusLayout();
+writeFileSync(join(root, "corpus.ts"), source);
+writeFileSync(join(root, "corpus.tsx"), corpusLayout(JSX_CORPUS).source);
+
+describe("cognitive-complexity matches SonarJS 3.0.5 on the TypeScript corpus", () => {
   test(
     "the corpus has at least 30 functions and covers every scoring row",
     () => {
@@ -157,20 +173,7 @@ describe("cognitive-complexity matches SonarJS 3.0.5 on the TypeScript corpus", 
 
   test(
     "scores are equal per function start line with no known differences",
-    () => {
-      const sonar = sonarScores();
-      const klint = klintScores();
-      const lines = new Set([...sonar.keys(), ...klint.keys()]);
-      const differences: string[] = [];
-      for (const line of [...lines].sort((a, b) => a - b)) {
-        if (sonar.get(line) !== klint.get(line)) {
-          differences.push(
-            `line ${line}: sonarjs ${sonar.get(line)} klint ${klint.get(line)}`
-          );
-        }
-      }
-      expect(differences).toEqual([]);
-    },
+    () => expectNoDifferences("corpus.ts"),
     SLOW
   );
 
@@ -289,25 +292,9 @@ describe("JSX rows of the scoring table score their SonarJS values", () => {
 });
 
 describe("cognitive-complexity matches SonarJS 3.0.5 on the JSX corpus", () => {
-  const { source } = corpusLayout(JSX_CORPUS);
-  writeFileSync(join(root, "corpus.tsx"), source);
-
   test(
     "JSX scores are equal per function start line with no known differences",
-    () => {
-      const sonar = sonarScores("corpus.tsx");
-      const klint = klintScores("corpus.tsx");
-      const lines = new Set([...sonar.keys(), ...klint.keys()]);
-      const differences: string[] = [];
-      for (const line of [...lines].sort((a, b) => a - b)) {
-        if (sonar.get(line) !== klint.get(line)) {
-          differences.push(
-            `line ${line}: sonarjs ${sonar.get(line)} klint ${klint.get(line)}`
-          );
-        }
-      }
-      expect(differences).toEqual([]);
-    },
+    () => expectNoDifferences("corpus.tsx"),
     SLOW
   );
 });
