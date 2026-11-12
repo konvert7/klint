@@ -103,4 +103,13 @@ pub(crate) const RULE_DOCS: &[RuleDoc] = &[
         ],
         options_schema: Some(super::blank_lines::after_schema),
     },
+    RuleDoc {
+        name: "cognitive-complexity",
+        description: "Reports every function whose cognitive complexity is above `max` (default 15), scored like Biome 2.6.5's `noExcessiveCognitiveComplexity` (the SonarSource Cognitive Complexity model). Works on TypeScript/JavaScript, Python, Swift, Rust and C#. Opt-in; no autofix.",
+        examples: &[
+            "cognitive-complexity: error",
+            "cognitive-complexity:\n  severity: warn\n  include: [\"src/**\", \"!src/generated/**\"]\n  max: 14",
+        ],
+        options_schema: Some(super::complexity::cognitive_complexity_schema),
+    },
 ];

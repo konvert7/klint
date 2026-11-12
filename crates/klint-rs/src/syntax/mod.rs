@@ -1,11 +1,13 @@
 mod architecture;
 mod blank_lines;
+mod complexity;
 mod rules;
 
 pub(crate) use blank_lines::{
     BlankLineFinding, Keyword, KeywordSet, is_statement_container, missing_blank_after,
     missing_blank_before,
 };
+pub(crate) use complexity::{function_name, is_scored_function, score_functions};
 
 pub use architecture::{
     CommentRecord, ImportRecord, JsxElementRecord, scan_imports, scan_jsx_elements,

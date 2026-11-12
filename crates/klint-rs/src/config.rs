@@ -78,6 +78,8 @@ pub(crate) enum RuleConfig {
         #[serde(rename = "allowSetup")]
         #[schemars(skip)]
         allow_setup: Option<serde_json::Value>,
+        #[schemars(skip)]
+        max: Option<serde_json::Value>,
     },
 }
 
@@ -93,6 +95,13 @@ impl RuleConfig {
         match self {
             RuleConfig::Severity(_) => None,
             RuleConfig::Options { allow_setup, .. } => allow_setup.as_ref(),
+        }
+    }
+
+    pub(crate) fn max(&self) -> Option<&serde_json::Value> {
+        match self {
+            RuleConfig::Severity(_) => None,
+            RuleConfig::Options { max, .. } => max.as_ref(),
         }
     }
 
@@ -174,6 +183,17 @@ mod tests {
         let config = rule_config("{statements: [if]}");
         assert_eq!(config.statements(), Some(&serde_json::json!(["if"])));
         assert_eq!(config.allow_setup(), None);
+    }
+
+    #[test]
+    fn max_value_is_returned_and_absent_on_a_bare_severity() {
+        assert_eq!(rule_config("{max: 14}").max(), Some(&serde_json::json!(14)));
+        assert_eq!(
+            rule_config("{max: \"x\"}").max(),
+            Some(&serde_json::json!("x"))
+        );
+        assert_eq!(rule_config("error").max(), None);
+        assert_eq!(rule_config("{statements: [if]}").max(), None);
     }
 
     #[test]

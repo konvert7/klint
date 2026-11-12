@@ -1,7 +1,8 @@
 use tree_sitter::Node;
 
 use crate::syntax::{
-    SourceLanguage, is_async_function_like, is_function_like, is_statement_container,
+    SourceLanguage, is_async_function_like, is_function_like, is_scored_function,
+    is_statement_container,
 };
 
 /// A `call_expression` plus the descent state its rules need. Both
@@ -30,6 +31,7 @@ pub(crate) struct Wants {
     pub if_statements: bool,
     pub containers: bool,
     pub statement_blocks: bool,
+    pub functions: bool,
 }
 
 impl Wants {
@@ -43,6 +45,7 @@ impl Wants {
             || self.if_statements
             || self.containers
             || self.statement_blocks
+            || self.functions
     }
 }
 
@@ -60,6 +63,7 @@ pub(crate) struct NodeIndex<'a> {
     pub if_statements: Vec<Node<'a>>,
     pub containers: Vec<Node<'a>>,
     pub statement_blocks: Vec<Node<'a>>,
+    pub functions: Vec<Node<'a>>,
     pub has_syntax_error: bool,
 }
 
@@ -88,7 +92,10 @@ impl<'a> NodeIndex<'a> {
         language: SourceLanguage,
         descent: Descent,
     ) {
-        let descent = descent.enter(node, source, wants);
+        if wants.functions && !descent.in_function && is_scored_function(language, node.kind()) {
+            self.functions.push(node);
+        }
+        let descent = descent.enter(node, source, wants, language);
         if wants.statement_blocks && is_statement_container(language, node.kind()) {
             self.statement_blocks.push(node);
         }
@@ -119,10 +126,11 @@ impl<'a> NodeIndex<'a> {
 struct Descent {
     inside_try: bool,
     in_async: bool,
+    in_function: bool,
 }
 
 impl Descent {
-    fn enter(self, node: Node<'_>, source: &[u8], wants: Wants) -> Self {
+    fn enter(self, node: Node<'_>, source: &[u8], wants: Wants, language: SourceLanguage) -> Self {
         Self {
             inside_try: wants.inside_try && (self.inside_try || node.kind() == "try_statement"),
             in_async: wants.in_async
@@ -131,6 +139,71 @@ impl Descent {
                 } else {
                     self.in_async
                 },
+            in_function: wants.functions
+                && (self.in_function || is_scored_function(language, node.kind())),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::syntax::parse_source;
+    use std::path::Path;
+
+    fn in_function_after(source: &str, descent: Descent, wants: Wants) -> bool {
+        let tree = parse_source(Path::new("a.ts"), source).expect("typescript parses");
+        let node = tree.root_node().child(0).expect("first statement");
+        descent
+            .enter(
+                node,
+                source.as_bytes(),
+                wants,
+                SourceLanguage::JavaScriptLike,
+            )
+            .in_function
+    }
+
+    fn functions_wanted() -> Wants {
+        Wants {
+            functions: true,
+            ..Wants::default()
+        }
+    }
+
+    fn inside_a_function() -> Descent {
+        Descent {
+            in_function: true,
+            ..Descent::default()
+        }
+    }
+
+    #[test]
+    fn a_function_is_entered_only_when_functions_are_wanted() {
+        let declaration = "function f() {}";
+        assert!(!in_function_after(
+            declaration,
+            Descent::default(),
+            Wants::default()
+        ));
+        assert!(in_function_after(
+            declaration,
+            Descent::default(),
+            functions_wanted()
+        ));
+    }
+
+    #[test]
+    fn a_statement_inside_a_function_stays_inside_it() {
+        assert!(in_function_after(
+            "if (a) {}",
+            inside_a_function(),
+            functions_wanted()
+        ));
+        assert!(!in_function_after(
+            "if (a) {}",
+            Descent::default(),
+            functions_wanted()
+        ));
     }
 }
