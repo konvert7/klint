@@ -1,3 +1,10 @@
+## [1.5.3](https://github.com/konvert7/klint/compare/v1.5.2...v1.5.3) (2026-11-12)
+
+
+### Bug Fixes
+
+* **no-string-match:** autofix to /re/.exec(s) instead of new RegExp(/re/).exec(s) ([aca69ca](https://github.com/konvert7/klint/commit/aca69cad459c4e2173c8ee0a050d2d8f427b0b41))
+
 ## [1.5.2](https://github.com/konvert7/klint/compare/v1.5.1...v1.5.2) (2026-11-12)
 
 
