@@ -733,6 +733,7 @@ doc-comments alongside `/** */`.
 | `no-string-match` | `String#match()` usage better expressed with clearer APIs |
 | `blank-line-before-control-flow` | Blank line above a control-flow statement that follows another statement; autofix |
 | `blank-line-after-block` | Blank line below a block statement when another statement follows; autofix |
+| `cognitive-complexity` | Function whose cognitive complexity (Biome / SonarSource model) is above `max`, in all five languages; opt-in, no autofix |
 
 Rules that needed TypeScript's type checker were removed in 1.0; see [Upgrading from klint 0.x](#upgrading-from-klint-0x).
 
@@ -781,6 +782,62 @@ rules:
 **Autofix.** `klint --fix` inserts one empty line with the line ending of the line above it, and changes nothing else. A second run changes nothing.
 
 **Not checked.** A file with a syntax error gets no report and no fix. A braceless body (`if (a) return 1;`) is not a block for the after rule. `do…while` and `repeat…while` are never reported by the after rule. A statement that shares its line with the previous statement is not reported, because the fix would have to split that line. Expression forms are not statements: `let x = if …` and `let r = match …` in Rust, `let x = if …` in Swift, a C# switch expression, and control flow inside a call are never reported. A Python docstring is documentation, not a statement, so the statement after it counts as first in its block. A C# preprocessor line (`#region`, `#if`, `#pragma`, …) or a Swift `#if`/`#elseif`/`#else`/`#endif` line separates statements like a blank line, so neither rule inserts a line next to one.
+
+### Cognitive complexity
+
+`cognitive-complexity` reports every function whose cognitive complexity is above `max`, in TypeScript/JavaScript, Python, Swift, Rust and C#. It is opt-in and has no fix. It uses Biome 2.6.5's `noExcessiveCognitiveComplexity` scoring (the SonarSource Cognitive Complexity model, G. Ann Campbell 2017) for every language, so a TypeScript function gets the same score as in Biome.
+
+```yaml
+rules:
+  cognitive-complexity: error
+```
+
+```yaml
+rules:
+  cognitive-complexity:
+    severity: warn
+    include: ["src/**", "!src/generated/**"]
+    max: 14
+```
+
+- `max` is an integer of at least 1, default 15. A function is reported when its score is **greater than** `max`. Any other value (0, a negative number, a fraction, a string) gives one `klint/config` warning naming the rule and the value, and the rule uses 15.
+- The message has the form ``Function `big` has cognitive complexity 16 (max 15) — split it into smaller functions.``. The name is the declared name. For an anonymous function assigned to a variable or property it is that name. Otherwise it is `<anonymous>`. The line is the function's first line.
+- Each function starts at 0. Top-level code is not scored.
+
+**Scoring.** "Nesting" is how deep a construct sits: each enclosing `if`, loop, `switch`, `catch`, `guard`, `let … else` body and each enclosing function adds one.
+
+| Increment | TypeScript / JavaScript | Python | Swift | Rust | C# |
+|---|---|---|---|---|---|
+| +1 plus nesting: `if`, and `else if` (which also gets the nesting) | `if`, `else if` | `if`, `elif` | `if`, `else if` | `if`, `if let`, `else if` | `if`, `else if` |
+| +1 plus nesting: ternary | `?:` | `x if c else y` | `?:` | — | `?:` |
+| +1 plus nesting: switch / match | `switch` | `match` | `switch` | `match` | `switch` statement, `switch` expression |
+| +1 plus nesting: loops | `for`, `for…in`, `for…of`, `while`, `do…while` | `for`, `while` | `for`, `while`, `repeat…while` | `for`, `while`, `while let`, `loop` | `for`, `foreach`, `while`, `do` |
+| +1 plus nesting: `catch` | `catch` | `except` | `catch` | — | `catch` |
+| +1 plus nesting: `guard`, `let … else` (its `else` body is nested) | — | — | `guard` | `let … else` | — |
+| +1, no nesting: `finally` (its body is not nested) | `finally` | `finally` | — | — | `finally` |
+| nesting only: nested function (scored on its own, see below) | arrow, function expression, function declaration, method | `lambda`, `def` | closure | closure | lambda, local function, anonymous method |
+| +1, no nesting: plain `else` (not `else if`/`elif`) | `else` | `else` of `if`, `try`, `for`, `while` | `else` | `else` | `else` |
+| +1: labeled `break` / `continue`, `goto` | `break label`, `continue label` | — | `break label`, `continue label` | `break 'label`, `continue 'label` | `goto` |
+| +1 per logical operator, unless its direct parent is the same operator | `&&`, `\|\|`, `??` | `and`, `or` | `&&`, `\|\|`, `??` | `&&`, `\|\|` | `&&`, `\|\|`, `??`, pattern `and`, `or` |
+| +1: comprehension `if` | — | comprehension `if` | — | — | — |
+| +1: guard on a case or arm | — | — | `case … where` | match-arm guard | `when` clause |
+
+Each logical operator scores +1, unless its direct parent is a logical operator of the same kind. Parentheses break that link, so a parenthesised group scores on its own: `a && b || c` is 2, `a && (b || c) && a` is 2, `a && (b && c)` is 2, and `a ?? b ?? c` is 1. Negation (`!`, `not`) adds nothing.
+
+It adds nothing for `try` itself, `return`, `throw`, recursion, Rust `?`, Python `with`, Swift `do` without `catch`, an `if let` or `while let` beyond the `if` or `while`, optional chaining `?.`, assignment operators `||=`, `&&=`, `??=`, and a Rust `let` without `else`.
+
+**Differences from the Sonar paper.** This rule follows Biome, which differs from the paper in these places:
+
+- `else if` gets the nesting increment.
+- `finally` adds one and does not nest its body.
+- `??` counts as a boolean operator.
+- A logical operator is scored unless its direct parent is the same operator, so `a && (b && c)` is 2, not 1.
+- Recursion adds nothing.
+- A nested function (closure, lambda, arrow, local function) is scored and reported on its own. It starts at its enclosing nesting level plus one and does not add to the outer function.
+
+**What counts as a function.** TypeScript/JavaScript: `function` declarations and expressions, arrow functions, methods (including getters and setters), generator functions. Python: `def` and `lambda`. Swift: `func`, `init`, `deinit`, closures, computed getters and setters. Rust: `fn` items and closures. C#: methods, constructors, destructors, local functions, lambdas, anonymous methods, property and indexer accessors, operators and conversion operators.
+
+**Not checked.** Rust macro bodies are opaque token trees, so code inside a macro call is not scored. Code inside a Python decorator does not count toward the decorated function; a lambda there is scored on its own. A file with a syntax error gets no diagnostic. A Swift computed property without an explicit `get` is not a function. Bodyless declarations are never reported: TypeScript method signatures, Swift protocol requirements and Rust trait signatures are not functions at all, and C# interface and abstract members have nothing to score, so they score 0, which can never exceed `max`.
 
 ## Plugins
 

@@ -279,6 +279,32 @@ A comment directly above a statement belongs to it, so the blank line goes above
 Python docstring counts as a comment. A C# preprocessor line or a Swift `#if`/`#else`/`#endif` line
 separates statements like a blank line, so no line is inserted next to it.
 
+### Cognitive complexity — cap per-function complexity
+
+Pick `cognitive-complexity` to gate how complex each function may get, the way Biome's
+`noExcessiveCognitiveComplexity` does, with the same scores, on TypeScript/JavaScript, Python, Swift,
+Rust and C#. It is opt-in.
+
+```yaml
+rules:
+  cognitive-complexity: error
+```
+
+Or with options:
+
+```yaml
+rules:
+  cognitive-complexity:
+    severity: warn
+    include: ["src/**", "!src/generated/**"]
+    max: 14
+```
+
+- `max` defaults to 15, and a function whose score is **above** it is reported. An invalid `max`
+  (0, a negative number, a fraction, a string) raises one `klint/config` warning and the rule uses 15.
+- There is no `--fix`: split the function. A nested closure is reported on its own, not added to the
+  enclosing function. Files with a syntax error are skipped.
+
 ## Pitfalls
 
 - `pattern` in `singleton` and `forbidden` is a **literal substring** by default — it will not catch `process.env["KEY"]` (bracket notation). Either grep for both forms, or use a `re:` regex prefix to match them in one rule. Caveat: a literal pattern that itself begins with `re:` cannot be expressed (it is always read as a regex), and regexes must stay in the common JS/RE2 subset (no lookaround or backreferences) so both engines agree.

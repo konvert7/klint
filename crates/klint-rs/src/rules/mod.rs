@@ -1,5 +1,6 @@
 mod blank_lines;
 mod builtin;
+mod complexity;
 mod docs;
 mod sonar;
 
@@ -22,6 +23,7 @@ enum FileScope {
 pub(crate) enum RuleOptions {
     None,
     BlankLines(blank_lines::BlankLineOptions),
+    CognitiveComplexity(complexity::ComplexityOptions),
 }
 
 pub(crate) struct ParsedOptions {
@@ -166,6 +168,13 @@ const CHECKS: &[RuleSpec] = &[
         wants: |wants| wants.statement_blocks = true,
         scope: FileScope::AnySource,
         options: blank_lines::blank_line_options,
+    },
+    RuleSpec {
+        name: "cognitive-complexity",
+        check: complexity::run_cognitive_complexity,
+        wants: |wants| wants.functions = true,
+        scope: FileScope::AnySource,
+        options: complexity::cognitive_complexity_options,
     },
 ];
 

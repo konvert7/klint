@@ -1,10 +1,14 @@
 mod architecture;
 mod blank_lines;
+mod complexity;
 mod rules;
 
 pub(crate) use blank_lines::{
     BlankLineFinding, Keyword, KeywordSet, is_statement_container, missing_blank_after,
     missing_blank_before,
+};
+pub(crate) use complexity::{
+    FunctionScore, ScoringContext, function_name, is_scored_function, score_node, sort_by_position,
 };
 
 pub use architecture::{

@@ -1,8 +1,13 @@
 use tree_sitter::Node;
 
 use crate::syntax::{
-    SourceLanguage, is_async_function_like, is_function_like, is_statement_container,
+    FunctionScore, ScoringContext, SourceLanguage, is_async_function_like, is_function_like,
+    is_scored_function, is_statement_container, score_node,
 };
+
+fn is_scored_node(language: SourceLanguage, node: Node<'_>) -> bool {
+    node.is_named() && is_scored_function(language, node.kind())
+}
 
 /// A `call_expression` plus the descent state its rules need. Both
 /// `no-unguarded-json-parse` and `no-sync-in-async` decide from an ancestor —
@@ -30,6 +35,7 @@ pub(crate) struct Wants {
     pub if_statements: bool,
     pub containers: bool,
     pub statement_blocks: bool,
+    pub functions: bool,
 }
 
 impl Wants {
@@ -43,6 +49,7 @@ impl Wants {
             || self.if_statements
             || self.containers
             || self.statement_blocks
+            || self.functions
     }
 }
 
@@ -60,6 +67,7 @@ pub(crate) struct NodeIndex<'a> {
     pub if_statements: Vec<Node<'a>>,
     pub containers: Vec<Node<'a>>,
     pub statement_blocks: Vec<Node<'a>>,
+    pub scores: Vec<FunctionScore<'a>>,
     pub has_syntax_error: bool,
 }
 
@@ -80,15 +88,33 @@ impl<'a> NodeIndex<'a> {
         index
     }
 
+    fn score(
+        &mut self,
+        node: Node<'a>,
+        wants: Wants,
+        language: SourceLanguage,
+        descent: Descent<'a>,
+    ) -> ScoringContext<'a> {
+        if wants.functions && (descent.in_function || is_scored_node(language, node)) {
+            score_node(node, descent.scoring, language, &mut self.scores)
+        } else {
+            ScoringContext::default()
+        }
+    }
+
     fn visit(
         &mut self,
         node: Node<'a>,
         source: &[u8],
         wants: Wants,
         language: SourceLanguage,
-        descent: Descent,
+        descent: Descent<'a>,
     ) {
-        let descent = descent.enter(node, source, wants);
+        let scoring = self.score(node, wants, language, descent);
+        let descent = Descent {
+            scoring,
+            ..descent.enter(node, source, wants, language)
+        };
         if wants.statement_blocks && is_statement_container(language, node.kind()) {
             self.statement_blocks.push(node);
         }
@@ -116,14 +142,17 @@ impl<'a> NodeIndex<'a> {
 }
 
 #[derive(Default, Clone, Copy)]
-struct Descent {
+struct Descent<'a> {
+    scoring: ScoringContext<'a>,
     inside_try: bool,
     in_async: bool,
+    in_function: bool,
 }
 
-impl Descent {
-    fn enter(self, node: Node<'_>, source: &[u8], wants: Wants) -> Self {
+impl Descent<'_> {
+    fn enter(self, node: Node<'_>, source: &[u8], wants: Wants, language: SourceLanguage) -> Self {
         Self {
+            scoring: self.scoring,
             inside_try: wants.inside_try && (self.inside_try || node.kind() == "try_statement"),
             in_async: wants.in_async
                 && if is_function_like(node) {
@@ -131,6 +160,70 @@ impl Descent {
                 } else {
                     self.in_async
                 },
+            in_function: wants.functions && (self.in_function || is_scored_node(language, node)),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::syntax::parse_source;
+    use std::path::Path;
+
+    fn in_function_after(source: &str, descent: Descent, wants: Wants) -> bool {
+        let tree = parse_source(Path::new("a.ts"), source).expect("typescript parses");
+        let node = tree.root_node().child(0).expect("first statement");
+        descent
+            .enter(
+                node,
+                source.as_bytes(),
+                wants,
+                SourceLanguage::JavaScriptLike,
+            )
+            .in_function
+    }
+
+    fn functions_wanted() -> Wants {
+        Wants {
+            functions: true,
+            ..Wants::default()
+        }
+    }
+
+    fn inside_a_function() -> Descent<'static> {
+        Descent {
+            in_function: true,
+            ..Descent::default()
+        }
+    }
+
+    #[test]
+    fn a_function_is_entered_only_when_functions_are_wanted() {
+        let declaration = "function f() {}";
+        assert!(!in_function_after(
+            declaration,
+            Descent::default(),
+            Wants::default()
+        ));
+        assert!(in_function_after(
+            declaration,
+            Descent::default(),
+            functions_wanted()
+        ));
+    }
+
+    #[test]
+    fn a_statement_inside_a_function_stays_inside_it() {
+        assert!(in_function_after(
+            "if (a) {}",
+            inside_a_function(),
+            functions_wanted()
+        ));
+        assert!(!in_function_after(
+            "if (a) {}",
+            Descent::default(),
+            functions_wanted()
+        ));
     }
 }

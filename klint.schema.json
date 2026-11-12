@@ -725,6 +725,55 @@
             "blank-line-before-control-flow:\n  severity: error\n  include: [\"src/**\", \"!src/generated/**\"]\n  statements: [if, for, while, switch, try, return, guard, loop, with]\n  allowSetup: true"
           ]
         },
+        "cognitive-complexity": {
+          "anyOf": [
+            {
+              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+              "enum": [
+                "error",
+                "warn",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+              "properties": {
+                "include": {
+                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "max": {
+                  "default": 15,
+                  "description": "Highest cognitive complexity a function may have; a function scoring above it is reported. An integer of at least 1. Defaults to 15.",
+                  "format": "uint32",
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "severity": {
+                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off",
+                    null
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Reports every function whose cognitive complexity is above `max` (default 15), scored like Biome 2.6.5's `noExcessiveCognitiveComplexity` (the SonarSource Cognitive Complexity model). Works on TypeScript/JavaScript, Python, Swift, Rust and C#. Opt-in; no autofix.",
+          "examples": [
+            "cognitive-complexity: error",
+            "cognitive-complexity:\n  severity: warn\n  include: [\"src/**\", \"!src/generated/**\"]\n  max: 14"
+          ]
+        },
         "no-async-predicate": {
           "anyOf": [
             {

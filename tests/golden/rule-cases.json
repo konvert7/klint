@@ -905,5 +905,105 @@
       "violations": [],
       "summary": { "errors": 0, "warnings": 0 }
     }
+  },
+  {
+    "name": "cognitive-complexity reports a function scoring 16 and not one scoring 15",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "cognitive-complexity": "error"
+      }
+    },
+    "files": {
+      "src/subject.ts": "function big(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\nfunction ok(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "cognitive-complexity",
+          "message": "Function `big` has cognitive complexity 16 (max 15) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "cognitive-complexity max option reports only scores above it",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "cognitive-complexity": {
+          "severity": "error",
+          "max": 3
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "function four(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\nfunction three(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "cognitive-complexity",
+          "message": "Function `four` has cognitive complexity 4 (max 3) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "cognitive-complexity include limits the rule to matching files",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "cognitive-complexity": {
+          "severity": "warn",
+          "include": [
+            "src/**",
+            "!src/generated/**"
+          ]
+        }
+      }
+    },
+    "files": {
+      "src/a.ts": "function big(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\n",
+      "src/generated/b.ts": "function big(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/a.ts",
+          "line": 1,
+          "rule": "cognitive-complexity",
+          "message": "Function `big` has cognitive complexity 16 (max 15) — split it into smaller functions.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
+    }
   }
 ]
