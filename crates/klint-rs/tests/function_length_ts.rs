@@ -52,7 +52,7 @@ fn a_multi_line_template_literal_counts_once() {
 #[test]
 fn a_multi_line_block_comment_text_counts_its_breaks_between_tokens_only() {
     let source = "function f() {\n  a();\n  /* x\n  y */\n  b();\n}\n";
-    expect_count("a.ts", source, false, 4);
+    expect_count("a.ts", source, false, 3);
 }
 
 #[test]

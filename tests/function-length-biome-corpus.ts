@@ -28,7 +28,7 @@ interface CorpusEntry {
 export const CORPUS: CorpusEntry[] = [
   { row: "braces", code: "function c1() {\n  a();\n  b();\n}\n" },
   { row: "braces", code: "function c2() {\n  if (a) {\n    b();\n  }\n  c();\n}\n" },
-  { row: "comment", code: "function c3() {\n  // c\n  a();\n}\n" },
+  { row: "comment", code: "function c3() {\n  // c\n  a();\n  b();\n}\n" },
   { row: "comment", code: "function c4() {\n  a(); // t\n  // c\n  b();\n}\n" },
   { row: "block-comment", code: "function c5() {\n  a();\n  /* x\n  y */\n  b();\n}\n" },
   { row: "blank", code: "function c6() {\n  a();\n\n  b();\n}\n" },
