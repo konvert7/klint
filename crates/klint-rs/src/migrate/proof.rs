@@ -67,3 +67,37 @@ pub(super) fn prove_same_findings(
     let after = serialized(&lint_loaded(config_dir, new)?.findings);
     first_difference(&before, &after).map_or(Ok(()), Err)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::first_difference;
+
+    fn items(values: &[&str]) -> Vec<String> {
+        values.iter().map(|v| v.to_string()).collect()
+    }
+
+    #[test]
+    fn identical_findings_have_no_difference() {
+        assert_eq!(
+            first_difference(&items(&["a", "b"]), &items(&["a", "b"])),
+            None
+        );
+    }
+
+    #[test]
+    fn changed_finding_is_reported() {
+        let message = first_difference(&items(&["a", "b"]), &items(&["a", "c"]))
+            .expect("a difference is reported");
+        assert_eq!(message, "findings would change — first difference: b → c");
+    }
+
+    #[test]
+    fn dropped_finding_is_reported_as_none() {
+        let message = first_difference(&items(&["a", "b"]), &items(&["a"]))
+            .expect("a difference is reported");
+        assert_eq!(
+            message,
+            "findings would change — first difference: b → (none)"
+        );
+    }
+}

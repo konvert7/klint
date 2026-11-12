@@ -230,7 +230,12 @@ fn migrate_before_fixing(config_dir: &std::path::Path) -> Option<Violation> {
         Ok(MigrateOutcome::Refused { file, line, reason }) => {
             Some(refusal_warning(file, line, &reason))
         }
-        _ => None,
+        Ok(_) => None,
+        Err(message) => Some(refusal_warning(
+            config_dir.display().to_string(),
+            1,
+            &message,
+        )),
     }
 }
 
