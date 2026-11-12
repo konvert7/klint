@@ -16,6 +16,7 @@ const BLANK_RULES = [
   "  blank-line-after-block: warn",
 ];
 const COMPLEXITY_RULE = "  cognitive-complexity: warn";
+const LENGTH_RULE = "  function-length: warn";
 
 type Language = {
   dir: string;
@@ -188,26 +189,35 @@ try {
   writeCorpus(files);
   writeConfig(join(root, "blank"), BLANK_RULES);
   writeConfig(join(root, "complexity"), [...BLANK_RULES, COMPLEXITY_RULE]);
+  writeConfig(join(root, "length"), [...BLANK_RULES, COMPLEXITY_RULE, LENGTH_RULE]);
   buildRelease();
 
   const blankTimes: number[] = [];
   const complexityTimes: number[] = [];
+  const lengthTimes: number[] = [];
   for (let round = 0; round < ROUNDS; round++) {
     blankTimes.push(timedRun(join(root, "blank")));
     complexityTimes.push(timedRun(join(root, "complexity")));
+    lengthTimes.push(timedRun(join(root, "length")));
   }
 
   const blankMedian = median(blankTimes);
   const complexityMedian = median(complexityTimes);
+  const lengthMedian = median(lengthTimes);
   const ratio = complexityMedian / blankMedian;
+  const lengthRatio = lengthMedian / complexityMedian;
   console.log(
     `blank-line rules only: ${blankMedian.toFixed(1)} ms (median of ${ROUNDS})`
   );
   console.log(
     `with cognitive-complexity: ${complexityMedian.toFixed(1)} ms (median of ${ROUNDS})`
   );
+  console.log(
+    `with function-length and cognitive-complexity: ${lengthMedian.toFixed(1)} ms (median of ${ROUNDS})`
+  );
   console.log(`ratio: ${ratio.toFixed(3)}`);
-  process.exitCode = ratio > MAX_RATIO ? 1 : 0;
+  console.log(`function-length ratio: ${lengthRatio.toFixed(3)}`);
+  process.exitCode = ratio > MAX_RATIO || lengthRatio > MAX_RATIO ? 1 : 0;
 } finally {
   rmSync(root, { recursive: true, force: true });
 }
