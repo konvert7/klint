@@ -15,6 +15,9 @@ rules:
     cognitive-complexity: error
     function-length:
       - {error: 50, include: ["**/*.ts", "crates/**/*.rs", "!tests/**"]}
+  experimental:
+    no-date-equality: error
+    no-floating-promise: error
 
 arch:
   layers:
