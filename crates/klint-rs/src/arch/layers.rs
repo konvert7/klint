@@ -97,7 +97,9 @@ pub(super) fn in_prefixes(path: &Path, prefixes: &[PathBuf]) -> bool {
             .or_else(|| prefix_text.strip_suffix(".js"))
             .or_else(|| prefix_text.strip_suffix(".jsx"))
             .or_else(|| prefix_text.strip_suffix(".mts"))
-            .or_else(|| prefix_text.strip_suffix(".cts"));
+            .or_else(|| prefix_text.strip_suffix(".cts"))
+            .or_else(|| prefix_text.strip_suffix(".mjs"))
+            .or_else(|| prefix_text.strip_suffix(".cjs"));
         bare_prefix.is_some_and(|bare| {
             let bare_path = PathBuf::from(bare);
             path_in_prefix(path, &bare_path)
