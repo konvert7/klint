@@ -109,12 +109,15 @@ impl<'a> NodeIndex<'a> {
     }
 
     fn tally_node(&mut self, node: Node<'a>, source: &[u8], language: SourceLanguage) {
-        if is_token(language, node) {
-            self.tally
-                .add_token(source, node.kind(), node.start_byte(), node.end_byte());
-        } else if is_comment(node) {
-            self.tally
-                .absorb_comment(source, node.start_byte(), node.end_byte());
+        if node.is_extra() {
+            if is_comment(node) {
+                self.tally
+                    .absorb_comment(source, node.start_byte(), node.end_byte());
+            }
+        } else if is_token(language, node) {
+            let (start, end) = (node.start_byte(), node.end_byte());
+            let kind = if end - start == 1 { node.kind() } else { "" };
+            self.tally.add_token(source, kind, start, end);
         }
     }
 
@@ -143,12 +146,15 @@ impl<'a> NodeIndex<'a> {
         language: SourceLanguage,
         descent: Descent<'a>,
     ) {
-        if wants.function_lengths {
+        let measures_lengths = wants.function_lengths && node.child_count() > 0;
+        if measures_lengths {
             if let Some(body) = measured_body(language, node) {
                 self.pending_bodies.push((body.id(), node));
             }
         }
-        let absorbs_jsx_text = wants.function_lengths && node.kind() == "jsx_element";
+        let absorbs_jsx_text = measures_lengths
+            && language == SourceLanguage::JavaScriptLike
+            && node.kind() == "jsx_element";
         let mut cursor = node.walk();
         for (position, child) in node.children(&mut cursor).enumerate() {
             if absorbs_jsx_text && position > 0 {

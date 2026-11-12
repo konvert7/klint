@@ -13,34 +13,34 @@ pub(crate) struct FunctionLength<'a> {
     pub non_blank_lines: u32,
 }
 
-fn length_kinds(language: SourceLanguage) -> &'static [&'static str] {
+fn is_length_kind(language: SourceLanguage, kind: &str) -> bool {
     match language {
-        SourceLanguage::JavaScriptLike => &[
-            "function_declaration",
-            "function_expression",
-            "generator_function_declaration",
-            "generator_function",
-            "arrow_function",
-            "method_definition",
-        ],
-        SourceLanguage::Python => &["function_definition", "lambda"],
-        SourceLanguage::Rust => &["function_item", "closure_expression"],
-        SourceLanguage::Swift => &[
-            "function_declaration",
-            "init_declaration",
-            "deinit_declaration",
-            "lambda_literal",
-        ],
-        SourceLanguage::CSharp => &[
-            "method_declaration",
-            "constructor_declaration",
-            "destructor_declaration",
-            "operator_declaration",
-            "conversion_operator_declaration",
-            "local_function_statement",
-            "lambda_expression",
-            "anonymous_method_expression",
-        ],
+        SourceLanguage::JavaScriptLike => matches!(
+            kind,
+            "function_declaration"
+                | "function_expression"
+                | "generator_function_declaration"
+                | "generator_function"
+                | "arrow_function"
+                | "method_definition"
+        ),
+        SourceLanguage::Python => matches!(kind, "function_definition" | "lambda"),
+        SourceLanguage::Rust => matches!(kind, "function_item" | "closure_expression"),
+        SourceLanguage::Swift => matches!(
+            kind,
+            "function_declaration" | "init_declaration" | "deinit_declaration" | "lambda_literal"
+        ),
+        SourceLanguage::CSharp => matches!(
+            kind,
+            "method_declaration"
+                | "constructor_declaration"
+                | "destructor_declaration"
+                | "operator_declaration"
+                | "conversion_operator_declaration"
+                | "local_function_statement"
+                | "lambda_expression"
+                | "anonymous_method_expression"
+        ),
     }
 }
 
@@ -68,15 +68,21 @@ pub(crate) fn is_single_token_kind(language: SourceLanguage, kind: &str) -> bool
 }
 
 pub(crate) fn starts_uncounted_region(language: SourceLanguage, node: Node<'_>) -> bool {
-    node.is_extra() || is_single_token_kind(language, node.kind())
+    node.is_extra()
+        || (node.child_count() > 0
+            && node.is_named()
+            && is_single_token_kind(language, node.kind()))
 }
 
 pub(crate) fn is_comment(node: Node<'_>) -> bool {
-    node.is_extra() && node.kind().contains("comment")
+    node.kind().contains("comment")
 }
 
 pub(crate) fn is_token(language: SourceLanguage, node: Node<'_>) -> bool {
-    !node.is_extra() && (node.child_count() == 0 || is_single_token_kind(language, node.kind()))
+    match node.child_count() {
+        0 => true,
+        _ => node.is_named() && is_single_token_kind(language, node.kind()),
+    }
 }
 
 fn is_accessor(function: Node<'_>) -> bool {
@@ -108,10 +114,7 @@ fn expression_of_arrow_clause(body: Node<'_>) -> Option<Node<'_>> {
 }
 
 pub(crate) fn measured_body<'a>(language: SourceLanguage, function: Node<'a>) -> Option<Node<'a>> {
-    if !function.is_named()
-        || is_accessor(function)
-        || !length_kinds(language).contains(&function.kind())
-    {
+    if !function.is_named() || !is_length_kind(language, function.kind()) || is_accessor(function) {
         return None;
     }
     match function.kind() {
