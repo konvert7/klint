@@ -508,7 +508,7 @@ An ignored line still counts in the density denominator — it is a physical lin
 
 ### Language Support
 
-klint scans TypeScript/JavaScript, Python, Swift, Rust, and C#. Every architecture rule is enforced from the same `klint.yaml`, but what a rule can *see* depends on what the language actually has.
+klint scans TypeScript/JavaScript (`.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs`), Python, Swift, Rust, and C#. Every architecture rule is enforced from the same `klint.yaml`, but what a rule can *see* depends on what the language actually has.
 
 | | TypeScript / JavaScript | Python | Swift | Rust | C# |
 |---|---|---|---|---|---|
@@ -834,6 +834,7 @@ It adds nothing for `try` itself, `return`, `throw`, recursion, Rust `?`, Python
 - `??` counts as a boolean operator.
 - A logical operator is scored unless its direct parent is the same operator, so `a && (b && c)` is 2, not 1.
 - Recursion adds nothing.
+- Biome 2.6.5 lowers the nesting level of the code after a plain `else` (an unbalanced decrement), so it can score such functions lower; klint keeps the nesting.
 - A nested function (closure, lambda, arrow, local function) is scored and reported on its own. It starts at its enclosing nesting level plus one and does not add to the outer function.
 
 **What counts as a function.** TypeScript/JavaScript: `function` declarations and expressions, arrow functions, methods (including getters and setters), generator functions. Python: `def` and `lambda`. Swift: `func`, `init`, `deinit`, closures, computed getters and setters. Rust: `fn` items and closures. C#: methods, constructors, destructors, local functions, lambdas, anonymous methods, property and indexer accessors, operators and conversion operators.

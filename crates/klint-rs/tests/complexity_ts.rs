@@ -6,6 +6,7 @@ use complexity_support::*;
 #[test]
 fn typescript_scoring_rows_have_the_exact_score() {
     assert_cases(ts_cases::CASES);
+    assert_cases(ts_else_cases::CASES);
 }
 
 #[test]

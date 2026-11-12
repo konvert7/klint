@@ -12,6 +12,7 @@ pub mod rs_cases;
 pub mod swift_cases;
 pub mod swift_kinds;
 pub mod ts_cases;
+pub mod ts_else_cases;
 pub mod ts_names;
 
 pub const RULE: &str = "cognitive-complexity";

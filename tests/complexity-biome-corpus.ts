@@ -18,7 +18,11 @@ interface CorpusEntry {
   row: (typeof SCORING_ROWS)[number];
   code: string;
   offset?: number;
+  known?: { biome: number; klint: number; reason: string };
 }
+
+export const BIOME_ELSE_REASON =
+  "Biome lowers nesting after a plain else (unbalanced decrement in on_leave)";
 
 export const CORPUS: CorpusEntry[] = [
   {
@@ -174,5 +178,27 @@ export const CORPUS: CorpusEntry[] = [
   {
     row: "boolean-run",
     code: "function e38(a, b, c) {\n  return a && (b && c);\n}\n",
+  },
+  {
+    row: "else",
+    known: { biome: 8, klint: 9, reason: BIOME_ELSE_REASON },
+    code: "function e39(xs, a, b, c) {\n  for (const x of xs) {\n    if (a) {\n      if (b) {\n        g();\n      } else {\n        h();\n      }\n    } else if (c) {\n      g();\n    }\n  }\n}\n",
+  },
+  {
+    row: "else",
+    known: { biome: 10, klint: 11, reason: BIOME_ELSE_REASON },
+    code: "function e40(x, y, z) {\n  if (x) {\n    if (y) {\n      g();\n    } else {\n      for (;;) {\n        g();\n      }\n    }\n  } else {\n    if (z) {\n      g();\n    } else {\n      h();\n    }\n  }\n}\n",
+  },
+  {
+    row: "boolean-run",
+    code: "function e41(a, b) {\n  if (a) {\n    g();\n  }\n  return a ?? b;\n}\n",
+  },
+  {
+    row: "boolean-run",
+    code: "function e42(a, b, c, d) {\n  return a ?? b && c || d;\n}\n",
+  },
+  {
+    row: "boolean-run",
+    code: "function e43(a, b, c) {\n  return a ? b ?? c : c;\n}\n",
   },
 ];

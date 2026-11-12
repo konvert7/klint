@@ -1163,5 +1163,72 @@
         "warnings": 0
       }
     }
+  },
+  {
+    "name": "mjs and cjs files are linted like js",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "no-string-match": "error",
+        "cognitive-complexity": {
+          "severity": "error",
+          "max": 1
+        }
+      }
+    },
+    "files": {
+      "src/a.mjs": "const hit = \"abc\".match(/a/);\nfunction big(a) {\n  if (a) {\n    if (a) {\n      g();\n    }\n  }\n}\n",
+      "src/b.cjs": "const hit = \"abc\".match(/a/);\nfunction big(a) {\n  if (a) {\n    if (a) {\n      g();\n    }\n  }\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/a.mjs",
+          "line": 1,
+          "rule": "no-string-match",
+          "message": "Use RegExp.exec() instead of String.match() for non-global regexes — use new RegExp(/a/).exec(\"abc\") instead.",
+          "severity": "error",
+          "fix": {
+            "startLine": 1,
+            "endLine": 1,
+            "replacement": "const hit = new RegExp(/a/).exec(\"abc\");"
+          }
+        },
+        {
+          "file": "src/b.cjs",
+          "line": 1,
+          "rule": "no-string-match",
+          "message": "Use RegExp.exec() instead of String.match() for non-global regexes — use new RegExp(/a/).exec(\"abc\") instead.",
+          "severity": "error",
+          "fix": {
+            "startLine": 1,
+            "endLine": 1,
+            "replacement": "const hit = new RegExp(/a/).exec(\"abc\");"
+          }
+        },
+        {
+          "file": "src/a.mjs",
+          "line": 2,
+          "rule": "cognitive-complexity",
+          "message": "Function `big` has cognitive complexity 3 (max 1) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null
+        },
+        {
+          "file": "src/b.cjs",
+          "line": 2,
+          "rule": "cognitive-complexity",
+          "message": "Function `big` has cognitive complexity 3 (max 1) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 4,
+        "warnings": 0
+      }
+    }
   }
 ]
