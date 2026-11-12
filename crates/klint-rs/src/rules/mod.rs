@@ -2,6 +2,7 @@ mod blank_lines;
 mod builtin;
 mod complexity;
 mod docs;
+mod function_length;
 mod sonar;
 
 use std::collections::BTreeMap;
@@ -24,6 +25,7 @@ pub(crate) enum RuleOptions {
     None,
     BlankLines(blank_lines::BlankLineOptions),
     CognitiveComplexity(complexity::ComplexityOptions),
+    FunctionLength(function_length::FunctionLengthOptions),
 }
 
 pub(crate) struct ParsedOptions {
@@ -175,6 +177,13 @@ const CHECKS: &[RuleSpec] = &[
         wants: |wants| wants.functions = true,
         scope: FileScope::AnySource,
         options: complexity::cognitive_complexity_options,
+    },
+    RuleSpec {
+        name: "function-length",
+        check: function_length::run_function_length,
+        wants: |wants| wants.function_lengths = true,
+        scope: FileScope::AnySource,
+        options: function_length::function_length_options,
     },
 ];
 

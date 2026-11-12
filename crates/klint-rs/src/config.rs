@@ -80,6 +80,9 @@ pub(crate) enum RuleConfig {
         allow_setup: Option<serde_json::Value>,
         #[schemars(skip)]
         max: Option<serde_json::Value>,
+        #[serde(rename = "skipBlankLines")]
+        #[schemars(skip)]
+        skip_blank_lines: Option<serde_json::Value>,
     },
 }
 
@@ -102,6 +105,15 @@ impl RuleConfig {
         match self {
             RuleConfig::Severity(_) => None,
             RuleConfig::Options { max, .. } => max.as_ref(),
+        }
+    }
+
+    pub(crate) fn skip_blank_lines(&self) -> Option<&serde_json::Value> {
+        match self {
+            RuleConfig::Severity(_) => None,
+            RuleConfig::Options {
+                skip_blank_lines, ..
+            } => skip_blank_lines.as_ref(),
         }
     }
 
@@ -201,5 +213,31 @@ mod tests {
         let config = rule_config("{allowSetup: false}");
         assert_eq!(config.statements(), None);
         assert_eq!(config.allow_setup(), Some(&serde_json::json!(false)));
+    }
+
+    #[test]
+    fn bare_severity_has_no_skip_blank_lines() {
+        assert_eq!(rule_config("error").skip_blank_lines(), None);
+    }
+
+    #[test]
+    fn boolean_skip_blank_lines_is_returned() {
+        assert_eq!(
+            rule_config("{skipBlankLines: true}").skip_blank_lines(),
+            Some(&serde_json::json!(true))
+        );
+    }
+
+    #[test]
+    fn string_skip_blank_lines_is_returned_unchanged() {
+        assert_eq!(
+            rule_config("{skipBlankLines: \"yes\"}").skip_blank_lines(),
+            Some(&serde_json::json!("yes"))
+        );
+    }
+
+    #[test]
+    fn options_without_skip_blank_lines_return_none() {
+        assert_eq!(rule_config("{max: 3}").skip_blank_lines(), None);
     }
 }
