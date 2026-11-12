@@ -2,16 +2,18 @@ use std::fs;
 use std::path::Path;
 
 use crate::config::RuleConfig;
-use crate::config_shape::{ResolvedRules, shape_advisories};
+use crate::config_shape::{ConfigShape, ResolvedRules, shape_advisories};
 use crate::output::Violation;
-use crate::rules::rule_option_problems;
+use crate::rules::{
+    effective_severity, old_form_message, rule_option_problems, uses_old_threshold_form,
+};
 
 const RULE: &str = "klint/config";
 const KNOWN_KEYS: &[&str] = &["$schema", "root", "include", "plugins", "rules", "arch"];
 const SEVERITIES: &[&str] = &["error", "warn", "off"];
 
-pub(crate) fn has_valid_severity(config: &RuleConfig) -> bool {
-    SEVERITIES.contains(&config.severity())
+pub(crate) fn has_valid_severity(name: &str, config: &RuleConfig) -> bool {
+    SEVERITIES.contains(&effective_severity(name, config))
 }
 
 pub(crate) fn config_advisories(resolved: &ResolvedRules, config_path: &Path) -> Vec<Violation> {
@@ -21,7 +23,6 @@ pub(crate) fn config_advisories(resolved: &ResolvedRules, config_path: &Path) ->
         .file_name()
         .and_then(|name| name.to_str())
         .unwrap_or("klint.yaml");
-    let rules = &resolved.rules;
 
     let unknown_keys = top_level_keys(text)
         .into_iter()
@@ -33,30 +34,62 @@ pub(crate) fn config_advisories(resolved: &ResolvedRules, config_path: &Path) ->
                 format!("Unknown config key \"{key}\" is ignored — check its name."),
             )
         });
-    let invalid_severities = rules
+    unknown_keys
+        .chain(invalid_severity_advisories(resolved, text, file))
+        .chain(option_problem_advisories(resolved, text, file))
+        .chain(old_form_advisories(resolved, text, file))
+        .chain(shape_advisories(resolved, text, file))
+        .collect()
+}
+
+fn invalid_severity_advisories(resolved: &ResolvedRules, text: &str, file: &str) -> Vec<Violation> {
+    resolved
+        .rules
         .iter()
-        .filter(|(_, config)| !has_valid_severity(config))
+        .filter(|(name, config)| !has_valid_severity(name, config))
         .map(|(name, config)| {
             advisory(
                 file,
                 line_of_key(text, resolved.written_key(name)),
                 format!(
                     "Rule \"{name}\" has severity \"{}\", which is not error, warn or off, so it is ignored.",
-                    config.severity()
+                    effective_severity(name, config)
                 ),
             )
-        });
-    let option_problems = rules.iter().flat_map(|(name, config)| {
-        rule_option_problems(name, config)
-            .into_iter()
-            .map(move |problem| {
-                advisory(file, line_of_key(text, resolved.written_key(name)), problem)
-            })
-    });
-    unknown_keys
-        .chain(invalid_severities)
-        .chain(option_problems)
-        .chain(shape_advisories(resolved, text, file))
+        })
+        .collect()
+}
+
+fn option_problem_advisories(resolved: &ResolvedRules, text: &str, file: &str) -> Vec<Violation> {
+    resolved
+        .rules
+        .iter()
+        .flat_map(|(name, config)| {
+            rule_option_problems(name, config)
+                .into_iter()
+                .map(move |problem| {
+                    advisory(file, line_of_key(text, resolved.written_key(name)), problem)
+                })
+        })
+        .collect()
+}
+
+fn old_form_advisories(resolved: &ResolvedRules, text: &str, file: &str) -> Vec<Violation> {
+    if resolved.shape == ConfigShape::V1 {
+        return Vec::new();
+    }
+
+    resolved
+        .rules
+        .iter()
+        .filter(|(name, config)| uses_old_threshold_form(name, config))
+        .map(|(name, _)| {
+            advisory(
+                file,
+                line_of_key(text, resolved.written_key(name)),
+                old_form_message(name),
+            )
+        })
         .collect()
 }
 

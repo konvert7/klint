@@ -110,8 +110,8 @@ impl Engine<'_> {
         let mut buckets = Vec::with_capacity(self.pass_count());
 
         for pass in self.rule_passes {
-            buckets.push(if scans_rules && pass.covers(file_index) {
-                pass.scan(
+            buckets.push(match pass.options_for(file_index) {
+                Some(options) if scans_rules => pass.scan(
                     file,
                     self.root,
                     RuleScan {
@@ -119,11 +119,10 @@ impl Engine<'_> {
                         source,
                         content,
                         language,
-                        options: pass.options(),
+                        options,
                     },
-                )
-            } else {
-                Vec::new()
+                ),
+                _ => Vec::new(),
             });
         }
 

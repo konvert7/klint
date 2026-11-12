@@ -9,6 +9,14 @@ pub(crate) struct RuleDoc {
     pub options_schema: Option<RuleSchema>,
 }
 
+pub(crate) fn v1_options_schema(name: &str) -> Option<RuleSchema> {
+    match name {
+        "cognitive-complexity" => Some(super::complexity::cognitive_complexity_v1_schema),
+        "function-length" => Some(super::function_length::function_length_v1_schema),
+        _ => None,
+    }
+}
+
 pub(crate) const RULE_DOCS: &[RuleDoc] = &[
     RuleDoc {
         name: "no-unguarded-json-parse",
@@ -105,19 +113,21 @@ pub(crate) const RULE_DOCS: &[RuleDoc] = &[
     },
     RuleDoc {
         name: "cognitive-complexity",
-        description: "Reports every function whose cognitive complexity is above `max` (default 15), scored like `eslint-plugin-sonarjs` 3.0.5's `cognitive-complexity` (SonarSource rule S3776). Works on TypeScript/JavaScript, Python, Swift, Rust and C#. Opt-in; no autofix.",
+        description: "Reports every function whose cognitive complexity is above a limit, scored like `eslint-plugin-sonarjs` 3.0.5's `cognitive-complexity` (SonarSource rule S3776). Set `warn` and/or `error` limits (bare `error`/`warn` uses 15); a function gets one diagnostic, at the highest level it exceeds. A list of `{warn, error, include}` entries sets limits per glob, and the last entry whose include matches a file wins. Works on TypeScript/JavaScript, Python, Swift, Rust and C#. Opt-in; no autofix.",
         examples: &[
             "cognitive-complexity: error",
-            "cognitive-complexity:\n  severity: warn\n  include: [\"src/**\", \"!src/generated/**\"]\n  max: 14",
+            "cognitive-complexity: {warn: 10, error: 20}",
+            "cognitive-complexity:\n  - {error: 15}\n  - {warn: 10, error: 20, include: [\"scripts/**\"]}",
         ],
         options_schema: Some(super::complexity::cognitive_complexity_schema),
     },
     RuleDoc {
         name: "function-length",
-        description: "Reports every function whose body has more than `max` lines (default 50), counted like Biome 2.6.5's `noExcessiveLinesPerFunction`: brace lines do not count, comment and blank lines do (blank lines not with `skipBlankLines`), and a nested function's lines count toward its parent. Getters and setters are not checked. Works on TypeScript/JavaScript, Python, Swift, Rust and C#. Opt-in; no autofix.",
+        description: "Reports every function whose body has more lines than a limit, counted like Biome 2.6.5's `noExcessiveLinesPerFunction`: brace lines do not count, comment and blank lines do (blank lines not with `skipBlankLines`), and a nested function's lines count toward its parent. Set `warn` and/or `error` limits (bare `error`/`warn` uses 50); a function gets one diagnostic, at the highest level it exceeds. A list of `{warn, error, include, skipBlankLines}` entries sets limits per glob, and the last entry whose include matches a file wins. Getters and setters are not checked. Works on TypeScript/JavaScript, Python, Swift, Rust and C#. Opt-in; no autofix.",
         examples: &[
             "function-length: error",
-            "function-length:\n  severity: warn\n  include: [\"src/**\", \"!src/generated/**\"]\n  max: 40\n  skipBlankLines: true",
+            "function-length: {warn: 60, error: 80, skipBlankLines: true}",
+            "function-length:\n  - {error: 50}\n  - {warn: 60, error: 80, include: [\"scripts/**\"]}",
         ],
         options_schema: Some(super::function_length::function_length_schema),
     },

@@ -745,8 +745,8 @@ doc-comments alongside `/** */`.
 | `no-string-match` | `String#match()` usage better expressed with clearer APIs |
 | `blank-line-before-control-flow` | Blank line above a control-flow statement that follows another statement; autofix |
 | `blank-line-after-block` | Blank line below a block statement when another statement follows; autofix |
-| `cognitive-complexity` | Function whose cognitive complexity (SonarJS / SonarSource model) is above `max`, in all five languages; opt-in, no autofix |
-| `function-length` | Function whose body has more lines than `max` (counted like Biome's `noExcessiveLinesPerFunction`), in all five languages; opt-in, no autofix |
+| `cognitive-complexity` | Function whose cognitive complexity (SonarJS / SonarSource model) is above its `warn`/`error` limits, in all five languages; opt-in, no autofix |
+| `function-length` | Function whose body has more lines than its `warn`/`error` limits (counted like Biome's `noExcessiveLinesPerFunction`), in all five languages; opt-in, no autofix |
 
 Rules that needed TypeScript's type checker were removed in 1.0; see [Upgrading from klint 0.x](#upgrading-from-klint-0x).
 
@@ -800,7 +800,7 @@ rules:
 
 ### Cognitive complexity
 
-`cognitive-complexity` reports every function whose cognitive complexity is above `max`, in TypeScript/JavaScript, Python, Swift, Rust and C#. It is opt-in and has no fix. It scores like SonarSource's own implementation, `eslint-plugin-sonarjs` 3.0.5 rule S3776 (the SonarSource Cognitive Complexity model, G. Ann Campbell 2017), for every language, so a TypeScript function gets the same score as in SonarJS.
+`cognitive-complexity` reports every function whose cognitive complexity is above its `warn` or `error` limit, in TypeScript/JavaScript, Python, Swift, Rust and C#. It is opt-in and has no fix. It scores like SonarSource's own implementation, `eslint-plugin-sonarjs` 3.0.5 rule S3776 (the SonarSource Cognitive Complexity model, G. Ann Campbell 2017), for every language, so a TypeScript function gets the same score as in SonarJS.
 
 ```yaml
 rules:
@@ -811,15 +811,33 @@ rules:
 ```yaml
 rules:
   core:
-    cognitive-complexity:
-      severity: warn
-      include: ["src/**", "!src/generated/**"]
-      max: 14
+    cognitive-complexity: {warn: 10, error: 20}
 ```
 
-- `max` is an integer of at least 1, default 15. A function is reported when its score is **greater than** `max`. Any other value (0, a negative number, a fraction, a string) gives one `klint/config` warning naming the rule and the value, and the rule uses 15.
-- The message has the form ``Function `big` has cognitive complexity 16 (max 15) — split it into smaller functions.``. The name is the declared name. For an anonymous function assigned to a variable or property it is that name. Otherwise it is `<anonymous>`. The line is the function's first line.
+```yaml
+rules:
+  core:
+    cognitive-complexity:
+      - {error: 15}
+      - {warn: 10, error: 20, include: ["scripts/**"]}
+```
+
+- `warn` and `error` are integers of at least 1; set either or both. A bare `error` or `warn` uses the default, 15. A function is reported when its score is **greater than** the limit. Any other value (0, a negative number, a fraction, a string) gives one `klint/config` warning naming the rule and the value, and that entry is ignored.
+- One diagnostic per function, at the highest level it exceeds (a function exactly at a limit does not exceed it). `error` below `warn` gives one `klint/config` warning on the rule line and the rule runs with `error` only; `error` equal to `warn` is valid and does the same.
+- A list sets limits per glob. Each entry takes `warn`, `error` and `include`. The last entry whose `include` matches a file wins; entries do not merge; a file no entry matches is not checked; an empty list turns the rule off.
+- The old `{max, severity}` form is still read with today's behaviour. In a v2 config it gives one `klint/config` warning on the rule line: ``max` and `severity` on cognitive-complexity are the old form — run `klint migrate` to upgrade it in place.`` Mixing old and new keys in one object gives one warning, and the new keys apply.
+- The message has the form ``Function `big` has cognitive complexity 16 (max 15) — split it into smaller functions.``, where `max` is the limit exceeded. The name is the declared name. For an anonymous function assigned to a variable or property it is that name. Otherwise it is `<anonymous>`. The line is the function's first line.
 - Each function starts at 0. Top-level code is not scored.
+
+**Migrating the old form.** `klint migrate` (and `klint --fix`) rewrites the old form as follows, and `klint migrate --check` exits 1 while any of it is left:
+
+| old | new |
+|---|---|
+| `{max: M}` or `{max: M, severity: error}` | `{error: M}` |
+| `{max: M, severity: warn}` | `{warn: M}` |
+| `{max: M, severity: off}` | `off` |
+| `{severity: S}` (no `max`) | `{S: <default>}`, i.e. `{error: 15}` / `{warn: 50}`; `off` → `off` |
+| `include`, `skipBlankLines` | kept unchanged in the same object |
 
 **Scoring.** "Nesting" is how deep a construct sits: nesting is added by each enclosing `if`, loop, `switch`, `catch`, `guard` and `let … else` body; a nested function starts again at 0. Only a construct's body is nested: its condition, loop head, `switch` value or ternary test sits at the construct's own nesting. For example, in `if (a ? b : c) {}` the ternary adds 1, not 2.
 
@@ -860,7 +878,7 @@ A nested function (closure, lambda, arrow, local function) is scored and reporte
 
 ### Function length
 
-`function-length` reports every function whose body has more than `max` lines, in TypeScript/JavaScript, Python, Swift, Rust and C#. It is opt-in and has no fix. It counts with Biome 2.6.5's `noExcessiveLinesPerFunction` algorithm in every language, so a TypeScript function gets the same count as in Biome.
+`function-length` reports every function whose body has more lines than its `warn` or `error` limit, in TypeScript/JavaScript, Python, Swift, Rust and C#. It is opt-in and has no fix. It counts with Biome 2.6.5's `noExcessiveLinesPerFunction` algorithm in every language, so a TypeScript function gets the same count as in Biome.
 
 ```yaml
 rules:
@@ -871,16 +889,33 @@ rules:
 ```yaml
 rules:
   core:
-    function-length:
-      severity: warn
-      include: ["src/**", "!src/generated/**"]
-      max: 40
-      skipBlankLines: true
+    function-length: {warn: 60, error: 80, skipBlankLines: true}
 ```
 
-- `max` is an integer of at least 1, default 50. A function is reported when its count is **greater than** `max`. Any other value (0, a negative number, a fraction, a string) gives one `klint/config` warning naming the rule and the value, and the rule uses 50.
+```yaml
+rules:
+  core:
+    function-length:
+      - {error: 50}
+      - {warn: 60, error: 80, include: ["scripts/**"]}
+```
+
+- `warn` and `error` are integers of at least 1; set either or both. A bare `error` or `warn` uses the default, 50. A function is reported when its count is **greater than** the limit. Any other value (0, a negative number, a fraction, a string) gives one `klint/config` warning naming the rule and the value, and that entry is ignored.
+- One diagnostic per function, at the highest level it exceeds (a function exactly at a limit does not exceed it). `error` below `warn` gives one `klint/config` warning on the rule line and the rule runs with `error` only; `error` equal to `warn` is valid and does the same.
+- A list sets limits per glob. Each entry takes `warn`, `error`, `include` and `skipBlankLines`. The last entry whose `include` matches a file wins; entries do not merge; a file no entry matches is not checked; an empty list turns the rule off.
+- The old `{max, severity}` form is still read with today's behaviour. In a v2 config it gives one `klint/config` warning on the rule line: ``max` and `severity` on function-length are the old form — run `klint migrate` to upgrade it in place.`` Mixing old and new keys in one object gives one warning, and the new keys apply.
 - `skipBlankLines` is a boolean, default `false`. Any other value gives one `klint/config` warning naming the rule and the value, and the rule uses `false`.
-- The message has the form ``Function `big` has 51 lines (max 50) — split it into smaller functions.``. The name is the declared name, the same rule as `cognitive-complexity`. The line is the function's first line.
+- The message has the form ``Function `big` has 51 lines (max 50) — split it into smaller functions.``, where `max` is the limit exceeded. The name is the declared name, the same rule as `cognitive-complexity`. The line is the function's first line.
+
+**Migrating the old form.** `klint migrate` (and `klint --fix`) rewrites the old form as follows, and `klint migrate --check` exits 1 while any of it is left:
+
+| old | new |
+|---|---|
+| `{max: M}` or `{max: M, severity: error}` | `{error: M}` |
+| `{max: M, severity: warn}` | `{warn: M}` |
+| `{max: M, severity: off}` | `off` |
+| `{severity: S}` (no `max`) | `{S: <default>}`, i.e. `{error: 15}` / `{warn: 50}`; `off` → `off` |
+| `include`, `skipBlankLines` | kept unchanged in the same object |
 
 **Counting.** Only the body counts, not the signature line, decorators or attributes. Every line break before a token in the body counts, except a break before `{` or `}`, so lines that hold only braces (and `};`) do not count. Comment lines and blank lines count. With `skipBlankLines`, a run of blank lines adds nothing beyond the line it leads to. A multi-line string or template counts once. Blank lines before the closing brace do not count. A nested function's lines count toward its parent, and the nested function is also checked on its own. Python counts each statement's line (there are no braces), and docstrings count.
 

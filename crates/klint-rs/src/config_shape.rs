@@ -137,7 +137,7 @@ fn resolve_v1(raw: &RawConfig) -> Result<ResolvedRules, ResolveError> {
     let mut flat = BTreeMap::new();
 
     for (key, value) in all.iter().filter(|(key, _)| !is_reserved_key(key)) {
-        flat.insert(key.clone(), to_rule_config(value)?);
+        flat.insert(key.clone(), to_rule_config(value, false)?.into_v1());
     }
 
     let written: BTreeMap<String, String> =
@@ -175,7 +175,8 @@ fn resolve_v2(raw: &RawConfig, shape: ConfigShape) -> Result<ResolvedRules, Reso
             }
 
             let id = rule_id(group, name);
-            rules.insert(id.clone(), to_rule_config(value)?);
+            let list_allowed = crate::rules::accepts_list_form(&id);
+            rules.insert(id.clone(), to_rule_config(value, list_allowed)?);
             written.insert(id, name.to_string());
         }
     }
@@ -226,8 +227,14 @@ fn rule_id(group: Group, name: &str) -> String {
     }
 }
 
-fn to_rule_config(value: &Value) -> Result<RuleConfig, ResolveError> {
-    serde_json::from_value(value.clone()).map_err(|_| ResolveError::InvalidValue)
+fn to_rule_config(value: &Value, list_allowed: bool) -> Result<RuleConfig, ResolveError> {
+    let config: RuleConfig =
+        serde_json::from_value(value.clone()).map_err(|_| ResolveError::InvalidValue)?;
+    if config.list_items().is_some() && !list_allowed {
+        return Err(ResolveError::InvalidValue);
+    }
+
+    Ok(config)
 }
 
 pub(crate) fn check_rule_values(raw: &RawConfig) -> Result<(), String> {

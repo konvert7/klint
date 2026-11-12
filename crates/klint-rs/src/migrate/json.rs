@@ -12,11 +12,11 @@ enum Printed<'v, 'a> {
 
 const NOT_AN_OBJECT: &str = "the config is not a JSON object";
 
-fn line_at(text: &str, offset: usize) -> usize {
+pub(super) fn line_at(text: &str, offset: usize) -> usize {
     1 + text[..offset].matches('\n').count()
 }
 
-fn quoted(text: &str) -> String {
+pub(super) fn quoted(text: &str) -> String {
     serde_json::to_string(text).expect("a string serializes")
 }
 

@@ -4,7 +4,7 @@ use serde_json::{Map, Value, json};
 
 use crate::config::{RawConfig, RuleConfig};
 use crate::plugins::SONAR_PREFIX;
-use crate::rules::RULE_DOCS;
+use crate::rules::{RULE_DOCS, v1_options_schema};
 use crate::version::schema_url_for_version;
 
 const DRAFT_07: &str = "http://json-schema.org/draft-07/schema#";
@@ -27,12 +27,20 @@ pub fn config_schema(version: &str) -> Value {
     schema
 }
 
-pub(crate) fn rule_entries(generator: &mut SchemaGenerator) -> Vec<(&'static str, Value)> {
+pub(crate) fn rule_entries(
+    generator: &mut SchemaGenerator,
+    v1: bool,
+) -> Vec<(&'static str, Value)> {
     let rule_value = generator.subschema_for::<RuleConfig>().to_value();
     RULE_DOCS
         .iter()
         .map(|doc| {
-            let mut entry = doc.options_schema.map_or_else(
+            let options_schema = if v1 {
+                v1_options_schema(doc.name).or(doc.options_schema)
+            } else {
+                doc.options_schema
+            };
+            let mut entry = options_schema.map_or_else(
                 || rule_value.clone(),
                 |schema_for| schema_for(generator).to_value(),
             );
@@ -62,10 +70,11 @@ fn core_name(name: &str) -> Option<&str> {
 
 pub(crate) fn rules_schema(generator: &mut SchemaGenerator) -> Schema {
     let rule_value = generator.subschema_for::<RuleConfig>().to_value();
-    let entries = rule_entries(generator);
+    let entries = rule_entries(generator, false);
     let core = rules_map(&entries, core_name);
     let sonar = rules_map(&entries, |name| name.strip_prefix(SONAR_PREFIX));
-    let v1: Map<String, Value> = entries
+    let v1_entries = rule_entries(generator, true);
+    let v1: Map<String, Value> = v1_entries
         .iter()
         .map(|(name, entry)| (name.to_string(), entry.clone()))
         .collect();

@@ -24,6 +24,7 @@ pub(super) fn run_no_string_match(scan: RuleScan<'_>) -> Vec<Report> {
                     record.end_byte,
                     &replacement,
                 ),
+                level: None,
             }
         })
         .collect()
@@ -50,6 +51,7 @@ pub(super) fn run_no_nested_template_literals(scan: RuleScan<'_>) -> Vec<Report>
                 "Nested template literal — extract the inner template to a variable to improve readability."
                     .to_string(),
             fix: None,
+            level: None,
         })
         .collect()
 }
@@ -70,6 +72,7 @@ pub(super) fn run_no_consecutive_array_push(scan: RuleScan<'_>) -> Vec<Report> {
                 record.count, record.receiver
             ),
             fix: None,
+            level: None,
         })
         .collect()
 }
@@ -85,6 +88,7 @@ pub(super) fn run_no_unguarded_json_parse(scan: RuleScan<'_>) -> Vec<Report> {
                 "JSON.parse() called without a surrounding try/catch — a malformed payload will throw an unhandled exception."
                     .to_string(),
             fix: None,
+            level: None,
         })
         .collect()
 }
@@ -101,6 +105,7 @@ pub(super) fn run_no_sync_in_async(scan: RuleScan<'_>) -> Vec<Report> {
                 "{name}() blocks the event loop inside an async function — use the async equivalent from node:fs/promises."
             ),
             fix: None,
+            level: None,
         })
         .collect()
 }
@@ -117,6 +122,7 @@ pub(super) fn run_no_async_predicate(scan: RuleScan<'_>) -> Vec<Report> {
                 record.method
             ),
             fix: None,
+            level: None,
         })
         .collect()
 }

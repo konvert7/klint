@@ -229,7 +229,7 @@ fn find_key(value: &Value, key: &str) -> Value {
 }
 
 #[test]
-fn committed_schema_describes_the_rule_with_severity_include_and_max() {
+fn committed_schema_describes_the_rule_with_include_warn_and_error_thresholds() {
     let schema: Value = serde_json::from_str(&committed("klint.schema.json")).expect("schema json");
     let rule = find_key(&schema, RULE);
     assert!(rule["description"].as_str().is_some_and(|d| !d.is_empty()));
@@ -242,10 +242,12 @@ fn committed_schema_describes_the_rule_with_severity_include_and_max() {
         .expect("options object");
     assert_eq!(options["additionalProperties"], false);
     let props = &options["properties"];
-    assert!(props.get("severity").is_some() && props.get("include").is_some());
-    assert_eq!(props["max"]["type"], "integer");
-    assert_eq!(props["max"]["minimum"], 1);
-    assert_eq!(props["max"]["default"], 15);
+    assert!(props.get("include").is_some());
+    assert_eq!(props["warn"]["type"], "integer");
+    assert_eq!(props["warn"]["minimum"], 1);
+    assert_eq!(props["error"]["type"], "integer");
+    assert_eq!(props["error"]["minimum"], 1);
+    assert!(props.get("max").is_none() && props.get("severity").is_none());
     let yaml = committed("klint.schema.yaml");
     assert!(yaml.contains(RULE) && yaml.contains("max"));
 }

@@ -91,7 +91,11 @@ fn generated_keys_equal_the_manifest_current_list() {
         "arch",
         "rules.recommended",
         "rules.core.no-string-match",
-        "rules.core.cognitive-complexity.max",
+        "rules.core.cognitive-complexity.warn",
+        "rules.core.cognitive-complexity.error",
+        "rules.core.function-length.warn",
+        "rules.core.function-length.error",
+        "rules.core.blank-line-after-block.severity",
         "rules.sonar.prefer-at",
     ] {
         assert!(current.contains(key), "current lacks {key}");
@@ -100,6 +104,10 @@ fn generated_keys_equal_the_manifest_current_list() {
     let retired = read_set(&manifest, "retired");
 
     for key in [
+        "rules.core.cognitive-complexity.max",
+        "rules.core.cognitive-complexity.severity",
+        "rules.core.function-length.max",
+        "rules.core.function-length.severity",
         "plugins",
         "rules.sonar/prefer-at",
         "rules.no-string-match",

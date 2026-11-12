@@ -117,7 +117,7 @@ pub(crate) fn lint_loaded(config_dir: &Path, loaded: LoadedConfig) -> Result<Lin
     let config_warnings = config_advisories(&resolved, &config_path);
     let rules: BTreeMap<String, RuleConfig> = std::mem::take(&mut resolved.rules)
         .into_iter()
-        .filter(|(_, config)| has_valid_severity(config))
+        .filter(|(name, config)| has_valid_severity(name, config))
         .collect();
 
     let rule_passes = plan_rule_passes(&rules, &files, &root);
