@@ -9,6 +9,6 @@
     { "name": "knip", "run": "bun run knip" },
     { "name": "jscpd", "run": "bun run jscpd" },
     { "name": "clippy", "run": "cargo clippy -p klint-rs --all-targets -- -D warnings" },
-    { "name": "tests", "run": "cargo test -p klint-rs && bun run test" }
+    { "name": "tests", "run": "cargo test -p klint-rs --no-fail-fast && bun run test" }
   ]
 }
