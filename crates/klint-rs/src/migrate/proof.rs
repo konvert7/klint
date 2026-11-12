@@ -38,11 +38,27 @@ fn serialized(findings: &[Violation]) -> Vec<String> {
         .collect()
 }
 
+#[cfg(debug_assertions)]
+fn forced_mismatch() -> bool {
+    std::env::var("KLINT_MIGRATE_FORCE_MISMATCH").as_deref() == Ok("1")
+}
+
+#[cfg(not(debug_assertions))]
+fn forced_mismatch() -> bool {
+    false
+}
+
 pub(super) fn prove_same_findings(
     config_dir: &Path,
     old: LoadedConfig,
     new_text: &str,
 ) -> Result<(), String> {
+    if forced_mismatch() {
+        return Err(
+            "findings would change — first difference: forced by KLINT_MIGRATE_FORCE_MISMATCH"
+                .into(),
+        );
+    }
     let new = LoadedConfig {
         path: old.path.clone(),
         raw: read_candidate(&old.path, new_text)?,
