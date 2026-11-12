@@ -876,6 +876,96 @@ properties:
               examples:
               - 'no-unguarded-json-parse: error'
           type: object
+        experimental:
+          additionalProperties:
+            anyOf:
+            - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              enum:
+              - error
+              - warn
+              - off
+              type: string
+            - additionalProperties: false
+              description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+              properties:
+                include:
+                  description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                  items:
+                    type: string
+                  type: array
+                severity:
+                  description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                  enum:
+                  - error
+                  - warn
+                  - off
+                  - null
+                  type: string
+              type: object
+          description: 'Opt-in experimental rules: each runs only when listed here with error, warn or {severity, include}. recommended: true never enables them. Rule ids have no prefix, so they stay the same when a rule is promoted to core.'
+          properties:
+            no-date-equality:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: 'Experimental, opt-in: list it under rules.experimental. Flags ==, ===, != and !== between two values the same file proves are Date objects (a new Date(...) or a const initialised with one) — these compare identity, not time. Stays silent unless the file proves both sides are Dates; no autofix.'
+              examples:
+              - 'no-date-equality: error'
+              - |-
+                no-date-equality:
+                  severity: warn
+                  include: ["src/**"]
+            no-floating-promise:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: 'Experimental, opt-in: list it under rules.experimental. Flags an expression statement that drops a promise the same file proves it created: a call to a same-file async function, new Promise(...), or Promise.resolve/reject/all/allSettled/race/any(...), optionally followed by .then(onFulfilled) or .finally(...) with no .catch. Stays silent unless the file proves it; no autofix.'
+              examples:
+              - 'no-floating-promise: error'
+              - 'no-floating-promise: warn'
+          type: object
         recommended:
           default: false
           description: 'true enables the six sonar rules at error, as plugins: [sonar] did.'
@@ -1632,5 +1722,5 @@ properties:
           - 'sonar/prefer-string-replaceall: error'
       type: object
     default: null
-    description: 'Rules, in groups: recommended (true enables the six sonar rules at error), core (built-in rules) and sonar (sonar rules, without the sonar/ prefix). Example: { "recommended": true, "core": { "no-string-match": "error" }, "sonar": { "prefer-at": "warn" } }. The v1 flat map (rule name → severity or options, sonar/ prefixed) is still read; run `klint migrate` to upgrade it.'
+    description: 'Rules, in groups: recommended (true enables the six sonar rules at error), core (built-in rules), sonar (sonar rules, without the sonar/ prefix) and experimental (opt-in rules under trial; never enabled by recommended; ids have no prefix). Example: { "recommended": true, "core": { "no-string-match": "error" }, "sonar": { "prefer-at": "warn" } }. The v1 flat map (rule name → severity or options, sonar/ prefixed) is still read; run `klint migrate` to upgrade it.'
 type: object
