@@ -1,6 +1,6 @@
 {
   "name": "@konvert7/klint",
-  "version": "1.5.3",
+  "version": "1.6.0",
   "description": "Architecture-as-Code linter for TypeScript. Enforce layer boundaries, import rules, and singleton patterns in YAML.",
   "type": "module",
   "bin": {

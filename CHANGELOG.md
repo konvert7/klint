@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/konvert7/klint/compare/v1.5.3...v1.6.0) (2026-11-12)
+
+
+### Features
+
+* **config:** add rules.experimental group with no-date-equality and no-floating-promise ([fe3048c](https://github.com/konvert7/klint/commit/fe3048c24fe6ab063e55b503e5b2ef7e64d5b22e))
+
 ## [1.5.3](https://github.com/konvert7/klint/compare/v1.5.2...v1.5.3) (2026-11-12)
 
 
