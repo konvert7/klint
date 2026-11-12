@@ -20,8 +20,20 @@ pub(super) trait ComplexityGrammar: Sync {
     fn construct(&self, node: Node<'_>, parent: Option<Node<'_>>) -> Construct;
     fn is_boolean_expression(&self, node: Node<'_>) -> bool;
     fn boolean_operator(&self, token_kind: &str) -> Option<BooleanOperator>;
-    fn boolean_run_points(&self, _node: Node<'_>, _parent: Option<Node<'_>>) -> Option<u32> {
-        None
+    fn is_parenthesized(&self, node: Node<'_>) -> bool {
+        node.kind() == "parenthesized_expression"
+    }
+    fn skips_sequence(
+        &self,
+        _root: Node<'_>,
+        _enclosing: Option<Node<'_>>,
+        _operators: &[BooleanOperator],
+    ) -> bool {
+        false
+    }
+    fn is_head(&self, node: Node<'_>, parent: Node<'_>) -> bool;
+    fn is_conditional_branch(&self, _node: Node<'_>, _parent: Node<'_>) -> bool {
+        false
     }
     fn declared_name(&self, function: Node<'_>, source: &[u8]) -> Option<String>;
     fn assigned_name(&self, function: Node<'_>, source: &[u8]) -> Option<String>;
@@ -83,6 +95,17 @@ pub(super) fn is_field_of(parent: Node<'_>, field: &str, node: Node<'_>) -> bool
     parent
         .child_by_field_name(field)
         .is_some_and(|child| child.id() == node.id())
+}
+
+pub(super) fn is_in_field(parent: Node<'_>, field: &str, node: Node<'_>) -> bool {
+    let mut cursor = parent.walk();
+    parent
+        .children_by_field_name(field, &mut cursor)
+        .any(|child| child.id() == node.id())
+}
+
+pub(super) fn is_in_any_field(parent: Node<'_>, fields: &[&str], node: Node<'_>) -> bool {
+    fields.iter().any(|field| is_in_field(parent, field, node))
 }
 
 pub(super) fn operator_kind_is(node: Node<'_>, kinds: &[&str]) -> bool {

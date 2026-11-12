@@ -1,5 +1,6 @@
 use super::grammar::{
-    BooleanOperator, ComplexityGrammar, Construct, field_text, first_descendant_of_kind, text_of,
+    BooleanOperator, ComplexityGrammar, Construct, field_text, first_descendant_of_kind,
+    is_in_any_field, text_of,
 };
 use tree_sitter::Node;
 
@@ -64,16 +65,17 @@ impl ComplexityGrammar for Swift {
         }
     }
 
-    fn boolean_run_points(&self, node: Node<'_>, parent: Option<Node<'_>>) -> Option<u32> {
-        if !is_and_or_chain_link(node) {
-            return None;
-        }
-        if parent.is_some_and(is_and_or_chain_link) {
-            return Some(0);
-        }
-        let mut operators = Vec::new();
-        collect_chain_operators(node, &mut operators);
-        Some(runs_by_precedence(&operators))
+    fn is_parenthesized(&self, node: Node<'_>) -> bool {
+        node.kind() == "tuple_expression" && node.named_child_count() == 1
+    }
+
+    fn is_head(&self, node: Node<'_>, parent: Node<'_>) -> bool {
+        is_in_any_field(parent, head_fields(parent.kind()), node)
+    }
+
+    fn is_conditional_branch(&self, node: Node<'_>, parent: Node<'_>) -> bool {
+        parent.kind() == "ternary_expression"
+            && is_in_any_field(parent, &["if_true", "if_false"], node)
     }
 
     fn declared_name(&self, function: Node<'_>, source: &[u8]) -> Option<String> {
@@ -95,35 +97,18 @@ impl ComplexityGrammar for Swift {
     }
 }
 
-fn is_and_or_chain_link(node: Node<'_>) -> bool {
-    matches!(
-        node.kind(),
-        "conjunction_expression" | "disjunction_expression"
-    )
-}
-
-fn collect_chain_operators(node: Node<'_>, operators: &mut Vec<BooleanOperator>) {
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if is_and_or_chain_link(child) {
-            collect_chain_operators(child, operators);
-        } else if let Some(operator) = Swift.boolean_operator(child.kind()) {
-            operators.push(operator);
-        }
+fn head_fields(kind: &str) -> &'static [&'static str] {
+    match kind {
+        "if_statement"
+        | "ternary_expression"
+        | "while_statement"
+        | "repeat_while_statement"
+        | "guard_statement" => &["condition"],
+        "switch_statement" => &["expr"],
+        "for_statement" => &["item", "collection"],
+        "catch_block" => &["error"],
+        _ => &[],
     }
-}
-
-fn runs_by_precedence(operators: &[BooleanOperator]) -> u32 {
-    let and_groups = operators
-        .iter()
-        .enumerate()
-        .filter(|&(index, &operator)| {
-            operator == BooleanOperator::And
-                && (index == 0 || operators[index - 1] != BooleanOperator::And)
-        })
-        .count();
-    let has_or = operators.contains(&BooleanOperator::Or);
-    u32::try_from(and_groups).unwrap_or(u32::MAX) + u32::from(has_or)
 }
 
 fn is_if_else(node: Node<'_>, parent: Option<Node<'_>>) -> bool {
@@ -210,16 +195,6 @@ mod tests {
     }
 
     #[test]
-    fn mixed_chain_is_scored_with_real_precedence() {
-        let tree = parse("a.swift", "let v = a && b || c && d || e\n");
-        let mut top = all_of_kind(tree.root_node(), "conjunction_expression")[0];
-        while let Some(parent) = top.parent().filter(|p| is_and_or_chain_link(*p)) {
-            top = parent;
-        }
-        assert_eq!(Swift.boolean_run_points(top, top.parent()), Some(3));
-    }
-
-    #[test]
     fn property_takes_the_name_of_a_closure_it_is_assigned() {
         let source = "let g = { x in x }\nxs.forEach { x in x }\n";
         let tree = parse("a.swift", source);
@@ -229,5 +204,102 @@ mod tests {
             Some("g".to_string())
         );
         assert_eq!(Swift.assigned_name(closures[1], source.as_bytes()), None);
+    }
+
+    fn fields_of<'a>(parent: Node<'a>, field: &str) -> Vec<Node<'a>> {
+        let mut cursor = parent.walk();
+        parent.children_by_field_name(field, &mut cursor).collect()
+    }
+
+    fn assert_heads_are_the_listed_fields(source: &str, parent_kind: &str, heads: &[&str]) {
+        let tree = parse("a.swift", source);
+        let parent = all_of_kind(tree.root_node(), parent_kind)[0];
+        let head_ids: Vec<usize> = heads
+            .iter()
+            .flat_map(|field| {
+                let nodes = fields_of(parent, field);
+                assert!(!nodes.is_empty(), "{source}: no `{field}` child");
+                nodes
+            })
+            .map(|node| node.id())
+            .collect();
+        for index in 0..parent.named_child_count() {
+            let child = parent.named_child(index).expect("named child");
+            assert_eq!(
+                Swift.is_head(child, parent),
+                head_ids.contains(&child.id()),
+                "{source}: `{}` child of {parent_kind}",
+                child.kind()
+            );
+        }
+    }
+
+    #[test]
+    fn parenthesized_disjunction_is_parenthesized() {
+        let tree = parse("a.swift", "let v = (b || c)\n");
+        let tuple = all_of_kind(tree.root_node(), "tuple_expression")[0];
+        assert!(Swift.is_parenthesized(tuple));
+    }
+
+    #[test]
+    fn tuple_and_labeled_single_element_are_not_parenthesized() {
+        let tree = parse("a.swift", "let w = (a, b)\nlet u = (x: a)\n");
+        let tuples = all_of_kind(tree.root_node(), "tuple_expression");
+        assert!(!Swift.is_parenthesized(tuples[0]));
+        assert!(!Swift.is_parenthesized(tuples[1]));
+    }
+
+    #[test]
+    fn listed_fields_of_each_construct_are_heads_and_its_body_is_not() {
+        assert_heads_are_the_listed_fields(
+            "func f(a: Bool) { if a { g() } }",
+            "if_statement",
+            &["condition"],
+        );
+        assert_heads_are_the_listed_fields(
+            "let t = a ? 1 : 2\n",
+            "ternary_expression",
+            &["condition"],
+        );
+        assert_heads_are_the_listed_fields(
+            "func f(v: Int) { switch v { default: break } }",
+            "switch_statement",
+            &["expr"],
+        );
+        assert_heads_are_the_listed_fields(
+            "func f(xs: [Int]) { for x in xs { g() } }",
+            "for_statement",
+            &["item", "collection"],
+        );
+        assert_heads_are_the_listed_fields(
+            "func f(a: Bool) { while a { g() } }",
+            "while_statement",
+            &["condition"],
+        );
+        assert_heads_are_the_listed_fields(
+            "func f(a: Bool) { repeat { g() } while a }",
+            "repeat_while_statement",
+            &["condition"],
+        );
+        assert_heads_are_the_listed_fields(
+            "func f(a: Bool) { guard a else { return } }",
+            "guard_statement",
+            &["condition"],
+        );
+        assert_heads_are_the_listed_fields(
+            "func f() { do { try g() } catch let error { g() } }",
+            "catch_block",
+            &["error"],
+        );
+    }
+
+    #[test]
+    fn ternary_branches_are_conditional_branches_and_its_test_is_not() {
+        let tree = parse("a.swift", "let g = a ? 1 : 2\n");
+        let ternary = all_of_kind(tree.root_node(), "ternary_expression")[0];
+        let branch = |field: &str| ternary.child_by_field_name(field).expect("field");
+        assert!(Swift.is_conditional_branch(branch("if_true"), ternary));
+        assert!(Swift.is_conditional_branch(branch("if_false"), ternary));
+        assert!(!Swift.is_conditional_branch(branch("condition"), ternary));
     }
 }

@@ -14,6 +14,7 @@ use tree_sitter::Node;
 pub(crate) struct FunctionScore<'a> {
     pub node: Node<'a>,
     pub score: u32,
+    leaked_nesting: u32,
 }
 
 pub(crate) type ScoringContext<'a> = walker::Context<'a>;
