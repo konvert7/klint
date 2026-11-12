@@ -1,15 +1,15 @@
 # yaml-language-server: $schema=./klint.schema.json
 
-plugins:
-  - sonar
 include: ["**/*.ts", "crates/**/*.rs", "!tests/**", "!node_modules/**", "!target/**"]
 rules:
-  no-unguarded-json-parse: error
-  no-async-predicate: error
-  no-nested-template-literals: error
-  no-string-match: error
-  no-consecutive-array-push: error
-  no-sync-in-async: error
+  recommended: true
+  core:
+    no-unguarded-json-parse: error
+    no-async-predicate: error
+    no-nested-template-literals: error
+    no-string-match: error
+    no-consecutive-array-push: error
+    no-sync-in-async: error
 
 arch:
   layers:

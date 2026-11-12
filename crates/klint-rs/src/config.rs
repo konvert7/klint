@@ -27,15 +27,15 @@ pub(crate) struct RawConfig {
     pub(crate) include: Option<Vec<String>>,
     #[schemars(
         with = "Option<Vec<PluginName>>",
-        description = "Named rule bundles to enable. Each plugin applies a default set of rules at \"error\" severity. Individual rules from the bundle can be overridden or silenced via the rules map. Available: \"sonar\"."
+        description = "Deprecated (v1): named rule bundles. plugins: [sonar] is replaced by rules.recommended: true — run `klint migrate` to upgrade the config in place. Available: \"sonar\"."
     )]
     pub(crate) plugins: Option<Vec<String>>,
     #[serde(default)]
     #[schemars(
         schema_with = "crate::schema::rules_schema",
-        description = "Map of rule name → severity or options. Example: { \"no-floating-promise\": \"error\", \"no-sync-in-async\": { \"severity\": \"warn\", \"include\": [\"src/hooks/**\"] } }."
+        description = "Rules, in groups: recommended (true enables the six sonar rules at error), core (built-in rules) and sonar (sonar rules, without the sonar/ prefix). Example: { \"recommended\": true, \"core\": { \"no-string-match\": \"error\" }, \"sonar\": { \"prefer-at\": \"warn\" } }. The v1 flat map (rule name → severity or options, sonar/ prefixed) is still read; run `klint migrate` to upgrade it."
     )]
-    pub(crate) rules: Option<BTreeMap<String, RuleConfig>>,
+    pub(crate) rules: Option<BTreeMap<String, serde_json::Value>>,
     pub(crate) arch: Option<ArchConfig>,
 }
 
@@ -149,20 +149,41 @@ pub(crate) fn find_config(config_dir: &Path) -> Result<PathBuf, String> {
     ))
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ConfigFormat {
+    Yaml,
+    Json,
+}
+
+impl ConfigFormat {
+    pub(crate) fn of(path: &Path) -> ConfigFormat {
+        if path.file_name().and_then(|name| name.to_str()) == Some("klint.yaml") {
+            ConfigFormat::Yaml
+        } else {
+            ConfigFormat::Json
+        }
+    }
+}
+
 fn without_byte_order_mark(text: &str) -> &str {
     text.strip_prefix('\u{feff}').unwrap_or(text)
+}
+
+pub(crate) fn parse_config_text(text: &str, format: ConfigFormat) -> Result<RawConfig, String> {
+    let text = without_byte_order_mark(text);
+    let raw: RawConfig = match format {
+        ConfigFormat::Yaml => serde_yaml::from_str(text).map_err(|err| err.to_string())?,
+        ConfigFormat::Json => serde_json::from_str(text).map_err(|err| err.to_string())?,
+    };
+    crate::config_shape::check_rule_values(&raw)?;
+    Ok(raw)
 }
 
 pub(crate) fn read_config(path: &Path) -> Result<RawConfig, String> {
     let text = fs::read_to_string(path)
         .map_err(|err| format!("klint: failed to read {}: {err}", path.display()))?;
-    let text = without_byte_order_mark(&text);
-
-    if path.file_name().and_then(|name| name.to_str()) == Some("klint.yaml") {
-        serde_yaml::from_str(text).map_err(|_| format!("klint: failed to parse {}", path.display()))
-    } else {
-        serde_json::from_str(text).map_err(|_| format!("klint: failed to parse {}", path.display()))
-    }
+    parse_config_text(&text, ConfigFormat::of(path))
+        .map_err(|_| format!("klint: failed to parse {}", path.display()))
 }
 
 pub(crate) fn resolve_root(config_dir: &Path, root: Option<&str>) -> PathBuf {

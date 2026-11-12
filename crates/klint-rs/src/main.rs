@@ -4,8 +4,9 @@ mod text;
 
 use command::{Dispatch, Group, Leaf, OptionSpec, Values, dispatch};
 use klint_rs::{
-    InstallRequest, MAX_FIX_PASSES, RunOptions, RunSource, fix, install_skill, known_agent_names,
-    known_agents, record_run, run, stats_report,
+    InstallRequest, MAX_FIX_PASSES, MigrateOptions, MigrateOutcome, RunOptions, RunSource,
+    Violation, fix, install_skill, known_agent_names, known_agents, migrate, record_run, run,
+    stats_report,
 };
 use std::path::PathBuf;
 use std::time::Instant;
@@ -18,6 +19,10 @@ fn main() {
             command: Some("stats"),
             values,
         } => stats_command(&values),
+        Dispatch::Run {
+            command: Some("migrate"),
+            values,
+        } => migrate_command(&values),
         Dispatch::Run {
             command: Some(_),
             values,
@@ -86,6 +91,26 @@ fn klint_command() -> Group {
                     ],
                 },
             ),
+            (
+                "migrate",
+                Leaf {
+                    summary: "Upgrade a v1 klint.yaml or klint.config.json to the v2 rule groups in place",
+                    options: vec![
+                        OptionSpec::valued(
+                            "config",
+                            "<dir>",
+                            "Directory containing klint.yaml or klint.config.json (default: cwd)",
+                        ),
+                        OptionSpec::flag(
+                            "check",
+                            "Exit 1 when the config is v1, 0 when it is v2; never writes",
+                        ),
+                    ],
+                    details: vec![
+                        "Comments, blank lines and key order are kept. The config is written only when the findings stay identical.".to_string(),
+                    ],
+                },
+            ),
         ],
         details: Vec::new(),
     }
@@ -145,11 +170,81 @@ fn lint_command(values: &Values) -> i32 {
     }
 }
 
+fn migrate_command(values: &Values) -> i32 {
+    let config_dir = match config_dir(values) {
+        Ok(dir) => dir,
+        Err(err) => {
+            eprintln!("{err}");
+            return 1;
+        }
+    };
+    let options = MigrateOptions {
+        config_dir,
+        check_only: values.flag("check"),
+    };
+    match migrate(&options) {
+        Ok(MigrateOutcome::AlreadyV2 { file }) => {
+            println!("klint: {file} is already v2 — nothing to migrate.");
+            0
+        }
+        Ok(MigrateOutcome::Migrated { file }) => {
+            println!("klint: migrated {file} to v2.");
+            0
+        }
+        Ok(MigrateOutcome::NeedsMigration { file }) => {
+            println!("klint: {file} uses the v1 format — run `klint migrate`.");
+            1
+        }
+        Ok(MigrateOutcome::Refused { file, reason, .. }) => {
+            eprintln!("{}", MigrateOutcome::refusal_message(&file, &reason));
+            1
+        }
+        Err(err) => {
+            eprintln!("{err}");
+            1
+        }
+    }
+}
+
+fn refusal_warning(file: String, line: usize, reason: &str) -> Violation {
+    Violation {
+        file,
+        line,
+        rule: "klint/config".to_string(),
+        message: format!("Cannot migrate this config to v2: {reason}"),
+        severity: "warn".to_string(),
+        fix: None,
+    }
+}
+
+fn migrate_before_fixing(config_dir: &std::path::Path) -> Option<Violation> {
+    let outcome = migrate(&MigrateOptions {
+        config_dir: config_dir.to_path_buf(),
+        check_only: false,
+    });
+    match outcome {
+        Ok(MigrateOutcome::Migrated { file }) => {
+            eprintln!("klint: migrated {file} to v2.");
+            None
+        }
+        Ok(MigrateOutcome::Refused { file, line, reason }) => {
+            Some(refusal_warning(file, line, &reason))
+        }
+        _ => None,
+    }
+}
+
 fn fix_command(config_dir: PathBuf, source: RunSource, started_at: Instant) -> i32 {
+    let refusal = migrate_before_fixing(&config_dir);
     match fix(RunOptions {
         config_dir: config_dir.clone(),
     }) {
-        Ok(outcome) => {
+        Ok(mut outcome) => {
+            if let Some(warning) = refusal {
+                eprint!("{}", text::warnings_section(std::slice::from_ref(&warning)));
+                outcome.remaining.violations.push(warning);
+                outcome.remaining.summary.warnings += 1;
+            }
             record_run(&config_dir, &outcome.remaining.violations, source);
             if outcome.stopped_at_pass_limit {
                 eprintln!(

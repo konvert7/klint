@@ -3,6 +3,8 @@ use std::fs;
 use std::path::Path;
 
 use crate::config::RuleConfig;
+use crate::config_shape::ResolvedRules;
+use crate::migrate::v2_location;
 use crate::output::Violation;
 use crate::rules::is_supported_rule;
 
@@ -17,8 +19,13 @@ const TYPE_CHECKER_RULES: &[(&str, Option<&str>)] = &[
     ("no-optional-chain-on-non-nullable", None),
 ];
 
+pub(crate) fn is_type_checker_rule(name: &str) -> bool {
+    TYPE_CHECKER_RULES.iter().any(|(rule, _)| *rule == name)
+}
+
 pub(crate) fn unsupported_rule_advisories(
     rules: &BTreeMap<String, RuleConfig>,
+    resolved: &ResolvedRules,
     config_path: &Path,
     config_dir: &Path,
 ) -> Vec<Violation> {
@@ -34,11 +41,23 @@ pub(crate) fn unsupported_rule_advisories(
         .map(|(name, _)| {
             advisory(
                 config_file,
-                line_naming(&config_text, name),
+                line_naming(&config_text, resolved.written_key(name)),
                 unsupported_message(name),
             )
         })
         .collect();
+
+    for written in &resolved.misplaced {
+        let (group, short) = v2_location(written);
+        advisories.push(advisory(
+            config_file,
+            line_naming(&config_text, written),
+            format!(
+                "\"{written}\" is now rules.{}.{short} — run `klint migrate`.",
+                group.key()
+            ),
+        ));
+    }
 
     if config_dir.join(CUSTOM_RULES_FILE).exists() {
         advisories.push(advisory(

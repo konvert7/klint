@@ -412,7 +412,7 @@ properties:
       type: string
     type: array
   plugins:
-    description: 'Named rule bundles to enable. Each plugin applies a default set of rules at "error" severity. Individual rules from the bundle can be overridden or silenced via the rules map. Available: "sonar".'
+    description: 'Deprecated (v1): named rule bundles. plugins: [sonar] is replaced by rules.recommended: true — run `klint migrate` to upgrade the config in place. Available: "sonar".'
     items:
       enum:
       - sonar
@@ -422,558 +422,1153 @@ properties:
     description: Root directory used to resolve include paths and report relative file names. Defaults to the directory containing klint.config.json.
     type: string
   rules:
-    additionalProperties:
-      anyOf:
-      - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-        enum:
-        - error
-        - warn
-        - off
-        type: string
-      - additionalProperties: false
-        description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-        properties:
-          include:
-            description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-            items:
+    anyOf:
+    - additionalProperties: false
+      description: 'v2 format: rule groups.'
+      properties:
+        core:
+          additionalProperties:
+            anyOf:
+            - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              enum:
+              - error
+              - warn
+              - off
               type: string
-            type: array
-          severity:
-            description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            - additionalProperties: false
+              description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+              properties:
+                include:
+                  description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                  items:
+                    type: string
+                  type: array
+                severity:
+                  description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                  enum:
+                  - error
+                  - warn
+                  - off
+                  - null
+                  type: string
+              type: object
+          description: Built-in rules by name.
+          properties:
+            blank-line-after-block:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                  statements:
+                    description: 'Block statement kinds this rule targets. Defaults to every kind: if, for, while, switch, try, guard, loop, with. match is an alias of switch. return is not a block statement. An empty list turns the rule off.'
+                    items:
+                      description: A block statement kind the rule targets. match is an alias of switch.
+                      enum:
+                      - if
+                      - for
+                      - while
+                      - switch
+                      - match
+                      - try
+                      - guard
+                      - loop
+                      - with
+                      type: string
+                    type: array
+                type: object
+              description: Requires a blank line below a block statement (if, for, while, switch/match, try, guard, loop, with) when another statement follows it in the same block, like C# IDE2003. Works on TypeScript/JavaScript, Python, Swift, Rust and C#; `klint --fix` inserts the line.
+              examples:
+              - 'blank-line-after-block: warn'
+              - |-
+                blank-line-after-block:
+                  severity: warn
+                  include: ["src/**"]
+                  statements: [if, for, while, switch, try, guard, loop, with]
+            blank-line-before-control-flow:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  allowSetup:
+                    description: Skip an if, guard or switch statement whose condition uses a name assigned by the statement directly above it. Defaults to true.
+                    type: boolean
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                  statements:
+                    description: 'Statement kinds this rule targets. Defaults to every kind: if, for, while, switch, try, return, guard, loop, with. match is an alias of switch. An empty list turns the rule off.'
+                    items:
+                      description: A statement kind the rule targets. match is an alias of switch.
+                      enum:
+                      - if
+                      - for
+                      - while
+                      - switch
+                      - match
+                      - try
+                      - return
+                      - guard
+                      - loop
+                      - with
+                      type: string
+                    type: array
+                type: object
+              description: Requires a blank line above a control-flow statement (if, for, while, switch/match, try, return, guard, loop, with) that follows another statement in the same block. Works on TypeScript/JavaScript, Python, Swift, Rust and C#; `klint --fix` inserts the line.
+              examples:
+              - 'blank-line-before-control-flow: error'
+              - |-
+                blank-line-before-control-flow:
+                  severity: error
+                  include: ["src/**", "!src/generated/**"]
+                  statements: [if, for, while, switch, try, return, guard, loop, with]
+                  allowSetup: true
+            cognitive-complexity:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  max:
+                    default: 15
+                    description: Highest cognitive complexity a function may have; a function scoring above it is reported. An integer of at least 1. Defaults to 15.
+                    format: uint32
+                    minimum: 1
+                    type: integer
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: Reports every function whose cognitive complexity is above `max` (default 15), scored like Biome 2.6.5's `noExcessiveCognitiveComplexity` (the SonarSource Cognitive Complexity model). Works on TypeScript/JavaScript, Python, Swift, Rust and C#. Opt-in; no autofix.
+              examples:
+              - 'cognitive-complexity: error'
+              - |-
+                cognitive-complexity:
+                  severity: warn
+                  include: ["src/**", "!src/generated/**"]
+                  max: 14
+            function-length:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  max:
+                    default: 50
+                    description: Highest number of lines a function body may have; a function counting more is reported. An integer of at least 1. Defaults to 50.
+                    format: uint32
+                    minimum: 1
+                    type: integer
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                  skipBlankLines:
+                    default: false
+                    description: Leave blank lines out of the count. Defaults to false.
+                    type: boolean
+                type: object
+              description: 'Reports every function whose body has more than `max` lines (default 50), counted like Biome 2.6.5''s `noExcessiveLinesPerFunction`: brace lines do not count, comment and blank lines do (blank lines not with `skipBlankLines`), and a nested function''s lines count toward its parent. Getters and setters are not checked. Works on TypeScript/JavaScript, Python, Swift, Rust and C#. Opt-in; no autofix.'
+              examples:
+              - 'function-length: error'
+              - |-
+                function-length:
+                  severity: warn
+                  include: ["src/**", "!src/generated/**"]
+                  max: 40
+                  skipBlankLines: true
+            no-async-predicate:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: Flags `async` functions passed to `.filter`/`.some`/`.every`/`.find`/`.findIndex`. Array methods coerce the returned promise to truthy, so every element appears to match.
+              examples:
+              - 'no-async-predicate: error'
+            no-consecutive-array-push:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: Flags consecutive `arr.push(x); arr.push(y);` calls — combine into `arr.push(x, y)` or `arr.push(...items)`.
+              examples:
+              - 'no-consecutive-array-push: warn'
+            no-nested-template-literals:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: Flags template literals nested inside template literals — almost always unreadable; extract to a variable.
+              examples:
+              - 'no-nested-template-literals: warn'
+            no-string-match:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: Flags `String#match` — prefer `.matchAll()` for iteration or `.test()` for boolean checks. `.match()` returns different shapes depending on the `/g` flag.
+              examples:
+              - 'no-string-match: error'
+            no-sync-in-async:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: Flags synchronous I/O (`readFileSync`, `execSync`, etc.) inside async functions — blocks the event loop when an async equivalent is available.
+              examples:
+              - 'no-sync-in-async: error'
+              - |-
+                no-sync-in-async:
+                  severity: warn
+                  include: ["src/server/**"]
+            no-unguarded-json-parse:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: Flags `JSON.parse()` calls that aren't wrapped in try/catch — malformed input crashes the process.
+              examples:
+              - 'no-unguarded-json-parse: error'
+          type: object
+        recommended:
+          default: false
+          description: 'true enables the six sonar rules at error, as plugins: [sonar] did.'
+          type: boolean
+        sonar:
+          additionalProperties:
+            anyOf:
+            - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              enum:
+              - error
+              - warn
+              - off
+              type: string
+            - additionalProperties: false
+              description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+              properties:
+                include:
+                  description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                  items:
+                    type: string
+                  type: array
+                severity:
+                  description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                  enum:
+                  - error
+                  - warn
+                  - off
+                  - null
+                  type: string
+              type: object
+          description: Sonar rules without the sonar/ prefix.
+          properties:
+            no-single-char-class:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: Flags single-character character classes in regex (e.g. `/[a]/`) — drop the brackets; the regex matches the same.
+              examples:
+              - 'sonar/no-single-char-class: warn'
+            prefer-at:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: Flags negative-index access via `arr[arr.length - 1]` — `.at(-1)` reads cleaner for last-element access.
+              examples:
+              - 'sonar/prefer-at: warn'
+            prefer-nullish-coalescing-assign:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: Flags explicit nullish assignment guards — `x ??= y` is the dedicated nullish assignment operator.
+              examples:
+              - 'sonar/prefer-nullish-coalescing-assign: warn'
+            prefer-string-raw:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: Flags string literals with multiple backslash escapes — `String.raw` is more readable (Windows paths, regex source, etc.).
+              examples:
+              - 'sonar/prefer-string-raw: warn'
+            prefer-string-raw-regexp:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: Flags regex literals built from escape-heavy string concatenation — `String.raw` drops the double backslashes.
+              examples:
+              - 'sonar/prefer-string-raw-regexp: warn'
+            prefer-string-replaceall:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: Flags `.replace(/x/g, y)` on strings — `.replaceAll('x', y)` is clearer and faster for all-occurrence replacements.
+              examples:
+              - 'sonar/prefer-string-replaceall: error'
+          type: object
+      type: object
+    - additionalProperties:
+        anyOf:
+        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+          enum:
+          - error
+          - warn
+          - off
+          type: string
+        - additionalProperties: false
+          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+          properties:
+            include:
+              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+              items:
+                type: string
+              type: array
+            severity:
+              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+              enum:
+              - error
+              - warn
+              - off
+              - null
+              type: string
+          type: object
+      description: 'v1 format (deprecated): flat map of rule name → severity or options, sonar rules prefixed with sonar/. Run `klint migrate` to upgrade it to rules.recommended / rules.core / rules.sonar.'
+      properties:
+        blank-line-after-block:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
             enum:
             - error
             - warn
             - off
-            - null
             type: string
-        type: object
-    description: 'Map of rule name → severity or options. Example: { "no-floating-promise": "error", "no-sync-in-async": { "severity": "warn", "include": ["src/hooks/**"] } }.'
-    properties:
-      blank-line-after-block:
-        anyOf:
-        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-          enum:
-          - error
-          - warn
-          - off
-          type: string
-        - additionalProperties: false
-          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-          properties:
-            include:
-              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-              items:
-                type: string
-              type: array
-            severity:
-              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-              enum:
-              - error
-              - warn
-              - off
-              - null
-              type: string
-            statements:
-              description: 'Block statement kinds this rule targets. Defaults to every kind: if, for, while, switch, try, guard, loop, with. match is an alias of switch. return is not a block statement. An empty list turns the rule off.'
-              items:
-                description: A block statement kind the rule targets. match is an alias of switch.
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
                 enum:
-                - if
-                - for
-                - while
-                - switch
-                - match
-                - try
-                - guard
-                - loop
-                - with
+                - error
+                - warn
+                - off
+                - null
                 type: string
-              type: array
-          type: object
-        description: Requires a blank line below a block statement (if, for, while, switch/match, try, guard, loop, with) when another statement follows it in the same block, like C# IDE2003. Works on TypeScript/JavaScript, Python, Swift, Rust and C#; `klint --fix` inserts the line.
-        examples:
-        - 'blank-line-after-block: warn'
-        - |-
-          blank-line-after-block:
-            severity: warn
-            include: ["src/**"]
-            statements: [if, for, while, switch, try, guard, loop, with]
-      blank-line-before-control-flow:
-        anyOf:
-        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-          enum:
-          - error
-          - warn
-          - off
-          type: string
-        - additionalProperties: false
-          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-          properties:
-            allowSetup:
-              description: Skip an if, guard or switch statement whose condition uses a name assigned by the statement directly above it. Defaults to true.
-              type: boolean
-            include:
-              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-              items:
-                type: string
-              type: array
-            severity:
-              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-              enum:
-              - error
-              - warn
-              - off
-              - null
-              type: string
-            statements:
-              description: 'Statement kinds this rule targets. Defaults to every kind: if, for, while, switch, try, return, guard, loop, with. match is an alias of switch. An empty list turns the rule off.'
-              items:
-                description: A statement kind the rule targets. match is an alias of switch.
+              statements:
+                description: 'Block statement kinds this rule targets. Defaults to every kind: if, for, while, switch, try, guard, loop, with. match is an alias of switch. return is not a block statement. An empty list turns the rule off.'
+                items:
+                  description: A block statement kind the rule targets. match is an alias of switch.
+                  enum:
+                  - if
+                  - for
+                  - while
+                  - switch
+                  - match
+                  - try
+                  - guard
+                  - loop
+                  - with
+                  type: string
+                type: array
+            type: object
+          description: Requires a blank line below a block statement (if, for, while, switch/match, try, guard, loop, with) when another statement follows it in the same block, like C# IDE2003. Works on TypeScript/JavaScript, Python, Swift, Rust and C#; `klint --fix` inserts the line.
+          examples:
+          - 'blank-line-after-block: warn'
+          - |-
+            blank-line-after-block:
+              severity: warn
+              include: ["src/**"]
+              statements: [if, for, while, switch, try, guard, loop, with]
+        blank-line-before-control-flow:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              allowSetup:
+                description: Skip an if, guard or switch statement whose condition uses a name assigned by the statement directly above it. Defaults to true.
+                type: boolean
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
                 enum:
-                - if
-                - for
-                - while
-                - switch
-                - match
-                - try
-                - return
-                - guard
-                - loop
-                - with
+                - error
+                - warn
+                - off
+                - null
                 type: string
-              type: array
-          type: object
-        description: Requires a blank line above a control-flow statement (if, for, while, switch/match, try, return, guard, loop, with) that follows another statement in the same block. Works on TypeScript/JavaScript, Python, Swift, Rust and C#; `klint --fix` inserts the line.
-        examples:
-        - 'blank-line-before-control-flow: error'
-        - |-
-          blank-line-before-control-flow:
-            severity: error
-            include: ["src/**", "!src/generated/**"]
-            statements: [if, for, while, switch, try, return, guard, loop, with]
-            allowSetup: true
-      cognitive-complexity:
-        anyOf:
-        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-          enum:
-          - error
-          - warn
-          - off
-          type: string
-        - additionalProperties: false
-          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-          properties:
-            include:
-              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-              items:
+              statements:
+                description: 'Statement kinds this rule targets. Defaults to every kind: if, for, while, switch, try, return, guard, loop, with. match is an alias of switch. An empty list turns the rule off.'
+                items:
+                  description: A statement kind the rule targets. match is an alias of switch.
+                  enum:
+                  - if
+                  - for
+                  - while
+                  - switch
+                  - match
+                  - try
+                  - return
+                  - guard
+                  - loop
+                  - with
+                  type: string
+                type: array
+            type: object
+          description: Requires a blank line above a control-flow statement (if, for, while, switch/match, try, return, guard, loop, with) that follows another statement in the same block. Works on TypeScript/JavaScript, Python, Swift, Rust and C#; `klint --fix` inserts the line.
+          examples:
+          - 'blank-line-before-control-flow: error'
+          - |-
+            blank-line-before-control-flow:
+              severity: error
+              include: ["src/**", "!src/generated/**"]
+              statements: [if, for, while, switch, try, return, guard, loop, with]
+              allowSetup: true
+        cognitive-complexity:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              max:
+                default: 15
+                description: Highest cognitive complexity a function may have; a function scoring above it is reported. An integer of at least 1. Defaults to 15.
+                format: uint32
+                minimum: 1
+                type: integer
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                - null
                 type: string
-              type: array
-            max:
-              default: 15
-              description: Highest cognitive complexity a function may have; a function scoring above it is reported. An integer of at least 1. Defaults to 15.
-              format: uint32
-              minimum: 1
-              type: integer
-            severity:
-              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-              enum:
-              - error
-              - warn
-              - off
-              - null
-              type: string
-          type: object
-        description: Reports every function whose cognitive complexity is above `max` (default 15), scored like Biome 2.6.5's `noExcessiveCognitiveComplexity` (the SonarSource Cognitive Complexity model). Works on TypeScript/JavaScript, Python, Swift, Rust and C#. Opt-in; no autofix.
-        examples:
-        - 'cognitive-complexity: error'
-        - |-
-          cognitive-complexity:
-            severity: warn
-            include: ["src/**", "!src/generated/**"]
-            max: 14
-      function-length:
-        anyOf:
-        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-          enum:
-          - error
-          - warn
-          - off
-          type: string
-        - additionalProperties: false
-          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-          properties:
-            include:
-              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-              items:
+            type: object
+          description: Reports every function whose cognitive complexity is above `max` (default 15), scored like Biome 2.6.5's `noExcessiveCognitiveComplexity` (the SonarSource Cognitive Complexity model). Works on TypeScript/JavaScript, Python, Swift, Rust and C#. Opt-in; no autofix.
+          examples:
+          - 'cognitive-complexity: error'
+          - |-
+            cognitive-complexity:
+              severity: warn
+              include: ["src/**", "!src/generated/**"]
+              max: 14
+        function-length:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              max:
+                default: 50
+                description: Highest number of lines a function body may have; a function counting more is reported. An integer of at least 1. Defaults to 50.
+                format: uint32
+                minimum: 1
+                type: integer
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                - null
                 type: string
-              type: array
-            max:
-              default: 50
-              description: Highest number of lines a function body may have; a function counting more is reported. An integer of at least 1. Defaults to 50.
-              format: uint32
-              minimum: 1
-              type: integer
-            severity:
-              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-              enum:
-              - error
-              - warn
-              - off
-              - null
-              type: string
-            skipBlankLines:
-              default: false
-              description: Leave blank lines out of the count. Defaults to false.
-              type: boolean
-          type: object
-        description: 'Reports every function whose body has more than `max` lines (default 50), counted like Biome 2.6.5''s `noExcessiveLinesPerFunction`: brace lines do not count, comment and blank lines do (blank lines not with `skipBlankLines`), and a nested function''s lines count toward its parent. Getters and setters are not checked. Works on TypeScript/JavaScript, Python, Swift, Rust and C#. Opt-in; no autofix.'
-        examples:
-        - 'function-length: error'
-        - |-
-          function-length:
-            severity: warn
-            include: ["src/**", "!src/generated/**"]
-            max: 40
-            skipBlankLines: true
-      no-async-predicate:
-        anyOf:
-        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-          enum:
-          - error
-          - warn
-          - off
-          type: string
-        - additionalProperties: false
-          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-          properties:
-            include:
-              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-              items:
+              skipBlankLines:
+                default: false
+                description: Leave blank lines out of the count. Defaults to false.
+                type: boolean
+            type: object
+          description: 'Reports every function whose body has more than `max` lines (default 50), counted like Biome 2.6.5''s `noExcessiveLinesPerFunction`: brace lines do not count, comment and blank lines do (blank lines not with `skipBlankLines`), and a nested function''s lines count toward its parent. Getters and setters are not checked. Works on TypeScript/JavaScript, Python, Swift, Rust and C#. Opt-in; no autofix.'
+          examples:
+          - 'function-length: error'
+          - |-
+            function-length:
+              severity: warn
+              include: ["src/**", "!src/generated/**"]
+              max: 40
+              skipBlankLines: true
+        no-async-predicate:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                - null
                 type: string
-              type: array
-            severity:
-              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-              enum:
-              - error
-              - warn
-              - off
-              - null
-              type: string
-          type: object
-        description: Flags `async` functions passed to `.filter`/`.some`/`.every`/`.find`/`.findIndex`. Array methods coerce the returned promise to truthy, so every element appears to match.
-        examples:
-        - 'no-async-predicate: error'
-      no-consecutive-array-push:
-        anyOf:
-        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-          enum:
-          - error
-          - warn
-          - off
-          type: string
-        - additionalProperties: false
-          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-          properties:
-            include:
-              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-              items:
+            type: object
+          description: Flags `async` functions passed to `.filter`/`.some`/`.every`/`.find`/`.findIndex`. Array methods coerce the returned promise to truthy, so every element appears to match.
+          examples:
+          - 'no-async-predicate: error'
+        no-consecutive-array-push:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                - null
                 type: string
-              type: array
-            severity:
-              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-              enum:
-              - error
-              - warn
-              - off
-              - null
-              type: string
-          type: object
-        description: Flags consecutive `arr.push(x); arr.push(y);` calls — combine into `arr.push(x, y)` or `arr.push(...items)`.
-        examples:
-        - 'no-consecutive-array-push: warn'
-      no-nested-template-literals:
-        anyOf:
-        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-          enum:
-          - error
-          - warn
-          - off
-          type: string
-        - additionalProperties: false
-          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-          properties:
-            include:
-              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-              items:
+            type: object
+          description: Flags consecutive `arr.push(x); arr.push(y);` calls — combine into `arr.push(x, y)` or `arr.push(...items)`.
+          examples:
+          - 'no-consecutive-array-push: warn'
+        no-nested-template-literals:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                - null
                 type: string
-              type: array
-            severity:
-              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-              enum:
-              - error
-              - warn
-              - off
-              - null
-              type: string
-          type: object
-        description: Flags template literals nested inside template literals — almost always unreadable; extract to a variable.
-        examples:
-        - 'no-nested-template-literals: warn'
-      no-string-match:
-        anyOf:
-        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-          enum:
-          - error
-          - warn
-          - off
-          type: string
-        - additionalProperties: false
-          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-          properties:
-            include:
-              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-              items:
+            type: object
+          description: Flags template literals nested inside template literals — almost always unreadable; extract to a variable.
+          examples:
+          - 'no-nested-template-literals: warn'
+        no-string-match:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                - null
                 type: string
-              type: array
-            severity:
-              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-              enum:
-              - error
-              - warn
-              - off
-              - null
-              type: string
-          type: object
-        description: Flags `String#match` — prefer `.matchAll()` for iteration or `.test()` for boolean checks. `.match()` returns different shapes depending on the `/g` flag.
-        examples:
-        - 'no-string-match: error'
-      no-sync-in-async:
-        anyOf:
-        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-          enum:
-          - error
-          - warn
-          - off
-          type: string
-        - additionalProperties: false
-          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-          properties:
-            include:
-              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-              items:
+            type: object
+          description: Flags `String#match` — prefer `.matchAll()` for iteration or `.test()` for boolean checks. `.match()` returns different shapes depending on the `/g` flag.
+          examples:
+          - 'no-string-match: error'
+        no-sync-in-async:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                - null
                 type: string
-              type: array
-            severity:
-              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-              enum:
-              - error
-              - warn
-              - off
-              - null
-              type: string
-          type: object
-        description: Flags synchronous I/O (`readFileSync`, `execSync`, etc.) inside async functions — blocks the event loop when an async equivalent is available.
-        examples:
-        - 'no-sync-in-async: error'
-        - |-
-          no-sync-in-async:
-            severity: warn
-            include: ["src/server/**"]
-      no-unguarded-json-parse:
-        anyOf:
-        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-          enum:
-          - error
-          - warn
-          - off
-          type: string
-        - additionalProperties: false
-          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-          properties:
-            include:
-              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-              items:
+            type: object
+          description: Flags synchronous I/O (`readFileSync`, `execSync`, etc.) inside async functions — blocks the event loop when an async equivalent is available.
+          examples:
+          - 'no-sync-in-async: error'
+          - |-
+            no-sync-in-async:
+              severity: warn
+              include: ["src/server/**"]
+        no-unguarded-json-parse:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                - null
                 type: string
-              type: array
-            severity:
-              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-              enum:
-              - error
-              - warn
-              - off
-              - null
-              type: string
-          type: object
-        description: Flags `JSON.parse()` calls that aren't wrapped in try/catch — malformed input crashes the process.
-        examples:
-        - 'no-unguarded-json-parse: error'
-      sonar/no-single-char-class:
-        anyOf:
-        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-          enum:
-          - error
-          - warn
-          - off
-          type: string
-        - additionalProperties: false
-          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-          properties:
-            include:
-              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-              items:
+            type: object
+          description: Flags `JSON.parse()` calls that aren't wrapped in try/catch — malformed input crashes the process.
+          examples:
+          - 'no-unguarded-json-parse: error'
+        sonar/no-single-char-class:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                - null
                 type: string
-              type: array
-            severity:
-              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-              enum:
-              - error
-              - warn
-              - off
-              - null
-              type: string
-          type: object
-        description: Flags single-character character classes in regex (e.g. `/[a]/`) — drop the brackets; the regex matches the same.
-        examples:
-        - 'sonar/no-single-char-class: warn'
-      sonar/prefer-at:
-        anyOf:
-        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-          enum:
-          - error
-          - warn
-          - off
-          type: string
-        - additionalProperties: false
-          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-          properties:
-            include:
-              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-              items:
+            type: object
+          description: Flags single-character character classes in regex (e.g. `/[a]/`) — drop the brackets; the regex matches the same.
+          examples:
+          - 'sonar/no-single-char-class: warn'
+        sonar/prefer-at:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                - null
                 type: string
-              type: array
-            severity:
-              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-              enum:
-              - error
-              - warn
-              - off
-              - null
-              type: string
-          type: object
-        description: Flags negative-index access via `arr[arr.length - 1]` — `.at(-1)` reads cleaner for last-element access.
-        examples:
-        - 'sonar/prefer-at: warn'
-      sonar/prefer-nullish-coalescing-assign:
-        anyOf:
-        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-          enum:
-          - error
-          - warn
-          - off
-          type: string
-        - additionalProperties: false
-          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-          properties:
-            include:
-              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-              items:
+            type: object
+          description: Flags negative-index access via `arr[arr.length - 1]` — `.at(-1)` reads cleaner for last-element access.
+          examples:
+          - 'sonar/prefer-at: warn'
+        sonar/prefer-nullish-coalescing-assign:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                - null
                 type: string
-              type: array
-            severity:
-              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-              enum:
-              - error
-              - warn
-              - off
-              - null
-              type: string
-          type: object
-        description: Flags explicit nullish assignment guards — `x ??= y` is the dedicated nullish assignment operator.
-        examples:
-        - 'sonar/prefer-nullish-coalescing-assign: warn'
-      sonar/prefer-string-raw:
-        anyOf:
-        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-          enum:
-          - error
-          - warn
-          - off
-          type: string
-        - additionalProperties: false
-          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-          properties:
-            include:
-              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-              items:
+            type: object
+          description: Flags explicit nullish assignment guards — `x ??= y` is the dedicated nullish assignment operator.
+          examples:
+          - 'sonar/prefer-nullish-coalescing-assign: warn'
+        sonar/prefer-string-raw:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                - null
                 type: string
-              type: array
-            severity:
-              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-              enum:
-              - error
-              - warn
-              - off
-              - null
-              type: string
-          type: object
-        description: Flags string literals with multiple backslash escapes — `String.raw` is more readable (Windows paths, regex source, etc.).
-        examples:
-        - 'sonar/prefer-string-raw: warn'
-      sonar/prefer-string-raw-regexp:
-        anyOf:
-        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-          enum:
-          - error
-          - warn
-          - off
-          type: string
-        - additionalProperties: false
-          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-          properties:
-            include:
-              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-              items:
+            type: object
+          description: Flags string literals with multiple backslash escapes — `String.raw` is more readable (Windows paths, regex source, etc.).
+          examples:
+          - 'sonar/prefer-string-raw: warn'
+        sonar/prefer-string-raw-regexp:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                - null
                 type: string
-              type: array
-            severity:
-              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-              enum:
-              - error
-              - warn
-              - off
-              - null
-              type: string
-          type: object
-        description: Flags regex literals built from escape-heavy string concatenation — `String.raw` drops the double backslashes.
-        examples:
-        - 'sonar/prefer-string-raw-regexp: warn'
-      sonar/prefer-string-replaceall:
-        anyOf:
-        - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-          enum:
-          - error
-          - warn
-          - off
-          type: string
-        - additionalProperties: false
-          description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
-          properties:
-            include:
-              description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
-              items:
+            type: object
+          description: Flags regex literals built from escape-heavy string concatenation — `String.raw` drops the double backslashes.
+          examples:
+          - 'sonar/prefer-string-raw-regexp: warn'
+        sonar/prefer-string-replaceall:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                - null
                 type: string
-              type: array
-            severity:
-              description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
-              enum:
-              - error
-              - warn
-              - off
-              - null
-              type: string
-          type: object
-        description: Flags `.replace(/x/g, y)` on strings — `.replaceAll('x', y)` is clearer and faster for all-occurrence replacements.
-        examples:
-        - 'sonar/prefer-string-replaceall: error'
-    type: object
+            type: object
+          description: Flags `.replace(/x/g, y)` on strings — `.replaceAll('x', y)` is clearer and faster for all-occurrence replacements.
+          examples:
+          - 'sonar/prefer-string-replaceall: error'
+      type: object
+    default: null
+    description: 'Rules, in groups: recommended (true enables the six sonar rules at error), core (built-in rules) and sonar (sonar rules, without the sonar/ prefix). Example: { "recommended": true, "core": { "no-string-match": "error" }, "sonar": { "prefer-at": "warn" } }. The v1 flat map (rule name → severity or options, sonar/ prefixed) is still read; run `klint migrate` to upgrade it.'
 type: object

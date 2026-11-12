@@ -1,8 +1,8 @@
-use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
 use crate::config::RuleConfig;
+use crate::config_shape::{ResolvedRules, shape_advisories};
 use crate::output::Violation;
 use crate::rules::rule_option_problems;
 
@@ -14,16 +14,14 @@ pub(crate) fn has_valid_severity(config: &RuleConfig) -> bool {
     SEVERITIES.contains(&config.severity())
 }
 
-pub(crate) fn config_advisories(
-    rules: &BTreeMap<String, RuleConfig>,
-    config_path: &Path,
-) -> Vec<Violation> {
+pub(crate) fn config_advisories(resolved: &ResolvedRules, config_path: &Path) -> Vec<Violation> {
     let text = fs::read_to_string(config_path).unwrap_or_default();
     let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
     let file = config_path
         .file_name()
         .and_then(|name| name.to_str())
         .unwrap_or("klint.yaml");
+    let rules = &resolved.rules;
 
     let unknown_keys = top_level_keys(text)
         .into_iter()
@@ -41,7 +39,7 @@ pub(crate) fn config_advisories(
         .map(|(name, config)| {
             advisory(
                 file,
-                line_of_key(text, name),
+                line_of_key(text, resolved.written_key(name)),
                 format!(
                     "Rule \"{name}\" has severity \"{}\", which is not error, warn or off, so it is ignored.",
                     config.severity()
@@ -51,11 +49,14 @@ pub(crate) fn config_advisories(
     let option_problems = rules.iter().flat_map(|(name, config)| {
         rule_option_problems(name, config)
             .into_iter()
-            .map(move |problem| advisory(file, line_of_key(text, name), problem))
+            .map(move |problem| {
+                advisory(file, line_of_key(text, resolved.written_key(name)), problem)
+            })
     });
     unknown_keys
         .chain(invalid_severities)
         .chain(option_problems)
+        .chain(shape_advisories(resolved, text, file))
         .collect()
 }
 
@@ -69,7 +70,7 @@ fn top_level_keys(text: &str) -> Vec<String> {
     }
 }
 
-fn line_of_key(text: &str, key: &str) -> usize {
+pub(crate) fn line_of_key(text: &str, key: &str) -> usize {
     let declares = |line: &str| {
         let line = line.trim_start();
         [format!("{key}:"), format!("\"{key}\""), format!("'{key}'")]

@@ -53,11 +53,12 @@ Then create `klint.yaml` in your project root.
 include: ["src", "!**/node_modules/**"]
 
 rules:
-  no-async-predicate: error
-  no-unguarded-json-parse: error
-  no-sync-in-async:
-    severity: error
-    include: ["src/hooks/**"]
+  core:
+    no-async-predicate: error
+    no-unguarded-json-parse: error
+    no-sync-in-async:
+      severity: error
+      include: ["src/hooks/**"]
 
 arch:
   layers:
@@ -121,6 +122,7 @@ Rules give agents room to move quickly because the unsafe moves are blocked stru
 ```sh
 klint [--config <dir>] [--fix] [--json] [--hook]
 klint stats [--config <dir>]
+klint migrate [--config <dir>] [--check]
 klint install-skill [--agents <list>] [--symlink | --copy] [--force]
 ```
 
@@ -130,6 +132,8 @@ klint install-skill [--agents <list>] [--symlink | --copy] [--force]
 | `--fix` | Apply auto-fixes for fixable violations in-place |
 | `--json` | Emit structured JSON to stdout for agents and CI |
 | `--hook` | Count this run as an agent hook run in `klint stats` |
+| `migrate` | Rewrite a v1 config to the v2 rule groups in place, keeping comments and blank lines |
+| `migrate --check` | Exit 1 when the config is v1 and 0 when it is v2; never writes |
 
 `klint install-skill` installs the bundled rule-authoring skill for agent environments:
 
@@ -224,15 +228,17 @@ The npm package needs Node.js 18+ and no longer installs `typescript`, `zod`, `y
 # yaml-language-server: $schema=./klint.schema.yaml
 
 include: ["src", "!**/node_modules/**"]
-plugins: [sonar]
 
 rules:
-  no-unguarded-json-parse: error
-  no-async-predicate: error
-  sonar/prefer-string-replaceall: warn
-  no-sync-in-async:
-    severity: error
-    include: ["src/server/**"]
+  recommended: true
+  core:
+    no-unguarded-json-parse: error
+    no-async-predicate: error
+    no-sync-in-async:
+      severity: error
+      include: ["src/server/**"]
+  sonar:
+    prefer-string-replaceall: warn
 
 arch:
   layers:
@@ -247,9 +253,15 @@ arch:
 
 `include` selects source files to lint. Patterns support `**` globs and `!` negation.
 
-`plugins` enables bundled rule groups. Today, `sonar` provides focused code-quality rules.
+`rules` has three parts. Each rule is `"error"`, `"warn"`, `"off"`, or an options object with `severity` and/or `include`.
 
-`rules` maps rule names to `"error"`, `"warn"`, `"off"`, or an options object with `severity` and/or `include`.
+- `recommended: true` enables the six sonar rules at `error`.
+- `core` holds the built-in rules, by name.
+- `sonar` holds the sonar rules, by name without the `sonar/` prefix. An entry here overrides `recommended`.
+
+The rule ids in the output stay `sonar/…`, for example `sonar/prefer-at`.
+
+**v1 still works.** The flat map under `rules` (with `sonar/` prefixes) and `plugins: [sonar]` are still read. A v1 config gets one `klint/config` warning. `klint migrate` or `klint --fix` upgrades it in place and keeps comments, blank lines and key order. It refuses, naming the line, when it cannot do that safely: YAML anchors, aliases, tags, a flow-map `rules`, duplicate keys, or a config that mixes v1 and v2 keys. A mixed config is read as v2 and the v1 entries are ignored, with one warning.
 
 `arch` declares architecture constraints without writing a custom rule.
 
@@ -744,21 +756,23 @@ Rules that needed TypeScript's type checker were removed in 1.0; see [Upgrading 
 
 ```yaml
 rules:
-  blank-line-before-control-flow: error
-  blank-line-after-block: warn
+  core:
+    blank-line-before-control-flow: error
+    blank-line-after-block: warn
 ```
 
 ```yaml
 rules:
-  blank-line-before-control-flow:
-    severity: error
-    include: ["src/**", "!src/generated/**"]
-    statements: [if, for, while, switch, try, return, guard, loop, with]
-    allowSetup: true
-  blank-line-after-block:
-    severity: warn
-    include: ["src/**"]
-    statements: [if, for, while, switch, try, guard, loop, with]
+  core:
+    blank-line-before-control-flow:
+      severity: error
+      include: ["src/**", "!src/generated/**"]
+      statements: [if, for, while, switch, try, return, guard, loop, with]
+      allowSetup: true
+    blank-line-after-block:
+      severity: warn
+      include: ["src/**"]
+      statements: [if, for, while, switch, try, guard, loop, with]
 ```
 
 - `statements` lists the statement kinds a rule targets. The default is every kind the rule supports. `statements: []` turns the rule off. `match` is an alias of `switch`. `return` is valid only for `blank-line-before-control-flow`. An unknown keyword, or `return` on the after rule, produces one `klint/config` warning, and the remaining keywords still apply.
@@ -790,15 +804,17 @@ rules:
 
 ```yaml
 rules:
-  cognitive-complexity: error
+  core:
+    cognitive-complexity: error
 ```
 
 ```yaml
 rules:
-  cognitive-complexity:
-    severity: warn
-    include: ["src/**", "!src/generated/**"]
-    max: 14
+  core:
+    cognitive-complexity:
+      severity: warn
+      include: ["src/**", "!src/generated/**"]
+      max: 14
 ```
 
 - `max` is an integer of at least 1, default 15. A function is reported when its score is **greater than** `max`. Any other value (0, a negative number, a fraction, a string) gives one `klint/config` warning naming the rule and the value, and the rule uses 15.
@@ -847,16 +863,18 @@ It adds nothing for `try` itself, `return`, `throw`, recursion, Rust `?`, Python
 
 ```yaml
 rules:
-  function-length: error
+  core:
+    function-length: error
 ```
 
 ```yaml
 rules:
-  function-length:
-    severity: warn
-    include: ["src/**", "!src/generated/**"]
-    max: 40
-    skipBlankLines: true
+  core:
+    function-length:
+      severity: warn
+      include: ["src/**", "!src/generated/**"]
+      max: 40
+      skipBlankLines: true
 ```
 
 - `max` is an integer of at least 1, default 50. A function is reported when its count is **greater than** `max`. Any other value (0, a negative number, a fraction, a string) gives one `klint/config` warning naming the rule and the value, and the rule uses 50.
@@ -869,9 +887,9 @@ rules:
 
 **Not checked.** Bodyless declarations, and files with a syntax error.
 
-## Plugins
+## Sonar rules (`rules.sonar`)
 
-Enable plugin rules with `plugins: [sonar]`, then override individual severities in `rules` when needed.
+`recommended: true` enables these rules. Override each one under `rules.sonar` by its name without the prefix.
 
 | Rule | Description |
 |------|-------------|
