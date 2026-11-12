@@ -1,8 +1,9 @@
 use tree_sitter::Node;
 
 use crate::syntax::{
-    FunctionScore, ScoringContext, SourceLanguage, is_async_function_like, is_function_like,
-    is_scored_function, is_statement_container, score_node,
+    FunctionLength, FunctionScore, LineTally, LineTotals, ScoringContext, SourceLanguage,
+    is_async_function_like, is_comment, is_function_like, is_scored_function,
+    is_statement_container, is_token, measured_body, score_node, starts_uncounted_region,
 };
 
 fn is_scored_node(language: SourceLanguage, node: Node<'_>) -> bool {
@@ -36,6 +37,7 @@ pub(crate) struct Wants {
     pub containers: bool,
     pub statement_blocks: bool,
     pub functions: bool,
+    pub function_lengths: bool,
 }
 
 impl Wants {
@@ -50,6 +52,7 @@ impl Wants {
             || self.containers
             || self.statement_blocks
             || self.functions
+            || self.function_lengths
     }
 }
 
@@ -68,7 +71,10 @@ pub(crate) struct NodeIndex<'a> {
     pub containers: Vec<Node<'a>>,
     pub statement_blocks: Vec<Node<'a>>,
     pub scores: Vec<FunctionScore<'a>>,
+    pub function_lengths: Vec<FunctionLength<'a>>,
     pub has_syntax_error: bool,
+    tally: LineTally,
+    pending_bodies: Vec<(usize, Node<'a>)>,
 }
 
 impl<'a> NodeIndex<'a> {
@@ -102,6 +108,62 @@ impl<'a> NodeIndex<'a> {
         }
     }
 
+    fn tally_node(&mut self, node: Node<'a>, source: &[u8], language: SourceLanguage) {
+        if node.is_extra() {
+            if is_comment(node) {
+                self.tally
+                    .absorb_comment(source, node.start_byte(), node.end_byte());
+            }
+        } else if is_token(language, node) {
+            let (start, end) = (node.start_byte(), node.end_byte());
+            let kind = if end - start == 1 { node.kind() } else { "" };
+            self.tally.add_token(source, kind, start, end);
+        }
+    }
+
+    fn take_pending_body(&mut self, node: Node<'a>) -> Option<Node<'a>> {
+        let (body_id, _) = self.pending_bodies.last()?;
+        if *body_id != node.id() {
+            return None;
+        }
+        self.pending_bodies.pop().map(|(_, function)| function)
+    }
+
+    fn record_length(&mut self, function: Node<'a>, before: LineTotals) {
+        let counted = self.tally.totals().since(before);
+        self.function_lengths.push(FunctionLength {
+            node: function,
+            lines: counted.lines,
+            non_blank_lines: counted.non_blank_lines,
+        });
+    }
+
+    fn visit_children(
+        &mut self,
+        node: Node<'a>,
+        source: &[u8],
+        wants: Wants,
+        language: SourceLanguage,
+        descent: Descent<'a>,
+    ) {
+        let measures_lengths = wants.function_lengths && node.child_count() > 0;
+        if measures_lengths {
+            if let Some(body) = measured_body(language, node) {
+                self.pending_bodies.push((body.id(), node));
+            }
+        }
+        let absorbs_jsx_text = measures_lengths
+            && language == SourceLanguage::JavaScriptLike
+            && node.kind() == "jsx_element";
+        let mut cursor = node.walk();
+        for (position, child) in node.children(&mut cursor).enumerate() {
+            if absorbs_jsx_text && position > 0 {
+                self.tally.absorb_gap_before(child.start_byte());
+            }
+            self.visit(child, source, wants, language, descent);
+        }
+    }
+
     fn visit(
         &mut self,
         node: Node<'a>,
@@ -110,7 +172,12 @@ impl<'a> NodeIndex<'a> {
         language: SourceLanguage,
         descent: Descent<'a>,
     ) {
+        let measured_function = self.take_pending_body(node);
+        let before_body = self.tally.totals();
         let scoring = self.score(node, wants, language, descent);
+        if wants.function_lengths && !descent.in_uncounted {
+            self.tally_node(node, source, language);
+        }
         let descent = Descent {
             scoring,
             ..descent.enter(node, source, wants, language)
@@ -134,9 +201,9 @@ impl<'a> NodeIndex<'a> {
             _ => {}
         }
 
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            self.visit(child, source, wants, language, descent);
+        self.visit_children(node, source, wants, language, descent);
+        if let Some(function) = measured_function {
+            self.record_length(function, before_body);
         }
     }
 }
@@ -147,6 +214,7 @@ struct Descent<'a> {
     inside_try: bool,
     in_async: bool,
     in_function: bool,
+    in_uncounted: bool,
 }
 
 impl Descent<'_> {
@@ -161,6 +229,8 @@ impl Descent<'_> {
                     self.in_async
                 },
             in_function: wants.functions && (self.in_function || is_scored_node(language, node)),
+            in_uncounted: wants.function_lengths
+                && (self.in_uncounted || starts_uncounted_region(language, node)),
         }
     }
 }

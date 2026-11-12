@@ -112,4 +112,13 @@ pub(crate) const RULE_DOCS: &[RuleDoc] = &[
         ],
         options_schema: Some(super::complexity::cognitive_complexity_schema),
     },
+    RuleDoc {
+        name: "function-length",
+        description: "Reports every function whose body has more than `max` lines (default 50), counted like Biome 2.6.5's `noExcessiveLinesPerFunction`: brace lines do not count, comment and blank lines do (blank lines not with `skipBlankLines`), and a nested function's lines count toward its parent. Getters and setters are not checked. Works on TypeScript/JavaScript, Python, Swift, Rust and C#. Opt-in; no autofix.",
+        examples: &[
+            "function-length: error",
+            "function-length:\n  severity: warn\n  include: [\"src/**\", \"!src/generated/**\"]\n  max: 40\n  skipBlankLines: true",
+        ],
+        options_schema: Some(super::function_length::function_length_schema),
+    },
 ];

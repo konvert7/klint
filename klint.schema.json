@@ -774,6 +774,60 @@
             "cognitive-complexity:\n  severity: warn\n  include: [\"src/**\", \"!src/generated/**\"]\n  max: 14"
           ]
         },
+        "function-length": {
+          "anyOf": [
+            {
+              "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+              "enum": [
+                "error",
+                "warn",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
+              "properties": {
+                "include": {
+                  "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "max": {
+                  "default": 50,
+                  "description": "Highest number of lines a function body may have; a function counting more is reported. An integer of at least 1. Defaults to 50.",
+                  "format": "uint32",
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "severity": {
+                  "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off",
+                    null
+                  ],
+                  "type": "string"
+                },
+                "skipBlankLines": {
+                  "default": false,
+                  "description": "Leave blank lines out of the count. Defaults to false.",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            }
+          ],
+          "description": "Reports every function whose body has more than `max` lines (default 50), counted like Biome 2.6.5's `noExcessiveLinesPerFunction`: brace lines do not count, comment and blank lines do (blank lines not with `skipBlankLines`), and a nested function's lines count toward its parent. Getters and setters are not checked. Works on TypeScript/JavaScript, Python, Swift, Rust and C#. Opt-in; no autofix.",
+          "examples": [
+            "function-length: error",
+            "function-length:\n  severity: warn\n  include: [\"src/**\", \"!src/generated/**\"]\n  max: 40\n  skipBlankLines: true"
+          ]
+        },
         "no-async-predicate": {
           "anyOf": [
             {

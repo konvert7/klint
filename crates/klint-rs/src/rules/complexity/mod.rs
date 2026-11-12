@@ -2,7 +2,7 @@ mod options;
 mod schema_shapes;
 
 pub(crate) use options::ComplexityOptions;
-pub(super) use options::cognitive_complexity_options;
+pub(super) use options::{cognitive_complexity_options, parse_max};
 pub(super) use schema_shapes::cognitive_complexity_schema;
 
 use super::{Report, RuleOptions, RuleScan};
