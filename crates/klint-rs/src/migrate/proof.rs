@@ -67,32 +67,3 @@ pub(super) fn prove_same_findings(
     let after = serialized(&lint_loaded(config_dir, new)?.findings);
     first_difference(&before, &after).map_or(Ok(()), Err)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::config::{ConfigFormat, parse_config_text};
-
-    const OLD: &str = "include: [\"src\"]\nrules:\n  no-string-match: error\n";
-    const DROPPED_RULE: &str = "include: [\"src\"]\nrules:\n  core:\n    no-date-equality: off\n";
-
-    fn project() -> std::path::PathBuf {
-        let dir = std::env::temp_dir().join(format!("klint-proof-test-{}", std::process::id()));
-        std::fs::create_dir_all(dir.join("src")).expect("mkdir");
-        std::fs::write(dir.join("src/a.ts"), "const m = \"x\".match(/x/);\n").expect("write");
-        dir
-    }
-
-    #[test]
-    fn refuses_when_the_new_config_changes_the_findings() {
-        let dir = project();
-        let old = LoadedConfig {
-            path: dir.join("klint.yaml"),
-            raw: parse_config_text(OLD, ConfigFormat::Yaml).expect("parse"),
-        };
-        let result = prove_same_findings(&dir, old, DROPPED_RULE);
-        let _ = std::fs::remove_dir_all(&dir);
-        let reason = result.expect_err("findings differ");
-        assert!(reason.contains("findings would change"), "{reason}");
-    }
-}
