@@ -109,7 +109,9 @@ fn boolean_points(
     parent: Option<Node<'_>>,
     grammar: &dyn ComplexityGrammar,
 ) -> u32 {
-    u32::from(grammar.is_boolean_expression(node) && !continues_run(node, parent, grammar))
+    grammar.boolean_run_points(node, parent).unwrap_or_else(|| {
+        u32::from(grammar.is_boolean_expression(node) && !continues_run(node, parent, grammar))
+    })
 }
 
 fn continues_run(

@@ -60,6 +60,18 @@ impl ComplexityGrammar for Swift {
         }
     }
 
+    fn boolean_run_points(&self, node: Node<'_>, parent: Option<Node<'_>>) -> Option<u32> {
+        if !is_and_or_chain_link(node) {
+            return None;
+        }
+        if parent.is_some_and(is_and_or_chain_link) {
+            return Some(0);
+        }
+        let mut operators = Vec::new();
+        collect_chain_operators(node, &mut operators);
+        Some(runs_by_precedence(&operators))
+    }
+
     fn declared_name(&self, function: Node<'_>, source: &[u8]) -> Option<String> {
         match function.kind() {
             "function_declaration" => field_text(function, "name", source),
@@ -77,6 +89,37 @@ impl ComplexityGrammar for Swift {
             _ => None,
         }
     }
+}
+
+fn is_and_or_chain_link(node: Node<'_>) -> bool {
+    matches!(
+        node.kind(),
+        "conjunction_expression" | "disjunction_expression"
+    )
+}
+
+fn collect_chain_operators(node: Node<'_>, operators: &mut Vec<BooleanOperator>) {
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if is_and_or_chain_link(child) {
+            collect_chain_operators(child, operators);
+        } else if let Some(operator) = Swift.boolean_operator(child.kind()) {
+            operators.push(operator);
+        }
+    }
+}
+
+fn runs_by_precedence(operators: &[BooleanOperator]) -> u32 {
+    let and_groups = operators
+        .iter()
+        .enumerate()
+        .filter(|&(index, &operator)| {
+            operator == BooleanOperator::And
+                && (index == 0 || operators[index - 1] != BooleanOperator::And)
+        })
+        .count();
+    let has_or = operators.contains(&BooleanOperator::Or);
+    u32::try_from(and_groups).unwrap_or(u32::MAX) + u32::from(has_or)
 }
 
 fn is_if_else(node: Node<'_>, parent: Option<Node<'_>>) -> bool {
@@ -160,6 +203,16 @@ mod tests {
         let tree = parse("a.swift", "let v = a && b || c\n");
         let conjunctions = all_of_kind(tree.root_node(), "conjunction_expression");
         assert!(Swift.is_boolean_expression(conjunctions[0]));
+    }
+
+    #[test]
+    fn mixed_chain_is_scored_with_real_precedence() {
+        let tree = parse("a.swift", "let v = a && b || c && d || e\n");
+        let mut top = all_of_kind(tree.root_node(), "conjunction_expression")[0];
+        while let Some(parent) = top.parent().filter(|p| is_and_or_chain_link(*p)) {
+            top = parent;
+        }
+        assert_eq!(Swift.boolean_run_points(top, top.parent()), Some(3));
     }
 
     #[test]

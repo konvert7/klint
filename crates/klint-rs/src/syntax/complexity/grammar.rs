@@ -17,6 +17,9 @@ pub(super) trait ComplexityGrammar: Sync {
     fn construct(&self, node: Node<'_>, parent: Option<Node<'_>>) -> Construct;
     fn is_boolean_expression(&self, node: Node<'_>) -> bool;
     fn boolean_operator(&self, token_kind: &str) -> Option<BooleanOperator>;
+    fn boolean_run_points(&self, _node: Node<'_>, _parent: Option<Node<'_>>) -> Option<u32> {
+        None
+    }
     fn declared_name(&self, function: Node<'_>, source: &[u8]) -> Option<String>;
     fn assigned_name(&self, function: Node<'_>, source: &[u8]) -> Option<String>;
 }

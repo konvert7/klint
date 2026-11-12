@@ -21,9 +21,7 @@ impl ComplexityGrammar for Rust {
             "if_expression" | "match_expression" | "for_expression" | "while_expression"
             | "loop_expression" => Construct::Nesting,
             "else_clause" if has_child_of_kind(node, "block") => Construct::Increment,
-            "let_declaration" if node.child_by_field_name("alternative").is_some() => {
-                Construct::Nesting
-            }
+            "block" if is_let_else_block(node, parent) => Construct::Nesting,
             "break_expression" | "continue_expression" if has_child_of_kind(node, "label") => {
                 Construct::Increment
             }
@@ -61,22 +59,33 @@ impl ComplexityGrammar for Rust {
     }
 }
 
+fn is_let_else_block(block: Node<'_>, parent: Option<Node<'_>>) -> bool {
+    parent
+        .and_then(|p| p.child_by_field_name("alternative"))
+        .is_some_and(|alternative| alternative.id() == block.id())
+        && parent.is_some_and(|p| p.kind() == "let_declaration")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::syntax::complexity::grammar::testing::{all_of_kind, parse};
 
     #[test]
-    fn let_else_nests_and_a_plain_let_does_not() {
+    fn let_else_block_nests_and_the_declaration_does_not() {
         let tree = parse(
             "a.rs",
             "fn f(a: Option<i32>) {\n    let Some(x) = a else { return; };\n    let y = 1;\n}\n",
         );
         let lets = all_of_kind(tree.root_node(), "let_declaration");
+        let else_block = lets[0]
+            .child_by_field_name("alternative")
+            .expect("let-else has an alternative block");
         assert_eq!(
-            Rust.construct(lets[0], lets[0].parent()),
+            Rust.construct(else_block, Some(lets[0])),
             Construct::Nesting
         );
+        assert_eq!(Rust.construct(lets[0], lets[0].parent()), Construct::Plain);
         assert_eq!(Rust.construct(lets[1], lets[1].parent()), Construct::Plain);
     }
 
