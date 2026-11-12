@@ -131,8 +131,9 @@ jobs:
       - name: Test on Alpine
         # 2026-11-10: bun@1.3 from npm ships the musl build; matches setup-bun's "1.3" line
         run: |
-          docker run --rm -v "$PWD:/io" -w /io rust:1-alpine sh -euc '
+          docker run --rm -e CI -e GITHUB_BASE_REF -v "$PWD:/io" -w /io rust:1-alpine sh -euc '
             apk add -q bash nodejs npm git musl-dev libstdc++ libgcc tar
+            git config --global --add safe.directory /io
             npm install -g --silent bun@1.3
             bun install --frozen-lockfile
             cargo build -p klint-rs

@@ -35,6 +35,10 @@ pub fn render(violations: &[Violation], elapsed: Duration) -> TextReport {
     }
 }
 
+pub fn warnings_section(violations: &[Violation]) -> String {
+    section("warning(s)", &with_severity(violations, "warn"))
+}
+
 pub fn format_duration(elapsed: Duration) -> String {
     let millis = elapsed.as_secs_f64() * 1000.0;
     if millis < 1000.0 {

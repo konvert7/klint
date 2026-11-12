@@ -1,9 +1,12 @@
 mod arch;
 mod config;
 mod config_check;
+mod config_keys;
+mod config_shape;
 mod engine;
 mod files;
 mod fix;
+mod migrate;
 mod output;
 mod plugins;
 mod rules;
@@ -14,19 +17,22 @@ pub mod syntax;
 mod unsupported;
 mod version;
 
-use config::RuleConfig;
+use config::{RawConfig, RuleConfig};
 use std::collections::BTreeMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use arch::ArchPlan;
 use config::{find_config, read_config, resolve_root};
 use config_check::{config_advisories, has_valid_severity};
+#[doc(hidden)]
+pub use config_keys::config_key_paths;
+use config_shape::resolve_rules;
 use engine::run_engine;
 use files::{read_files, resolve_files};
 pub use fix::MAX_FIX_PASSES;
 use fix::{Originals, apply_fixes, fix_until_stable, has_fixes};
+pub use migrate::{MigrateOptions, MigrateOutcome, migrate};
 pub use output::{JsonOutput, Summary, Violation};
-use plugins::effective_rules;
 use rules::plan_rule_passes;
 pub use schema::config_schema;
 pub use skill::install::{InstallRequest, install_skill};
@@ -49,10 +55,15 @@ pub struct FixOutcome {
     pub stopped_at_pass_limit: bool,
 }
 
-struct Linted {
-    root: PathBuf,
-    findings: Vec<Violation>,
-    advisories: Vec<Violation>,
+pub(crate) struct Linted {
+    pub(crate) root: PathBuf,
+    pub(crate) findings: Vec<Violation>,
+    pub(crate) advisories: Vec<Violation>,
+}
+
+pub(crate) struct LoadedConfig {
+    pub(crate) path: PathBuf,
+    pub(crate) raw: RawConfig,
 }
 
 pub fn run(options: RunOptions) -> Result<JsonOutput, String> {
@@ -83,19 +94,28 @@ pub fn fix(options: RunOptions) -> Result<FixOutcome, String> {
 }
 
 fn lint(options: &RunOptions) -> Result<Linted, String> {
-    let config_path = find_config(&options.config_dir)?;
-    let raw = read_config(&config_path)?;
-    let root = resolve_root(&options.config_dir, raw.root.as_deref());
-    let include = raw.include.unwrap_or_else(|| vec![".".to_string()]);
+    lint_loaded(&options.config_dir, load_config(&options.config_dir)?)
+}
+
+pub(crate) fn load_config(config_dir: &Path) -> Result<LoadedConfig, String> {
+    let path = find_config(config_dir)?;
+    let raw = read_config(&path)?;
+    Ok(LoadedConfig { path, raw })
+}
+
+pub(crate) fn lint_loaded(config_dir: &Path, loaded: LoadedConfig) -> Result<Linted, String> {
+    let LoadedConfig {
+        path: config_path,
+        raw,
+    } = loaded;
+    let root = resolve_root(config_dir, raw.root.as_deref());
+    let include = raw.include.clone().unwrap_or_else(|| vec![".".to_string()]);
 
     let files = resolve_files(&root, &include)?;
     let contents = read_files(&files)?;
-    let configured_rules = effective_rules(
-        &raw.plugins.unwrap_or_default(),
-        raw.rules.unwrap_or_default(),
-    )?;
-    let config_warnings = config_advisories(&configured_rules, &config_path);
-    let rules: BTreeMap<String, RuleConfig> = configured_rules
+    let mut resolved = resolve_rules(&raw).map_err(|err| err.into_message(&config_path))?;
+    let config_warnings = config_advisories(&resolved, &config_path);
+    let rules: BTreeMap<String, RuleConfig> = std::mem::take(&mut resolved.rules)
         .into_iter()
         .filter(|(_, config)| has_valid_severity(config))
         .collect();
@@ -113,11 +133,12 @@ fn lint(options: &RunOptions) -> Result<Linted, String> {
             .collect();
     advisories.extend(unsupported_rule_advisories(
         &rules,
+        &resolved,
         &config_path,
-        &options.config_dir,
+        config_dir,
     ));
     advisories.extend(config_warnings);
-    advisories.extend(skill_advisories(&options.config_dir));
+    advisories.extend(skill_advisories(config_dir));
 
     Ok(Linted {
         root,

@@ -3,6 +3,7 @@ use schemars::{Schema, SchemaGenerator, json_schema};
 use serde_json::{Map, Value, json};
 
 use crate::config::{RawConfig, RuleConfig};
+use crate::plugins::SONAR_PREFIX;
 use crate::rules::RULE_DOCS;
 use crate::version::schema_url_for_version;
 
@@ -26,9 +27,9 @@ pub fn config_schema(version: &str) -> Value {
     schema
 }
 
-pub(crate) fn rules_schema(generator: &mut SchemaGenerator) -> Schema {
+pub(crate) fn rule_entries(generator: &mut SchemaGenerator) -> Vec<(&'static str, Value)> {
     let rule_value = generator.subschema_for::<RuleConfig>().to_value();
-    let properties: Map<String, Value> = RULE_DOCS
+    RULE_DOCS
         .iter()
         .map(|doc| {
             let mut entry = doc.options_schema.map_or_else(
@@ -40,13 +41,67 @@ pub(crate) fn rules_schema(generator: &mut SchemaGenerator) -> Schema {
                 .expect("an inlined rule value schema is a JSON object");
             fields.insert("description".to_string(), json!(doc.description));
             fields.insert("examples".to_string(), json!(doc.examples));
-            (doc.name.to_string(), entry)
+            (doc.name, entry)
         })
+        .collect()
+}
+
+fn rules_map<'a>(
+    entries: &[(&'a str, Value)],
+    keep: impl Fn(&'a str) -> Option<&'a str>,
+) -> Map<String, Value> {
+    entries
+        .iter()
+        .filter_map(|(name, entry)| keep(name).map(|key| (key.to_string(), entry.clone())))
+        .collect()
+}
+
+fn core_name(name: &str) -> Option<&str> {
+    (!name.starts_with(SONAR_PREFIX)).then_some(name)
+}
+
+pub(crate) fn rules_schema(generator: &mut SchemaGenerator) -> Schema {
+    let rule_value = generator.subschema_for::<RuleConfig>().to_value();
+    let entries = rule_entries(generator);
+    let core = rules_map(&entries, core_name);
+    let sonar = rules_map(&entries, |name| name.strip_prefix(SONAR_PREFIX));
+    let v1: Map<String, Value> = entries
+        .iter()
+        .map(|(name, entry)| (name.to_string(), entry.clone()))
         .collect();
     json_schema!({
-        "type": "object",
-        "properties": properties,
-        "additionalProperties": rule_value,
+        "anyOf": [
+            {
+                "type": "object",
+                "description": "v2 format: rule groups.",
+                "properties": {
+                    "recommended": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "true enables the six sonar rules at error, as plugins: [sonar] did.",
+                    },
+                    "core": {
+                        "type": "object",
+                        "description": "Built-in rules by name.",
+                        "properties": core,
+                        "additionalProperties": rule_value,
+                    },
+                    "sonar": {
+                        "type": "object",
+                        "description": "Sonar rules without the sonar/ prefix.",
+                        "properties": sonar,
+                        "additionalProperties": rule_value,
+                    },
+                },
+                "additionalProperties": false,
+            },
+            {
+                "type": "object",
+                "description": "v1 format (deprecated): flat map of rule name → severity or options, sonar rules prefixed with sonar/. Run `klint migrate` to upgrade it to rules.recommended / rules.core / rules.sonar.",
+                "properties": v1,
+                "additionalProperties": rule_value,
+            },
+        ],
     })
 }
 
