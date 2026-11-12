@@ -24,6 +24,7 @@ function workspace(manifest = MANIFEST): string {
   mkdirSync(join(cwd, "skill", "klint-rules"), { recursive: true });
   writeFileSync(join(cwd, "crates", "klint-rs", "Cargo.toml"), manifest);
   writeFileSync(join(cwd, "skill", "klint-rules", "SKILL.md"), "# klint rules\n");
+
   return cwd;
 }
 
@@ -31,8 +32,10 @@ function recorder(status = 0) {
   const commands: Command[] = [];
   const spawnSync = (command: string, args: string[]) => {
     commands.push({ command, args });
+
     return { status };
   };
+
   return { commands, spawnSync };
 }
 
@@ -117,6 +120,7 @@ describe("semantic-release crates plugin", () => {
     const { CARGO_REGISTRY_TOKEN: _inherited, ...env } = process.env;
     const saved = process.env;
     process.env = env;
+
     try {
       await expect(
         verifyConditions({}, { cwd: workspace(), options: {} })

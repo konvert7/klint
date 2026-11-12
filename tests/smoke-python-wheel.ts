@@ -72,6 +72,7 @@ arch:
     process.stderr.write(result.stderr);
     fail(`Expected installed Python wheel klint to exit 2, received ${result.status}`);
   }
+
   const payload = JSON.parse(result.stdout);
   if (payload.summary?.errors !== 1 || payload.violations?.[0]?.rule !== "arch/imports") {
     fail(`Unexpected Python wheel smoke output: ${result.stdout}`);

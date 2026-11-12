@@ -40,6 +40,7 @@ try {
   if (!result.stdout.trim()) {
     fail("klint --version produced no output");
   }
+
   process.stdout.write(
     `smoke passed: klint ${version} (${rid}) -> ${result.stdout.trim()}\n`
   );
@@ -52,30 +53,36 @@ function run(command: string, args: string[]): { stdout: string } {
   if (result.error) {
     fail(`${command} failed to start: ${result.error.message}`);
   }
+
   if ((result.status ?? -1) !== 0) {
     process.stderr.write(result.stdout ?? "");
     process.stderr.write(result.stderr ?? "");
     fail(`${command} ${args.join(" ")} exited with ${result.status ?? -1}`);
   }
+
   return { stdout: result.stdout ?? "" };
 }
 
 function readCsprojVersion(): string {
-  const match = readFileSync(csprojPath, "utf-8").match(/<Version>(.+)<\/Version>/);
+  const match = /<Version>(.+)<\/Version>/.exec(readFileSync(csprojPath, "utf-8"));
   if (!match) {
     fail(`No <Version> found in ${csprojPath}`);
   }
+
   return match[1];
 }
 
 function hostRid(): string {
   const cpu = arch() === "arm64" ? "arm64" : "x64";
+
   return `${hostOs()}-${cpu}`;
 }
 
 function hostOs(): string {
   if (platform() === "win32") return "win";
+
   if (platform() === "darwin") return "osx";
+
   return "linux";
 }
 

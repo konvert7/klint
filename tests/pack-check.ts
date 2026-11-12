@@ -40,12 +40,15 @@ try {
       readFileSync(join(packageRoot, "package.json"), "utf-8")
     );
     const expectedFiles = ["package/package.json"];
+
     if (existsSync(join(packageRoot, nativePackage.binaryPath))) {
       expectedFiles.push(`package/${nativePackage.binaryPath}`);
     }
+
     if (existsSync(join(packageRoot, "bin", "VERSION"))) {
       expectedFiles.push("package/bin/VERSION");
     }
+
     expectedFiles.sort();
     const list = packAndList(packageRoot);
 
@@ -97,6 +100,7 @@ function packAndList(cwd: string): string[] {
     cwd
   );
   const tarball = isAbsolute(packed) ? packed : join(outDir, packed);
+
   return run("tar", ["-tzf", tarball], cwd)
     .split("\n")
     .filter(Boolean)
@@ -118,6 +122,7 @@ function run(command: string, args: string[], cwd: string): string {
     process.stderr.write(result.stderr);
     process.exit(result.status ?? 1);
   }
+
   return result.stdout.trim();
 }
 

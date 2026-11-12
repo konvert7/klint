@@ -1,19 +1,20 @@
 # yaml-language-server: $schema=./klint.schema.json
 
-include: ["**/*.ts", "crates/**/*.rs", "!tests/**", "!node_modules/**", "!target/**"]
+include: ["**/*.ts", "crates/**/*.rs", "!tests/complexity-sonarjs-corpus.ts", "!tests/function-length-biome-corpus.ts", "!node_modules/**", "!target/**"]
 rules:
   recommended: true
   core:
-    no-unguarded-json-parse: error
+    no-unguarded-json-parse: {severity: error, include: ["**/*.ts", "!tests/**"]}
     no-async-predicate: error
     no-nested-template-literals: error
     no-string-match: error
     no-consecutive-array-push: error
-    no-sync-in-async: error
+    no-sync-in-async: {severity: error, include: ["**/*.ts", "!tests/**"]}
     blank-line-after-block: error
     blank-line-before-control-flow: error
     cognitive-complexity: error
-    function-length: error
+    function-length:
+      - {error: 50, include: ["**/*.ts", "crates/**/*.rs", "!tests/**"]}
 
 arch:
   layers:

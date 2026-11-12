@@ -42,8 +42,10 @@ function corpusLayout(corpus: Array<{ code: string; offset?: number }> = CORPUS)
   const parts = corpus.map((entry) => {
     starts.push(line + (entry.offset ?? 0));
     line += entry.code.split("\n").length - 1;
+
     return entry.code;
   });
+
   return { source: parts.join(""), starts };
 }
 
@@ -76,11 +78,13 @@ export default [{
     messages: Array<{ ruleId: string; line: number; message: string }>;
   }>;
   const scores = new Map<number, number>();
+
   for (const message of files.flatMap((file) => file.messages)) {
     const score = /Cognitive Complexity from (\d+) /.exec(message.message);
     expect(score, message.message).not.toBeNull();
     scores.set(message.line, Number(score?.[1]));
   }
+
   return scores;
 }
 
@@ -98,23 +102,28 @@ function computeKlintScores(file: string): Map<number, number> {
     violations: Array<{ rule: string; file: string; line: number; message: string }>;
   };
   const scores = new Map<number, number>();
+
   for (const v of json.violations) {
     if (v.rule !== "cognitive-complexity" || basename(v.file) !== file) {
       continue;
     }
+
     const score = /cognitive complexity (\d+) /.exec(v.message);
     expect(score, v.message).not.toBeNull();
     scores.set(v.line, Number(score?.[1]));
   }
+
   return scores;
 }
 
 const memo = <T>(compute: (file: string) => T): ((file?: string) => T) => {
   const values = new Map<string, T>();
+
   return (file = "corpus.ts") => {
     if (!values.has(file)) {
       values.set(file, compute(file));
     }
+
     return values.get(file) as T;
   };
 };
@@ -127,6 +136,7 @@ function expectNoDifferences(file: string): void {
   const klint = klintScores(file);
   const lines = new Set([...sonar.keys(), ...klint.keys()]);
   const differences: string[] = [];
+
   for (const line of [...lines].sort((a, b) => a - b)) {
     if (sonar.get(line) !== klint.get(line)) {
       differences.push(
@@ -134,6 +144,7 @@ function expectNoDifferences(file: string): void {
       );
     }
   }
+
   expect(differences).toEqual([]);
 }
 
@@ -147,6 +158,7 @@ describe("cognitive-complexity matches SonarJS 3.0.5 on the TypeScript corpus", 
     () => {
       expect(CORPUS.length).toBeGreaterThanOrEqual(30);
       const covered = new Set(CORPUS.map((entry) => entry.row));
+
       for (const row of SCORING_ROWS) {
         expect(covered.has(row), `no corpus function for row ${row}`).toBe(true);
       }
@@ -159,6 +171,7 @@ describe("cognitive-complexity matches SonarJS 3.0.5 on the TypeScript corpus", 
     () => {
       const sonar = sonarScores();
       const klint = klintScores();
+
       for (const [index, start] of starts.entries()) {
         expect(sonar.has(start), `sonarjs missed ${CORPUS[index]?.row} at ${start}`).toBe(
           true
@@ -186,6 +199,7 @@ describe("cognitive-complexity matches SonarJS 3.0.5 on the TypeScript corpus", 
         ([index]) => CORPUS[index]?.expected !== undefined
       );
       expect(probes.length).toBe(6);
+
       for (const [index, start] of probes) {
         const expected = CORPUS[index]?.expected;
         expect(sonar.get(start), `sonarjs at ${start}`).toBe(expected);
@@ -218,6 +232,7 @@ function corpusStart(name: string): number {
   if (start === undefined) {
     throw new Error(`no corpus function named ${name}`);
   }
+
   return start;
 }
 
@@ -246,6 +261,7 @@ describe("corpus rows of the scoring table score their SonarJS values", () => {
       () => {
         const sonar = sonarScores();
         const klint = klintScores();
+
         for (const name of row.functions) {
           const line = corpusStart(name) + row.offset;
           expect(sonar.get(line), `sonarjs at ${line}`).toBe(row.sonarjs);
@@ -282,6 +298,7 @@ describe("JSX rows of the scoring table score their SonarJS values", () => {
     () => {
       const sonar = sonarScores("corpus.tsx");
       const klint = klintScores("corpus.tsx");
+
       for (const start of JSX_STARTS.slice(3)) {
         expect(sonar.get(start), `sonarjs at ${start}`).toBeDefined();
         expect(klint.get(start), `klint at ${start}`).toBe(sonar.get(start));

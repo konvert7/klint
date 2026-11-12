@@ -91,6 +91,7 @@ describe("native binary package metadata", () => {
       .sort();
 
     expect(Object.keys(optionalDependencies).sort()).toEqual(expectedNames);
+
     for (const packageName of expectedNames) {
       expect(optionalDependencies[packageName]).toBe("*");
     }
@@ -127,6 +128,7 @@ describe("native binary package metadata", () => {
       arch: "arm64",
       resolvePackageJson(packageName) {
         expect(packageName).toBe("@konvert7/klint-darwin-arm64");
+
         return packageJsonPath;
       },
       exists(path) {
@@ -134,6 +136,7 @@ describe("native binary package metadata", () => {
       },
       readPackageJson(path) {
         expect([join(packageRoot, "package.json"), packageJsonPath]).toContain(path);
+
         return { version: "1.2.3" };
       },
     });
@@ -179,6 +182,7 @@ describe("native binary package metadata", () => {
       arch: "x64",
       resolvePackageJson(packageName) {
         expect(packageName).toBe("@konvert7/klint-darwin-x64");
+
         return packageJsonPath;
       },
       exists(path) {

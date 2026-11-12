@@ -46,6 +46,7 @@ test("release-packages ignores releases that are not semantic-release vX tags", 
 
 test("release-packages reads event values from env, not by interpolating them into the script", () => {
   const scripts = packages.jobs.metadata.steps.map((step) => step.run ?? "");
+
   for (const script of scripts) expect(script).not.toContain("${{");
 });
 

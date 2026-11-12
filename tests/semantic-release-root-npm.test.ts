@@ -29,6 +29,7 @@ describe("semantic-release root npm plugin", () => {
         {
           spawnSync(command: string, args: string[]) {
             commands.push({ command, args });
+
             return { status: 0 };
           },
         },
@@ -95,6 +96,7 @@ describe("semantic-release root npm plugin", () => {
         {
           spawnSync(command: string, args: string[]) {
             publishes.push({ command, args });
+
             return { status: 0 };
           },
         },

@@ -75,6 +75,7 @@ function runRustKlint(root: string, testCase: GoldenCase): GoldenEnvelope {
 
   const expectedStatus = testCase.expected.summary.errors > 0 ? 2 : 0;
   expect(result.status, result.stderr || result.stdout).toBe(expectedStatus);
+
   return JSON.parse(result.stdout) as GoldenEnvelope;
 }
 
@@ -91,6 +92,7 @@ function normalize(
         a.message.localeCompare(b.message)
     );
   const errors = normalized.filter((v) => v.severity === "error").length;
+
   return {
     violations: normalized,
     summary: {
