@@ -41,8 +41,8 @@ const p = String.raw`C:\Users\Documents\file.txt`;
 const r = new RegExp(String.raw`\.foo`);
 const t = text.replaceAll("foo", repl);
 const c = /abc/;
-const m = new RegExp(/foo/i).exec(line);
-const both = new RegExp(/b/i).exec(s);
+const m = /foo/i.exec(line);
+const both = /b/i.exec(s);
 console.log(a, p, r, t, c, m, both);
 "#;
 

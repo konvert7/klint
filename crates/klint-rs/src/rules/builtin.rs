@@ -10,7 +10,7 @@ pub(super) fn run_no_string_match(scan: RuleScan<'_>) -> Vec<Report> {
         .iter()
         .filter_map(|call| string_match_record(call.node, scan.source))
         .map(|record| {
-            let replacement = format!("new RegExp({}).exec({})", record.regex, record.receiver);
+            let replacement = format!("{}.exec({})", record.regex, record.receiver);
             Report {
                 line: record.line,
                 message: format!(
