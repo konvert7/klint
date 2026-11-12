@@ -2,7 +2,9 @@
   {
     "name": "no-string-match flags non-global regex and emits fix",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-string-match": "error"
       }
@@ -23,15 +25,28 @@
             "endLine": 1,
             "replacement": "const hit = new RegExp(/a/).exec(\"abc\");"
           }
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "no-string-match ignores global regex",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-string-match": "error"
       }
@@ -40,14 +55,28 @@
       "src/subject.ts": "const hit = \"abc\".match(/a/g);\n"
     },
     "expected": {
-      "violations": [],
-      "summary": { "errors": 0, "warnings": 0 }
+      "violations": [
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "no-string-match honors warning severity",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-string-match": {
           "severity": "warn"
@@ -70,15 +99,28 @@
             "endLine": 1,
             "replacement": "const hit = new RegExp(/a/i).exec(\"abc\");"
           }
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 0, "warnings": 1 }
+      "summary": {
+        "errors": 0,
+        "warnings": 2
+      }
     }
   },
   {
     "name": "no-string-match ignores variable regex argument",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-string-match": "error"
       }
@@ -87,14 +129,28 @@
       "src/subject.ts": "declare const pattern: RegExp;\nconst hit = \"abc\".match(pattern);\n"
     },
     "expected": {
-      "violations": [],
-      "summary": { "errors": 0, "warnings": 0 }
+      "violations": [
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "no-nested-template-literals flags direct nested template",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-nested-template-literals": "error"
       }
@@ -111,15 +167,28 @@
           "message": "Nested template literal — extract the inner template to a variable to improve readability.",
           "severity": "error",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "no-nested-template-literals flags ternary branches",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-nested-template-literals": "error"
       }
@@ -144,15 +213,28 @@
           "message": "Nested template literal — extract the inner template to a variable to improve readability.",
           "severity": "error",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 2, "warnings": 0 }
+      "summary": {
+        "errors": 2,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "no-nested-template-literals honors warning severity",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-nested-template-literals": {
           "severity": "warn"
@@ -171,15 +253,28 @@
           "message": "Nested template literal — extract the inner template to a variable to improve readability.",
           "severity": "warn",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 0, "warnings": 1 }
+      "summary": {
+        "errors": 0,
+        "warnings": 2
+      }
     }
   },
   {
     "name": "no-nested-template-literals ignores standalone and tagged templates",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-nested-template-literals": "error"
       }
@@ -188,14 +283,28 @@
       "src/subject.ts": "declare function tag(s: TemplateStringsArray): string;\nconst standalone = `hello`;\nconst value = `${tag`inner`}`;\n"
     },
     "expected": {
-      "violations": [],
-      "summary": { "errors": 0, "warnings": 0 }
+      "violations": [
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "no-consecutive-array-push flags two pushes",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-consecutive-array-push": "error"
       }
@@ -212,15 +321,28 @@
           "message": "2 consecutive .push() calls on `arr` — combine into a single .push(a, b, …) call.",
           "severity": "error",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "no-consecutive-array-push flags three pushes with warning severity",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-consecutive-array-push": {
           "severity": "warn"
@@ -239,15 +361,28 @@
           "message": "3 consecutive .push() calls on `arr` — combine into a single .push(a, b, …) call.",
           "severity": "warn",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 0, "warnings": 1 }
+      "summary": {
+        "errors": 0,
+        "warnings": 2
+      }
     }
   },
   {
     "name": "no-consecutive-array-push ignores different arrays",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-consecutive-array-push": "error"
       }
@@ -256,14 +391,28 @@
       "src/subject.ts": "const a: number[] = [];\nconst b: number[] = [];\na.push(1);\nb.push(2);\n"
     },
     "expected": {
-      "violations": [],
-      "summary": { "errors": 0, "warnings": 0 }
+      "violations": [
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "no-consecutive-array-push ignores separated pushes",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-consecutive-array-push": "error"
       }
@@ -272,14 +421,28 @@
       "src/subject.ts": "const arr: number[] = [];\narr.push(1);\nconsole.log(arr);\narr.push(2);\n"
     },
     "expected": {
-      "violations": [],
-      "summary": { "errors": 0, "warnings": 0 }
+      "violations": [
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "no-unguarded-json-parse flags parse outside try",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-unguarded-json-parse": "error"
       }
@@ -296,15 +459,28 @@
           "message": "JSON.parse() called without a surrounding try/catch — a malformed payload will throw an unhandled exception.",
           "severity": "error",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "no-unguarded-json-parse honors warning severity",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-unguarded-json-parse": {
           "severity": "warn"
@@ -323,15 +499,28 @@
           "message": "JSON.parse() called without a surrounding try/catch — a malformed payload will throw an unhandled exception.",
           "severity": "warn",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 0, "warnings": 1 }
+      "summary": {
+        "errors": 0,
+        "warnings": 2
+      }
     }
   },
   {
     "name": "no-unguarded-json-parse ignores parse inside try",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-unguarded-json-parse": "error"
       }
@@ -340,14 +529,28 @@
       "src/subject.ts": "try {\n  JSON.parse(raw);\n} catch {}\n"
     },
     "expected": {
-      "violations": [],
-      "summary": { "errors": 0, "warnings": 0 }
+      "violations": [
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "no-unguarded-json-parse ignores nested parse inside try",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-unguarded-json-parse": "error"
       }
@@ -356,14 +559,28 @@
       "src/subject.ts": "try {\n  function parse() {\n    return JSON.parse(raw);\n  }\n} catch {}\n"
     },
     "expected": {
-      "violations": [],
-      "summary": { "errors": 0, "warnings": 0 }
+      "violations": [
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "no-sync-in-async flags sync calls inside async function",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-sync-in-async": "error"
       }
@@ -380,15 +597,28 @@
           "message": "readFileSync() blocks the event loop inside an async function — use the async equivalent from node:fs/promises.",
           "severity": "error",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "no-sync-in-async honors warning severity",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-sync-in-async": {
           "severity": "warn"
@@ -407,15 +637,28 @@
           "message": "writeFileSync() blocks the event loop inside an async function — use the async equivalent from node:fs/promises.",
           "severity": "warn",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 0, "warnings": 1 }
+      "summary": {
+        "errors": 0,
+        "warnings": 2
+      }
     }
   },
   {
     "name": "no-sync-in-async ignores existsSync and nested sync function",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-sync-in-async": "error"
       }
@@ -424,18 +667,34 @@
       "src/subject.ts": "async function load() {\n  existsSync(path);\n  function nested() {\n    readFileSync(path);\n  }\n}\n"
     },
     "expected": {
-      "violations": [],
-      "summary": { "errors": 0, "warnings": 0 }
+      "violations": [
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "no-sync-in-async respects rule include scope",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "no-sync-in-async": {
           "severity": "error",
-          "include": ["src/hooks/**"]
+          "include": [
+            "src/hooks/**"
+          ]
         }
       }
     },
@@ -452,15 +711,28 @@
           "message": "readFileSync() blocks the event loop inside an async function — use the async equivalent from node:fs/promises.",
           "severity": "error",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "sonar/no-single-char-class flags and fixes single literal class",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "sonar/no-single-char-class": "error"
       }
@@ -481,15 +753,28 @@
             "endLine": 1,
             "replacement": "const r = /abc/;"
           }
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "sonar/no-single-char-class ignores exception classes",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "sonar/no-single-char-class": "error"
       }
@@ -498,14 +783,28 @@
       "src/subject.ts": "const r = /[.][*][$]/;\n"
     },
     "expected": {
-      "violations": [],
-      "summary": { "errors": 0, "warnings": 0 }
+      "violations": [
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "sonar/prefer-at flags and fixes negative index access",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "sonar/prefer-at": "error"
       }
@@ -526,15 +825,28 @@
             "endLine": 1,
             "replacement": "const x = arr.at(-1);"
           }
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "sonar/prefer-at handles property access base",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "sonar/prefer-at": "error"
       }
@@ -555,15 +867,28 @@
             "endLine": 1,
             "replacement": "const x = obj.items.at(-5);"
           }
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "sonar/prefer-at ignores non-matching index access",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "sonar/prefer-at": "error"
       }
@@ -572,14 +897,28 @@
       "src/subject.ts": "const a = arr[other.length - 1];\nconst b = arr[arr.length - 0];\nconst c = arr[arr.length + 1];\nconst d = arr[i];\n"
     },
     "expected": {
-      "violations": [],
-      "summary": { "errors": 0, "warnings": 0 }
+      "violations": [
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "sonar/prefer-string-replaceall flags and fixes plain global regex",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "sonar/prefer-string-replaceall": "error"
       }
@@ -600,15 +939,28 @@
             "endLine": 1,
             "replacement": "const r = text.replaceAll(\"foo\", repl);"
           }
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "sonar/prefer-string-replaceall handles escaped backslash literal",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "sonar/prefer-string-replaceall": "error"
       }
@@ -629,15 +981,28 @@
             "endLine": 1,
             "replacement": "const r = path.replaceAll(\"\\\\\", \"/\");"
           }
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "sonar/prefer-string-replaceall ignores non-plain regex patterns",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "sonar/prefer-string-replaceall": "error"
       }
@@ -646,14 +1011,28 @@
       "src/subject.ts": "a.replace(/foo/gi, x);\nb.replace(/./g, x);\nc.replace(/\\./g, x);\nd.replace(/foo/, x);\n"
     },
     "expected": {
-      "violations": [],
-      "summary": { "errors": 0, "warnings": 0 }
+      "violations": [
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "sonar/prefer-string-raw-regexp flags and fixes no-substitution template",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "sonar/prefer-string-raw-regexp": "error"
       }
@@ -674,15 +1053,28 @@
             "endLine": 1,
             "replacement": "const r = new RegExp(String.raw`\\.foo`);"
           }
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "sonar/prefer-string-raw-regexp flags and fixes template expression",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "sonar/prefer-string-raw-regexp": "error"
       }
@@ -703,15 +1095,28 @@
             "endLine": 2,
             "replacement": "const r = new RegExp(String.raw`\\.(${n})`);"
           }
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "sonar/prefer-string-raw-regexp ignores unsupported string forms",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "sonar/prefer-string-raw-regexp": "error"
       }
@@ -720,14 +1125,28 @@
       "src/subject.ts": "const a = new RegExp(\"\\\\.foo\");\nconst b = new RegExp(\"\\\\.\" + name);\nconst c = new RegExp(String.raw`\\.foo`);\n"
     },
     "expected": {
-      "violations": [],
-      "summary": { "errors": 0, "warnings": 0 }
+      "violations": [
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "sonar/prefer-string-raw flags and fixes escaped backslashes",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "sonar/prefer-string-raw": "error"
       }
@@ -748,15 +1167,28 @@
             "endLine": 1,
             "replacement": "const p = String.raw`C:\\Users\\Documents\\file.txt`;"
           }
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "sonar/prefer-string-raw ignores unsupported template-unsafe strings",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "sonar/prefer-string-raw": "error"
       }
@@ -765,14 +1197,28 @@
       "src/subject.ts": "const a = \"hello\";\nconst b = \"foo\\\\bar`baz\";\nconst c = \"C:\\\\Users${foo}\";\nconst d = \"trailing\\\\\";\n"
     },
     "expected": {
-      "violations": [],
-      "summary": { "errors": 0, "warnings": 0 }
+      "violations": [
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "sonar/prefer-nullish-coalescing-assign flags direct nullish guard",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "sonar/prefer-nullish-coalescing-assign": "error"
       }
@@ -793,15 +1239,28 @@
             "endLine": 2,
             "replacement": "x ??= {};"
           }
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "sonar/prefer-nullish-coalescing-assign flags strict nullish pair",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "sonar/prefer-nullish-coalescing-assign": "error"
       }
@@ -822,15 +1281,28 @@
             "endLine": 1,
             "replacement": "x ??= fallback;"
           }
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "sonar/prefer-nullish-coalescing-assign ignores unsafe falsy guard",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "sonar/prefer-nullish-coalescing-assign": "error"
       }
@@ -839,15 +1311,31 @@
       "src/subject.ts": "if (!x) x = {};\nif (x == null) y = {};\nif (x === null || x === false) x = {};\n"
     },
     "expected": {
-      "violations": [],
-      "summary": { "errors": 0, "warnings": 0 }
+      "violations": [
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "blank-line-before-control-flow flags a statement glued to the previous one and emits fix",
     "config": {
-      "include": ["."],
-      "rules": { "blank-line-before-control-flow": "error" }
+      "include": [
+        "."
+      ],
+      "rules": {
+        "blank-line-before-control-flow": "error"
+      }
     },
     "files": {
       "src/subject.ts": "foo();\nif (a) {\n  b();\n}\n"
@@ -860,17 +1348,36 @@
           "rule": "blank-line-before-control-flow",
           "message": "Missing blank line before `if` — separate it from the statement above.",
           "severity": "error",
-          "fix": { "startLine": 2, "endLine": 2, "replacement": "\nif (a) {" }
+          "fix": {
+            "startLine": 2,
+            "endLine": 2,
+            "replacement": "\nif (a) {"
+          }
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "blank-line-after-block flags a block glued to the next statement and emits fix",
     "config": {
-      "include": ["."],
-      "rules": { "blank-line-after-block": "error" }
+      "include": [
+        "."
+      ],
+      "rules": {
+        "blank-line-after-block": "error"
+      }
     },
     "files": {
       "src/subject.ts": "if (a) {\n  b();\n}\nfoo();\n"
@@ -883,16 +1390,33 @@
           "rule": "blank-line-after-block",
           "message": "Missing blank line after `if` block — separate it from the statement below.",
           "severity": "error",
-          "fix": { "startLine": 4, "endLine": 4, "replacement": "\nfoo();" }
+          "fix": {
+            "startLine": 4,
+            "endLine": 4,
+            "replacement": "\nfoo();"
+          }
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
-      "summary": { "errors": 1, "warnings": 0 }
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
     }
   },
   {
     "name": "blank-line rules stay quiet when the blank lines are there",
     "config": {
-      "include": ["."],
+      "include": [
+        "."
+      ],
       "rules": {
         "blank-line-before-control-flow": "error",
         "blank-line-after-block": "error"
@@ -902,8 +1426,20 @@
       "src/subject.ts": "foo();\n\nif (a) {\n  b();\n}\n\nfoo();\n"
     },
     "expected": {
-      "violations": [],
-      "summary": { "errors": 0, "warnings": 0 }
+      "violations": [
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
     }
   },
   {
@@ -928,11 +1464,19 @@
           "message": "Function `big` has cognitive complexity 16 (max 15) — split it into smaller functions.",
           "severity": "error",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
       "summary": {
         "errors": 1,
-        "warnings": 0
+        "warnings": 1
       }
     }
   },
@@ -961,11 +1505,19 @@
           "message": "Function `four` has cognitive complexity 4 (max 3) — split it into smaller functions.",
           "severity": "error",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
       "summary": {
         "errors": 1,
-        "warnings": 0
+        "warnings": 1
       }
     }
   },
@@ -998,11 +1550,19 @@
           "message": "Function `big` has cognitive complexity 16 (max 15) — split it into smaller functions.",
           "severity": "warn",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
       "summary": {
         "errors": 0,
-        "warnings": 1
+        "warnings": 2
       }
     }
   },
@@ -1028,11 +1588,19 @@
           "message": "Function `big` has 51 lines (max 50) — split it into smaller functions.",
           "severity": "error",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
       "summary": {
         "errors": 1,
-        "warnings": 0
+        "warnings": 1
       }
     }
   },
@@ -1061,11 +1629,19 @@
           "message": "Function `four` has 4 lines (max 3) — split it into smaller functions.",
           "severity": "error",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
       "summary": {
         "errors": 1,
-        "warnings": 0
+        "warnings": 1
       }
     }
   },
@@ -1098,11 +1674,19 @@
           "message": "Function `big` has 51 lines (max 50) — split it into smaller functions.",
           "severity": "warn",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
       "summary": {
         "errors": 0,
-        "warnings": 1
+        "warnings": 2
       }
     }
   },
@@ -1124,10 +1708,19 @@
       "src/subject.ts": "function f() {\n a();\n\n b();\n}\n"
     },
     "expected": {
-      "violations": [],
+      "violations": [
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
       "summary": {
         "errors": 0,
-        "warnings": 0
+        "warnings": 1
       }
     }
   },
@@ -1156,11 +1749,19 @@
           "message": "Function `f` has 3 lines (max 2) — split it into smaller functions.",
           "severity": "error",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
       "summary": {
         "errors": 1,
-        "warnings": 0
+        "warnings": 1
       }
     }
   },
@@ -1223,11 +1824,19 @@
           "message": "Function `big` has cognitive complexity 3 (max 1) — split it into smaller functions.",
           "severity": "error",
           "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 1,
+          "rule": "klint/config",
+          "message": "This config uses the v1 format — run `klint migrate` to upgrade it in place.",
+          "severity": "warn",
+          "fix": null
         }
       ],
       "summary": {
         "errors": 4,
-        "warnings": 0
+        "warnings": 1
       }
     }
   }

@@ -70,6 +70,7 @@ fn sonar_plugin_enables_all_six_rules_as_errors() {
     assert_eq!(
         rule_severities(&json),
         pairs(&[
+            ("klint/config", "warn"),
             ("sonar/no-single-char-class", "error"),
             ("sonar/prefer-at", "error"),
             ("sonar/prefer-nullish-coalescing-assign", "error"),
@@ -94,7 +95,7 @@ fn explicit_rules_override_plugin_defaults() {
     assert_eq!(status, 0, "{stderr}");
     assert_eq!(
         rule_severities(&json),
-        pairs(&[("sonar/prefer-at", "warn")])
+        pairs(&[("klint/config", "warn"), ("sonar/prefer-at", "warn")])
     );
     let _ = remove_dir_all(root);
 }

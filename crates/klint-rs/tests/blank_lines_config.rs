@@ -7,6 +7,9 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
+const V1_WARNING: &str =
+    "This config uses the v1 format — run `klint migrate` to upgrade it in place.";
+
 fn config_messages(json: &Value) -> Vec<String> {
     messages(json, "klint/config")
 }
@@ -21,7 +24,7 @@ fn unknown_statement_keyword_warns_once_and_the_rest_still_apply() {
         &[("a.ts", source)],
     ));
     let warnings = config_messages(&json);
-    assert_eq!(warnings.len(), 1, "{warnings:?}");
+    assert_eq!(warnings.len(), 2, "{warnings:?}");
     assert!(
         warnings[0].contains(BEFORE) && warnings[0].contains("bogus"),
         "{warnings:?}"
@@ -39,7 +42,7 @@ fn return_in_the_after_rule_warns_once_and_the_rest_still_apply() {
         &[("a.ts", source)],
     ));
     let warnings = config_messages(&json);
-    assert_eq!(warnings.len(), 1, "{warnings:?}");
+    assert_eq!(warnings.len(), 2, "{warnings:?}");
     assert!(
         warnings[0].contains(AFTER) && warnings[0].contains("return"),
         "{warnings:?}"
@@ -57,7 +60,7 @@ fn match_keyword_and_return_in_the_before_rule_raise_no_warning() {
         &config_for(&rules),
         &[("a.ts", "foo();\n")],
     ));
-    assert!(config_messages(&json).is_empty(), "{json}");
+    assert_eq!(config_messages(&json), vec![V1_WARNING], "{json}");
 }
 
 #[test]
@@ -70,7 +73,7 @@ fn bare_and_object_forms_raise_no_config_warning() {
         &config_for(&rules),
         &[("a.ts", "foo();\n")],
     ));
-    assert!(config_messages(&json).is_empty(), "{json}");
+    assert_eq!(config_messages(&json), vec![V1_WARNING], "{json}");
 }
 
 fn committed(name: &str) -> String {

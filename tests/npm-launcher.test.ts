@@ -80,7 +80,7 @@ describe("npm launcher", () => {
 
     const result = runNode(launcher, ["--config", project, "--json"]);
 
-    expect(JSON.parse(result.stdout).summary).toEqual({ errors: 1, warnings: 0 });
+    expect(JSON.parse(result.stdout).summary).toEqual({ errors: 1, warnings: 1 });
     expect(result.status).toBe(2);
   });
 
