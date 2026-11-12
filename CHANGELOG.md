@@ -1,3 +1,11 @@
+# [1.5.0](https://github.com/konvert7/klint/compare/v1.4.1...v1.5.0) (2026-11-12)
+
+
+### Features
+
+* **klint:** migrate max/severity to warn/error in one klint migrate run ([4b0de8f](https://github.com/konvert7/klint/commit/4b0de8fff2c80b7fa19ce124b34963ef88869318))
+* **klint:** warn/error limits and per-glob lists for threshold rules ([5dc6c67](https://github.com/konvert7/klint/commit/5dc6c676e23436892db1432cd84568654d0e909d))
+
 ## [1.4.1](https://github.com/konvert7/klint/compare/v1.4.0...v1.4.1) (2026-11-12)
 
 
