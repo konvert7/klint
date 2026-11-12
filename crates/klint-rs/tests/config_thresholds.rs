@@ -111,18 +111,19 @@ fn complexity_warn_and_error_give_one_diagnostic_at_the_highest_level() {
 fn warn_alone_and_error_alone_each_work_on_both_rules() {
     let fl = format!("{}{}", fl_function("at", 5), fl_function("over", 6));
     let cc = format!("{}{}", cc_function("at", 5), cc_function("over", 6));
-    let files = [("src/a.ts", format!("{fl}{cc}"))];
+    let fl_files = [("src/a.ts", fl)];
+    let cc_files = [("src/a.ts", cc)];
 
     for (level, other) in [("warn", "error"), ("error", "warn")] {
         let fl_config = config_v2(FL, &format!(" {{{level}: 5}}"));
-        let json = lint_json(&setup(&fl_config, &files).root);
+        let json = lint_json(&setup(&fl_config, &fl_files).root);
         assert_eq!(
             sev_msgs(&json, FL),
             vec![(level.to_string(), fl_msg("over", 6, 5))],
             "{other}"
         );
         let cc_config = config_v2(CC, &format!(" {{{level}: 5}}"));
-        let json = lint_json(&setup(&cc_config, &files).root);
+        let json = lint_json(&setup(&cc_config, &cc_files).root);
         assert_eq!(
             sev_msgs(&json, CC),
             vec![(level.to_string(), cc_msg("over", 6, 5))]
