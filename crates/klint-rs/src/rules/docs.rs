@@ -105,7 +105,7 @@ pub(crate) const RULE_DOCS: &[RuleDoc] = &[
     },
     RuleDoc {
         name: "cognitive-complexity",
-        description: "Reports every function whose cognitive complexity is above `max` (default 15), scored like Biome 2.6.5's `noExcessiveCognitiveComplexity` (the SonarSource Cognitive Complexity model). Works on TypeScript/JavaScript, Python, Swift, Rust and C#. Opt-in; no autofix.",
+        description: "Reports every function whose cognitive complexity is above `max` (default 15), scored like `eslint-plugin-sonarjs` 3.0.5's `cognitive-complexity` (SonarSource rule S3776). Works on TypeScript/JavaScript, Python, Swift, Rust and C#. Opt-in; no autofix.",
         examples: &[
             "cognitive-complexity: error",
             "cognitive-complexity:\n  severity: warn\n  include: [\"src/**\", \"!src/generated/**\"]\n  max: 14",
