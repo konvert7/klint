@@ -734,6 +734,7 @@ doc-comments alongside `/** */`.
 | `blank-line-before-control-flow` | Blank line above a control-flow statement that follows another statement; autofix |
 | `blank-line-after-block` | Blank line below a block statement when another statement follows; autofix |
 | `cognitive-complexity` | Function whose cognitive complexity (Biome / SonarSource model) is above `max`, in all five languages; opt-in, no autofix |
+| `function-length` | Function whose body has more lines than `max` (counted like Biome's `noExcessiveLinesPerFunction`), in all five languages; opt-in, no autofix |
 
 Rules that needed TypeScript's type checker were removed in 1.0; see [Upgrading from klint 0.x](#upgrading-from-klint-0x).
 
@@ -838,6 +839,34 @@ It adds nothing for `try` itself, `return`, `throw`, recursion, Rust `?`, Python
 **What counts as a function.** TypeScript/JavaScript: `function` declarations and expressions, arrow functions, methods (including getters and setters), generator functions. Python: `def` and `lambda`. Swift: `func`, `init`, `deinit`, closures, computed getters and setters. Rust: `fn` items and closures. C#: methods, constructors, destructors, local functions, lambdas, anonymous methods, property and indexer accessors, operators and conversion operators.
 
 **Not checked.** Rust macro bodies are opaque token trees, so code inside a macro call is not scored. Code inside a Python decorator does not count toward the decorated function; a lambda there is scored on its own. A file with a syntax error gets no diagnostic. A Swift computed property without an explicit `get` is not a function. Bodyless declarations are never reported: TypeScript method signatures, Swift protocol requirements and Rust trait signatures are not functions at all, and C# interface and abstract members have nothing to score, so they score 0, which can never exceed `max`.
+
+### Function length
+
+`function-length` reports every function whose body has more than `max` lines, in TypeScript/JavaScript, Python, Swift, Rust and C#. It is opt-in and has no fix. It counts with Biome 2.6.5's `noExcessiveLinesPerFunction` algorithm in every language, so a TypeScript function gets the same count as in Biome.
+
+```yaml
+rules:
+  function-length: error
+```
+
+```yaml
+rules:
+  function-length:
+    severity: warn
+    include: ["src/**", "!src/generated/**"]
+    max: 40
+    skipBlankLines: true
+```
+
+- `max` is an integer of at least 1, default 50. A function is reported when its count is **greater than** `max`. Any other value (0, a negative number, a fraction, a string) gives one `klint/config` warning naming the rule and the value, and the rule uses 50.
+- `skipBlankLines` is a boolean, default `false`. Any other value gives one `klint/config` warning naming the rule and the value, and the rule uses `false`.
+- The message has the form ``Function `big` has 51 lines (max 50) — split it into smaller functions.``. The name is the declared name, the same rule as `cognitive-complexity`. The line is the function's first line.
+
+**Counting.** Only the body counts, not the signature line, decorators or attributes. Every line break before a token in the body counts, except a break before `{` or `}`, so lines that hold only braces (and `};`) do not count. Comment lines and blank lines count. With `skipBlankLines`, a run of blank lines adds nothing beyond the line it leads to. A multi-line string or template counts once. Blank lines before the closing brace do not count. A nested function's lines count toward its parent, and the nested function is also checked on its own. Python counts each statement's line (there are no braces), and docstrings count.
+
+**What counts as a function.** The same list as `cognitive-complexity` (see above), but getters and setters are excluded in every language: TypeScript `get` and `set` methods, Swift computed getters and setters, and C# property and indexer accessors. `cognitive-complexity` does check those.
+
+**Not checked.** Bodyless declarations, and files with a syntax error.
 
 ## Plugins
 
