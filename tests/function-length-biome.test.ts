@@ -20,8 +20,10 @@ function corpusLayout(): { source: string; starts: number[] } {
   const parts = CORPUS.map((entry) => {
     starts.push(line + (entry.offset ?? 0));
     line += entry.code.split("\n").length - 1;
+
     return entry.code;
   });
+
   return { source: parts.join(""), starts };
 }
 
@@ -57,9 +59,11 @@ function biomeCounts(skipBlankLines: boolean): Map<number, number> {
   const counts = new Map<number, number>();
   const pattern =
     /corpus\.tsx:(\d+):\d+ lint\/complexity\/noExcessiveLinesPerFunction[\s\S]*?too many lines \((\d+)\)/g;
+
   for (const match of out.matchAll(pattern)) {
     counts.set(Number(match[1]), Number(match[2]));
   }
+
   return counts;
 }
 
@@ -77,14 +81,17 @@ function klintCounts(skipBlankLines: boolean): Map<number, number> {
     violations: Array<{ rule: string; line: number; message: string }>;
   };
   const counts = new Map<number, number>();
+
   for (const v of json.violations) {
     if (v.rule !== "function-length") {
       continue;
     }
+
     const count = /has (\d+) lines/.exec(v.message);
     expect(count, v.message).not.toBeNull();
     counts.set(v.line, Number(count?.[1]));
   }
+
   return counts;
 }
 
@@ -95,9 +102,11 @@ describe("function-length matches Biome 2.6.5 on the TypeScript corpus", () => {
   test("the corpus has at least 25 functions and covers every counting row", () => {
     expect(CORPUS.length).toBeGreaterThanOrEqual(25);
     const covered = new Set(CORPUS.map((entry) => entry.row));
+
     for (const row of COUNTING_ROWS) {
       expect(covered.has(row), `no corpus function for row ${row}`).toBe(true);
     }
+
     expect(CORPUS.some((entry) => entry.accessor && entry.code.includes("get "))).toBe(
       true
     );
@@ -111,6 +120,7 @@ describe("function-length matches Biome 2.6.5 on the TypeScript corpus", () => {
       test("every non-accessor corpus function is reported by both tools and no accessor is", () => {
         const biome = biomeCounts(skipBlankLines);
         const klint = klintCounts(skipBlankLines);
+
         for (const [index, start] of starts.entries()) {
           const entry = CORPUS[index];
           const expected = !entry?.accessor;
@@ -124,6 +134,7 @@ describe("function-length matches Biome 2.6.5 on the TypeScript corpus", () => {
         const klint = klintCounts(skipBlankLines);
         const lines = new Set([...biome.keys(), ...klint.keys()]);
         const differences: string[] = [];
+
         for (const line of [...lines].sort((a, b) => a - b)) {
           if (biome.get(line) !== klint.get(line) && !(line in ALLOWED_DIFFERENCES)) {
             differences.push(
@@ -131,6 +142,7 @@ describe("function-length matches Biome 2.6.5 on the TypeScript corpus", () => {
             );
           }
         }
+
         expect(differences).toEqual([]);
       });
     });

@@ -44,6 +44,7 @@ const resolved = resolveNativePackageBinary({
     if (packageName !== nativePackage.packageName) {
       throw new Error(`Unexpected package resolution: ${packageName}`);
     }
+
     return join(packageRoot, "package.json");
   },
 });
@@ -63,6 +64,7 @@ function fail(message: string): never {
 
 function valueAfter(args: string[], name: string): string | undefined {
   const index = args.indexOf(name);
+
   return index >= 0 ? args[index + 1] : undefined;
 }
 

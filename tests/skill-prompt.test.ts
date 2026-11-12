@@ -38,6 +38,7 @@ describe.skipIf(!PTY_AVAILABLE)("install-skill prompts on a terminal", () => {
       { encoding: "utf-8", timeout: 60_000 }
     );
     expect(result.status, result.stderr).toBe(0);
+
     return result.stdout;
   }
 

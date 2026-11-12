@@ -12,6 +12,7 @@ function git(...args: string[]): {
   stderr: string;
 } {
   const result = spawnSync("git", args, { cwd: REPO, encoding: "utf-8" });
+
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
 
@@ -20,6 +21,7 @@ function mustGit(...args: string[]): string {
   if (result.status !== 0) {
     throw new Error(`git ${args.join(" ")} failed: ${result.stderr.trim()}`);
   }
+
   return result.stdout;
 }
 
@@ -28,6 +30,7 @@ function everyListedKey(json: string): Set<string> {
     current: string[];
     retired: string[];
   };
+
   return new Set([...current, ...retired]);
 }
 
@@ -35,6 +38,7 @@ function pullRequestBase(baseBranch: string): string {
   const shallow = mustGit("rev-parse", "--is-shallow-repository").trim() === "true";
   if (shallow) mustGit("fetch", "--depth=1", "origin", baseBranch);
   else mustGit("fetch", "origin", baseBranch);
+
   return "FETCH_HEAD";
 }
 
@@ -46,6 +50,7 @@ function baseManifest(): Set<string> {
   const branch = process.env.GITHUB_BASE_REF;
   const base = branch ? pullRequestBase(branch) : localBase();
   const shown = git("show", `${base}:${MANIFEST}`);
+
   return shown.status === 0 ? everyListedKey(shown.stdout) : new Set();
 }
 

@@ -50,6 +50,7 @@ function installedLauncher({
     copyFileSync(builtBinary, join(native, "bin", binaryName));
     chmodSync(join(native, "bin", binaryName), 0o755);
   }
+
   return join(klint, "bin", "klint.js");
 }
 

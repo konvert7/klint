@@ -197,6 +197,7 @@ function fixture(options: { skipBinaryFor?: string; badNameFor?: string } = {}):
         2
       )
     );
+
     if (options.skipBinaryFor !== dir) {
       writeFileSync(join(packageDir, binaryPath), "");
     }

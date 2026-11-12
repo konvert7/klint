@@ -38,11 +38,13 @@ process.stdout.write(`staged ${rid} binary at ${destination}\n`);
 
 function resolveSource(sourceArg: string | undefined): string {
   if (sourceArg) return isAbsolute(sourceArg) ? sourceArg : resolve(root, sourceArg);
+
   return join(root, "target", "release", binaryName);
 }
 
 function valueAfter(args: string[], name: string): string | undefined {
   const index = args.indexOf(name);
+
   return index >= 0 ? args[index + 1] : undefined;
 }
 
