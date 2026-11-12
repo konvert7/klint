@@ -3,23 +3,24 @@ mod builtin;
 mod complexity;
 mod docs;
 mod function_length;
+mod scope;
 mod sonar;
+mod thresholds;
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use crate::config::RuleConfig;
 use crate::engine::{NodeIndex, Wants};
-use crate::files::{is_javascript_like_source, match_pattern, relative_path, supports_import_scan};
+use crate::files::relative_path;
 use crate::output::Violation;
 use crate::syntax::SourceLanguage;
-pub(crate) use docs::RULE_DOCS;
-
-#[derive(Clone, Copy)]
-enum FileScope {
-    JavaScriptLike,
-    AnySource,
-}
+pub(crate) use docs::{RULE_DOCS, v1_options_schema};
+use scope::{FileScope, covering_scope};
+pub(crate) use thresholds::{
+    Level, ThresholdSpec, accepts_list_form, effective_severity, old_form_message, threshold_spec,
+    uses_old_threshold_form,
+};
 
 pub(crate) enum RuleOptions {
     None,
@@ -28,9 +29,31 @@ pub(crate) enum RuleOptions {
     FunctionLength(function_length::FunctionLengthOptions),
 }
 
-pub(crate) struct ParsedOptions {
+pub(crate) struct ScopedOptions {
+    pub include: Option<Vec<String>>,
     pub options: RuleOptions,
+}
+
+pub(crate) struct ParsedOptions {
+    pub scopes: Vec<ScopedOptions>,
     pub problems: Vec<String>,
+}
+
+impl ParsedOptions {
+    pub(crate) fn single(
+        config: &RuleConfig,
+        options: RuleOptions,
+        problems: Vec<String>,
+    ) -> ParsedOptions {
+        let scope = ScopedOptions {
+            include: config.include().map(<[String]>::to_vec),
+            options,
+        };
+        ParsedOptions {
+            scopes: vec![scope],
+            problems,
+        }
+    }
 }
 
 type RuleOptionsParser = fn(&'static str, &RuleConfig) -> ParsedOptions;
@@ -56,11 +79,8 @@ impl RuleSpec {
     }
 }
 
-fn no_options(_rule: &'static str, _config: &RuleConfig) -> ParsedOptions {
-    ParsedOptions {
-        options: RuleOptions::None,
-        problems: Vec::new(),
-    }
+fn no_options(_rule: &'static str, config: &RuleConfig) -> ParsedOptions {
+    ParsedOptions::single(config, RuleOptions::None, Vec::new())
 }
 
 pub(crate) fn rule_option_problems(name: &str, config: &RuleConfig) -> Vec<String> {
@@ -89,6 +109,7 @@ pub(super) struct Report {
     pub line: usize,
     pub message: String,
     pub fix: Option<serde_json::Value>,
+    pub level: Option<Level>,
 }
 
 type RuleCheck = fn(RuleScan<'_>) -> Vec<Report>;
@@ -195,17 +216,21 @@ pub(crate) struct RulePass {
     check: RuleCheck,
     wants: RuleWants,
     severity: String,
-    applies: Vec<bool>,
-    options: RuleOptions,
+    applies: Vec<Option<usize>>,
+    options: Vec<RuleOptions>,
 }
 
 impl RulePass {
     pub(crate) fn covers(&self, file_index: usize) -> bool {
-        self.applies.get(file_index).copied().unwrap_or(false)
+        self.scope_index(file_index).is_some()
     }
 
-    pub(crate) fn options(&self) -> &RuleOptions {
-        &self.options
+    pub(crate) fn options_for(&self, file_index: usize) -> Option<&RuleOptions> {
+        self.options.get(self.scope_index(file_index)?)
+    }
+
+    fn scope_index(&self, file_index: usize) -> Option<usize> {
+        self.applies.get(file_index).copied().flatten()
     }
 
     pub(crate) fn scan(&self, file: &Path, root: &Path, scan: RuleScan<'_>) -> Vec<Violation> {
@@ -216,7 +241,9 @@ impl RulePass {
                 line: report.line,
                 rule: self.rule.to_string(),
                 message: report.message,
-                severity: self.severity.clone(),
+                severity: report
+                    .level
+                    .map_or_else(|| self.severity.clone(), |level| level.as_str().to_string()),
                 fix: report.fix,
             })
             .collect()
@@ -235,26 +262,45 @@ pub(crate) fn plan_rule_passes(
 ) -> Vec<RulePass> {
     CHECKS
         .iter()
-        .filter_map(|spec| {
-            let config = rules.get(spec.name)?;
-            let severity = config.severity();
-            if severity == "off" {
-                return None;
-            }
-
-            Some(RulePass {
-                rule: spec.name,
-                check: spec.check,
-                wants: spec.wants,
-                severity: severity.to_string(),
-                applies: files
-                    .iter()
-                    .map(|file| rule_applies_to_file(spec.scope, config, root, file))
-                    .collect(),
-                options: (spec.options)(spec.name, config).options,
-            })
-        })
+        .filter_map(|spec| plan_pass(spec, rules.get(spec.name)?, files, root))
         .collect()
+}
+
+fn plan_pass(
+    spec: &RuleSpec,
+    config: &RuleConfig,
+    files: &[PathBuf],
+    root: &Path,
+) -> Option<RulePass> {
+    let severity = effective_severity(spec.name, config);
+    if severity == "off" {
+        return None;
+    }
+
+    let parsed = (spec.options)(spec.name, config);
+    let includes = parsed
+        .scopes
+        .iter()
+        .map(|scope| scope.include.as_deref())
+        .collect::<Vec<_>>();
+    let applies = files
+        .iter()
+        .map(|file| covering_scope(spec.scope, &includes, root, file))
+        .collect();
+    let options = parsed
+        .scopes
+        .into_iter()
+        .map(|scope| scope.options)
+        .collect();
+
+    Some(RulePass {
+        rule: spec.name,
+        check: spec.check,
+        wants: spec.wants,
+        severity: severity.to_string(),
+        applies,
+        options,
+    })
 }
 
 /// The union of every configured rule's bucket needs, so the walk fills only
@@ -267,36 +313,6 @@ pub(crate) fn rule_wants(passes: &[RulePass]) -> Wants {
     }
 
     wants
-}
-
-fn rule_applies_to_file(scope: FileScope, config: &RuleConfig, root: &Path, file: &Path) -> bool {
-    if !scope_covers_file(scope, file) {
-        return false;
-    }
-
-    let Some(include) = config.include() else {
-        return true;
-    };
-
-    let rel = relative_path(root, file);
-    let includes = include
-        .iter()
-        .filter(|pattern| !pattern.starts_with('!'))
-        .collect::<Vec<_>>();
-    let excluded = include
-        .iter()
-        .filter_map(|pattern| pattern.strip_prefix('!'))
-        .any(|pattern| match_pattern(&rel, pattern));
-
-    !excluded
-        && (includes.is_empty() || includes.iter().any(|pattern| match_pattern(&rel, pattern)))
-}
-
-fn scope_covers_file(scope: FileScope, file: &Path) -> bool {
-    match scope {
-        FileScope::JavaScriptLike => is_javascript_like_source(file),
-        FileScope::AnySource => supports_import_scan(file),
-    }
 }
 
 fn line_fix(
@@ -358,56 +374,8 @@ fn line_end_byte(content: &str, byte: usize) -> usize {
 mod tests {
     use super::*;
 
-    fn project_root() -> &'static Path {
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-    }
-
     fn rule_config(yaml: &str) -> RuleConfig {
         serde_yaml::from_str(yaml).expect("valid rule config")
-    }
-
-    #[test]
-    fn javascript_scope_skips_a_python_file() {
-        let root = project_root();
-        assert!(!rule_applies_to_file(
-            FileScope::JavaScriptLike,
-            &rule_config("error"),
-            root,
-            &root.join("src/a.py"),
-        ));
-    }
-
-    #[test]
-    fn any_source_scope_accepts_a_python_file() {
-        let root = project_root();
-        assert!(rule_applies_to_file(
-            FileScope::AnySource,
-            &rule_config("error"),
-            root,
-            &root.join("src/a.py"),
-        ));
-    }
-
-    #[test]
-    fn exclude_pattern_removes_a_file_matched_by_an_include_glob() {
-        let root = project_root();
-        assert!(!rule_applies_to_file(
-            FileScope::AnySource,
-            &rule_config("{include: [\"src/keep/**\", \"!src/keep/skip/**\"]}"),
-            root,
-            &root.join("src/keep/skip/a.ts"),
-        ));
-    }
-
-    #[test]
-    fn include_glob_accepts_a_matching_rust_file() {
-        let root = project_root();
-        assert!(rule_applies_to_file(
-            FileScope::AnySource,
-            &rule_config("{include: [\"src/**\"]}"),
-            root,
-            &root.join("src/a.rs"),
-        ));
     }
 
     #[test]

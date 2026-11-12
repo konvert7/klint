@@ -57,6 +57,7 @@ fn reports(
             line: finding.line,
             message: message(finding.keyword),
             fix: insert_blank_line_fix(content, finding.insertion_line),
+            level: None,
         })
         .collect()
 }

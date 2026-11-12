@@ -2,8 +2,8 @@ mod options;
 mod schema_shapes;
 
 pub(crate) use options::FunctionLengthOptions;
-pub(super) use options::function_length_options;
-pub(super) use schema_shapes::function_length_schema;
+pub(super) use options::{THRESHOLD_SPEC, function_length_options};
+pub(super) use schema_shapes::{function_length_schema, function_length_v1_schema};
 
 use super::{Report, RuleOptions, RuleScan};
 use crate::syntax::{FunctionLength, function_name};
@@ -26,14 +26,16 @@ pub(super) fn run_function_length(scan: RuleScan<'_>) -> Vec<Report> {
         .into_iter()
         .filter_map(|length| {
             let count = counted_lines(&length, options.skip_blank_lines);
-            (count > options.max).then(|| Report {
+            let (level, limit) = options.limits.exceeded_by(count)?;
+            Some(Report {
                 line: length.node.start_position().row + 1,
                 message: length_message(
                     &function_name(length.node, scan.source, scan.language),
                     count,
-                    options.max,
+                    limit,
                 ),
                 fix: None,
+                level: Some(level),
             })
         })
         .collect()

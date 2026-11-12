@@ -2,8 +2,8 @@ mod options;
 mod schema_shapes;
 
 pub(crate) use options::ComplexityOptions;
-pub(super) use options::{cognitive_complexity_options, parse_max};
-pub(super) use schema_shapes::cognitive_complexity_schema;
+pub(super) use options::{THRESHOLD_SPEC, cognitive_complexity_options};
+pub(super) use schema_shapes::{cognitive_complexity_schema, cognitive_complexity_v1_schema};
 
 use super::{Report, RuleOptions, RuleScan};
 use crate::syntax::{function_name, sort_by_position};
@@ -21,15 +21,18 @@ pub(super) fn run_cognitive_complexity(scan: RuleScan<'_>) -> Vec<Report> {
     sort_by_position(&mut scores);
     scores
         .into_iter()
-        .filter(|function| function.score > options.max)
-        .map(|function| Report {
-            line: function.node.start_position().row + 1,
-            message: complexity_message(
-                &function_name(function.node, scan.source, scan.language),
-                function.score,
-                options.max,
-            ),
-            fix: None,
+        .filter_map(|function| {
+            let (level, limit) = options.limits.exceeded_by(function.score)?;
+            Some(Report {
+                line: function.node.start_position().row + 1,
+                message: complexity_message(
+                    &function_name(function.node, scan.source, scan.language),
+                    function.score,
+                    limit,
+                ),
+                fix: None,
+                level: Some(level),
+            })
         })
         .collect()
 }

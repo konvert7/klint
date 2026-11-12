@@ -60,8 +60,11 @@ pub(crate) enum Severity {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum RuleConfig {
     Severity(#[schemars(with = "Severity")] String),
+    #[schemars(skip)]
+    List(Vec<serde_json::Value>),
     #[schemars(
         extend("additionalProperties" = false),
         description = "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
@@ -83,6 +86,16 @@ pub(crate) enum RuleConfig {
         #[serde(rename = "skipBlankLines")]
         #[schemars(skip)]
         skip_blank_lines: Option<serde_json::Value>,
+        #[schemars(skip)]
+        warn: Option<serde_json::Value>,
+        #[schemars(skip)]
+        error: Option<serde_json::Value>,
+        #[serde(flatten)]
+        #[schemars(skip)]
+        other: BTreeMap<String, serde_json::Value>,
+        #[serde(skip)]
+        #[schemars(skip)]
+        read_as_v1: bool,
     },
 }
 
@@ -90,6 +103,7 @@ impl RuleConfig {
     pub(crate) fn statements(&self) -> Option<&serde_json::Value> {
         match self {
             RuleConfig::Severity(_) => None,
+            RuleConfig::List(_) => None,
             RuleConfig::Options { statements, .. } => statements.as_ref(),
         }
     }
@@ -97,6 +111,7 @@ impl RuleConfig {
     pub(crate) fn allow_setup(&self) -> Option<&serde_json::Value> {
         match self {
             RuleConfig::Severity(_) => None,
+            RuleConfig::List(_) => None,
             RuleConfig::Options { allow_setup, .. } => allow_setup.as_ref(),
         }
     }
@@ -104,6 +119,7 @@ impl RuleConfig {
     pub(crate) fn max(&self) -> Option<&serde_json::Value> {
         match self {
             RuleConfig::Severity(_) => None,
+            RuleConfig::List(_) => None,
             RuleConfig::Options { max, .. } => max.as_ref(),
         }
     }
@@ -111,6 +127,7 @@ impl RuleConfig {
     pub(crate) fn skip_blank_lines(&self) -> Option<&serde_json::Value> {
         match self {
             RuleConfig::Severity(_) => None,
+            RuleConfig::List(_) => None,
             RuleConfig::Options {
                 skip_blank_lines, ..
             } => skip_blank_lines.as_ref(),
@@ -120,6 +137,8 @@ impl RuleConfig {
     pub(crate) fn severity(&self) -> &str {
         match self {
             RuleConfig::Severity(value) => value,
+            RuleConfig::List(items) if items.is_empty() => "off",
+            RuleConfig::List(_) => "error",
             RuleConfig::Options { severity, .. } => severity.as_deref().unwrap_or("error"),
         }
     }
@@ -127,8 +146,91 @@ impl RuleConfig {
     pub(crate) fn include(&self) -> Option<&[String]> {
         match self {
             RuleConfig::Severity(_) => None,
+            RuleConfig::List(_) => None,
             RuleConfig::Options { include, .. } => include.as_deref(),
         }
+    }
+
+    pub(crate) fn warn(&self) -> Option<&serde_json::Value> {
+        match self {
+            RuleConfig::Severity(_) => None,
+            RuleConfig::List(_) => None,
+            RuleConfig::Options { warn, .. } => warn.as_ref(),
+        }
+    }
+
+    pub(crate) fn error(&self) -> Option<&serde_json::Value> {
+        match self {
+            RuleConfig::Severity(_) => None,
+            RuleConfig::List(_) => None,
+            RuleConfig::Options { error, .. } => error.as_ref(),
+        }
+    }
+
+    pub(crate) fn written_severity(&self) -> Option<&str> {
+        match self {
+            RuleConfig::Severity(_) => None,
+            RuleConfig::List(_) => None,
+            RuleConfig::Options { severity, .. } => severity.as_deref(),
+        }
+    }
+
+    pub(crate) fn option_keys(&self) -> Vec<&str> {
+        let RuleConfig::Options {
+            severity,
+            include,
+            statements,
+            allow_setup,
+            max,
+            skip_blank_lines,
+            warn,
+            error,
+            other,
+            ..
+        } = self
+        else {
+            return Vec::new();
+        };
+        let fixed = [
+            ("severity", severity.is_some()),
+            ("include", include.is_some()),
+            ("statements", statements.is_some()),
+            ("allowSetup", allow_setup.is_some()),
+            ("max", max.is_some()),
+            ("skipBlankLines", skip_blank_lines.is_some()),
+            ("warn", warn.is_some()),
+            ("error", error.is_some()),
+        ];
+        fixed
+            .into_iter()
+            .filter(|(_, present)| *present)
+            .map(|(key, _)| key)
+            .chain(other.keys().map(String::as_str))
+            .collect()
+    }
+
+    pub(crate) fn list_items(&self) -> Option<&[serde_json::Value]> {
+        match self {
+            RuleConfig::List(items) => Some(items.as_slice()),
+            RuleConfig::Severity(_) => None,
+            RuleConfig::Options { .. } => None,
+        }
+    }
+
+    pub(crate) fn read_as_v1(&self) -> bool {
+        match self {
+            RuleConfig::Severity(_) => false,
+            RuleConfig::List(_) => false,
+            RuleConfig::Options { read_as_v1, .. } => *read_as_v1,
+        }
+    }
+
+    pub(crate) fn into_v1(mut self) -> RuleConfig {
+        if let RuleConfig::Options { read_as_v1, .. } = &mut self {
+            *read_as_v1 = true;
+        }
+
+        self
     }
 }
 
@@ -260,5 +362,53 @@ mod tests {
     #[test]
     fn options_without_skip_blank_lines_return_none() {
         assert_eq!(rule_config("{max: 3}").skip_blank_lines(), None);
+    }
+
+    #[test]
+    fn bare_error_has_no_option_keys_and_error_severity() {
+        let config = rule_config("error");
+        assert!(config.option_keys().is_empty());
+        assert_eq!(config.severity(), "error");
+        assert_eq!(config.list_items(), None);
+        assert_eq!(config.written_severity(), None);
+    }
+
+    #[test]
+    fn max_and_severity_keys_are_listed_in_fixed_order() {
+        let config = rule_config("{max: 3, severity: warn}");
+        assert_eq!(config.option_keys(), vec!["severity", "max"]);
+        assert_eq!(config.severity(), "warn");
+        assert_eq!(config.list_items(), None);
+        assert_eq!(config.written_severity(), Some("warn"));
+    }
+
+    #[test]
+    fn unknown_keys_are_listed_after_the_known_ones() {
+        let config = rule_config("{warn: 5, bogus: 1}");
+        assert_eq!(config.option_keys(), vec!["warn", "bogus"]);
+        assert_eq!(config.severity(), "error");
+        assert_eq!(config.list_items(), None);
+        assert_eq!(config.written_severity(), None);
+    }
+
+    #[test]
+    fn empty_list_is_off_with_no_items_to_list() {
+        let config = rule_config("[]");
+        assert!(config.option_keys().is_empty());
+        assert_eq!(config.severity(), "off");
+        assert_eq!(config.list_items(), Some(&[][..]));
+        assert_eq!(config.written_severity(), None);
+    }
+
+    #[test]
+    fn list_with_an_entry_is_error_and_exposes_its_items() {
+        let config = rule_config("[{error: 15}]");
+        assert!(config.option_keys().is_empty());
+        assert_eq!(config.severity(), "error");
+        assert_eq!(
+            config.list_items(),
+            Some(&[serde_json::json!({"error": 15})][..])
+        );
+        assert_eq!(config.written_severity(), None);
     }
 }

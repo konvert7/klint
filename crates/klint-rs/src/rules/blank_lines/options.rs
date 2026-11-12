@@ -26,13 +26,14 @@ pub(in crate::rules) fn blank_line_options(
             .allow_setup()
             .and_then(Value::as_bool)
             .unwrap_or(true);
-    ParsedOptions {
-        options: RuleOptions::BlankLines(BlankLineOptions {
+    ParsedOptions::single(
+        config,
+        RuleOptions::BlankLines(BlankLineOptions {
             statements,
             allow_setup,
         }),
         problems,
-    }
+    )
 }
 
 fn parse_statements(
@@ -89,7 +90,10 @@ mod tests {
     fn parse_options(rule: &'static str, yaml: &str) -> Parsed {
         let config: RuleConfig = serde_yaml::from_str(yaml).expect("valid rule config");
         let parsed = blank_line_options(rule, &config);
-        let RuleOptions::BlankLines(options) = parsed.options else {
+        let [scope] = parsed.scopes.as_slice() else {
+            panic!("one blank-line scope expected");
+        };
+        let RuleOptions::BlankLines(options) = &scope.options else {
             panic!("blank-line options expected");
         };
         Parsed {
