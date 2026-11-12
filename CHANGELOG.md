@@ -1,3 +1,12 @@
+## [1.4.1](https://github.com/konvert7/klint/compare/v1.4.0...v1.4.1) (2026-11-12)
+
+
+### Bug Fixes
+
+* **complexity:** score cognitive complexity like SonarJS ([3c2293d](https://github.com/konvert7/klint/commit/3c2293d1a05a3d5899053ac9fde6ae29ae05d5ab))
+* **tests:** keep sonarjs scratch dir on disk under target, not /tmp ([fd56cf9](https://github.com/konvert7/klint/commit/fd56cf91290d7148462e486825797784e993a847))
+* **tests:** resolve sonarjs scratch dir to its real path for eslint on macOS ([a48721b](https://github.com/konvert7/klint/commit/a48721b34e6ef82d876c44ba3a5693b668320db3))
+
 # [1.4.0](https://github.com/konvert7/klint/compare/v1.3.1...v1.4.0) (2026-11-12)
 
 
