@@ -256,10 +256,12 @@ fn committed_schema_describes_the_rule_options() {
         .expect("options object");
     assert_eq!(options["additionalProperties"], false);
     let props = &options["properties"];
-    assert!(props.get("severity").is_some() && props.get("include").is_some());
-    assert_eq!(props["max"]["type"], "integer");
-    assert_eq!(props["max"]["minimum"], 1);
-    assert_eq!(props["max"]["default"], 50);
+    assert!(props.get("include").is_some());
+    assert_eq!(props["warn"]["type"], "integer");
+    assert_eq!(props["warn"]["minimum"], 1);
+    assert_eq!(props["error"]["type"], "integer");
+    assert_eq!(props["error"]["minimum"], 1);
+    assert!(props.get("max").is_none() && props.get("severity").is_none());
     assert_eq!(props["skipBlankLines"]["type"], "boolean");
     assert_eq!(props["skipBlankLines"]["default"], false);
     let yaml = committed("klint.schema.yaml");

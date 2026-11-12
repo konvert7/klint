@@ -6,7 +6,7 @@ use std::fs::{read, read_to_string, write};
 
 const V1: &str = "# yaml-language-server: $schema=./klint.schema.json\n# top comment\n\nplugins: [sonar]\ninclude: [\"src\"]\n# about rules\nrules:\n  # why\n  no-string-match: error   # trailing\n  sonar/prefer-string-raw: off\n  blank-line-before-control-flow: {statements: [if, return]}\n  # block\n  cognitive-complexity:\n    max: 10\n    severity: warn\n  sonar/prefer-at: warn\n\narch: {}\n";
 
-const V2: &str = "# yaml-language-server: $schema=./klint.schema.json\n# top comment\n\ninclude: [\"src\"]\n# about rules\nrules:\n  recommended: true\n  core:\n    # why\n    no-string-match: error   # trailing\n    blank-line-before-control-flow: {statements: [if, return]}\n    # block\n    cognitive-complexity:\n      max: 10\n      severity: warn\n  sonar:\n    prefer-string-raw: off\n    prefer-at: warn\n\narch: {}\n";
+const V2: &str = "# yaml-language-server: $schema=./klint.schema.json\n# top comment\n\ninclude: [\"src\"]\n# about rules\nrules:\n  recommended: true\n  core:\n    # why\n    no-string-match: error   # trailing\n    blank-line-before-control-flow: {statements: [if, return]}\n    # block\n    cognitive-complexity:\n      warn: 10\n  sonar:\n    prefer-string-raw: off\n    prefer-at: warn\n\narch: {}\n";
 
 fn yaml(config: &str) -> Project {
     project("klint.yaml", config.as_bytes())
