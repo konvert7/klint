@@ -18,12 +18,12 @@
           "file": "src/subject.ts",
           "line": 1,
           "rule": "no-string-match",
-          "message": "Use RegExp.exec() instead of String.match() for non-global regexes — use new RegExp(/a/).exec(\"abc\") instead.",
+          "message": "Use RegExp.exec() instead of String.match() for non-global regexes — use /a/.exec(\"abc\") instead.",
           "severity": "error",
           "fix": {
             "startLine": 1,
             "endLine": 1,
-            "replacement": "const hit = new RegExp(/a/).exec(\"abc\");"
+            "replacement": "const hit = /a/.exec(\"abc\");"
           }
         },
         {
@@ -92,12 +92,12 @@
           "file": "src/subject.ts",
           "line": 1,
           "rule": "no-string-match",
-          "message": "Use RegExp.exec() instead of String.match() for non-global regexes — use new RegExp(/a/i).exec(\"abc\") instead.",
+          "message": "Use RegExp.exec() instead of String.match() for non-global regexes — use /a/i.exec(\"abc\") instead.",
           "severity": "warn",
           "fix": {
             "startLine": 1,
             "endLine": 1,
-            "replacement": "const hit = new RegExp(/a/i).exec(\"abc\");"
+            "replacement": "const hit = /a/i.exec(\"abc\");"
           }
         },
         {
@@ -1789,24 +1789,24 @@
           "file": "src/a.mjs",
           "line": 1,
           "rule": "no-string-match",
-          "message": "Use RegExp.exec() instead of String.match() for non-global regexes — use new RegExp(/a/).exec(\"abc\") instead.",
+          "message": "Use RegExp.exec() instead of String.match() for non-global regexes — use /a/.exec(\"abc\") instead.",
           "severity": "error",
           "fix": {
             "startLine": 1,
             "endLine": 1,
-            "replacement": "const hit = new RegExp(/a/).exec(\"abc\");"
+            "replacement": "const hit = /a/.exec(\"abc\");"
           }
         },
         {
           "file": "src/b.cjs",
           "line": 1,
           "rule": "no-string-match",
-          "message": "Use RegExp.exec() instead of String.match() for non-global regexes — use new RegExp(/a/).exec(\"abc\") instead.",
+          "message": "Use RegExp.exec() instead of String.match() for non-global regexes — use /a/.exec(\"abc\") instead.",
           "severity": "error",
           "fix": {
             "startLine": 1,
             "endLine": 1,
-            "replacement": "const hit = new RegExp(/a/).exec(\"abc\");"
+            "replacement": "const hit = /a/.exec(\"abc\");"
           }
         },
         {
