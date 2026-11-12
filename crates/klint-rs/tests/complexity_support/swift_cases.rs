@@ -164,6 +164,9 @@ func r2(_ a: Bool, _ b: Bool, _ c: Bool) -> Bool {
 func r3(_ a: Bool, _ b: Bool, _ c: Bool) -> Bool {
     return a && (b || c) && a
 }
+func r7(_ a: Bool, _ b: Bool, _ c: Bool) -> Bool {
+    return a && (b && c)
+}
 func r4(_ a: Int?, _ b: Int?, _ c: Int) -> Int {
     if a == nil {
         g()
@@ -182,10 +185,11 @@ func r6(_ a: Bool, _ b: Bool, _ c: Bool, _ d: Bool) -> Bool {
         expected: &[
             ("func r1", "r1", 2),
             ("func r2", "r2", 2),
-            ("func r3", "r3", 3),
+            ("func r3", "r3", 2),
             ("func r4", "r4", 2),
             ("func r5", "r5", 2),
             ("func r6", "r6", 2),
+            ("func r7", "r7", 2),
         ],
     },
     Case {

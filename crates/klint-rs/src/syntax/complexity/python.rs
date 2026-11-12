@@ -32,7 +32,7 @@ impl ComplexityGrammar for Python {
             "else_clause" if is_loop_else(parent) => Construct::LoopElse,
             "else_clause" => Construct::Increment,
             "if_clause" if is_comprehension(parent) => Construct::Increment,
-            "finally_clause" => Construct::NestingOnly,
+            "finally_clause" => Construct::Increment,
             _ => Construct::Plain,
         }
     }
@@ -47,10 +47,6 @@ impl ComplexityGrammar for Python {
             "or" => Some(BooleanOperator::Or),
             _ => None,
         }
-    }
-
-    fn is_parenthesized(&self, node: Node<'_>) -> bool {
-        node.kind() == "parenthesized_expression"
     }
 
     fn declared_name(&self, function: Node<'_>, source: &[u8]) -> Option<String> {

@@ -37,7 +37,7 @@ impl ComplexityGrammar for CSharp {
             | "catch_clause" => Construct::Nesting,
             "else" if is_else_of_if(parent) => Construct::Increment,
             "goto_statement" | "when_clause" => Construct::Increment,
-            "finally_clause" => Construct::NestingOnly,
+            "finally_clause" => Construct::Increment,
             _ => Construct::Plain,
         }
     }
@@ -54,13 +54,6 @@ impl ComplexityGrammar for CSharp {
             "??" => Some(BooleanOperator::Nullish),
             _ => None,
         }
-    }
-
-    fn is_parenthesized(&self, node: Node<'_>) -> bool {
-        matches!(
-            node.kind(),
-            "parenthesized_expression" | "parenthesized_pattern"
-        )
     }
 
     fn declared_name(&self, function: Node<'_>, source: &[u8]) -> Option<String> {

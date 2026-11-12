@@ -132,9 +132,15 @@ pub const CASES: &[Case] = &[
         }
         return false;
     }
+    bool J(int a) {
+        if (a is 1 or (2 or 3)) {
+            return true;
+        }
+        return false;
+    }
 }
 "#,
-        expected: &[("bool F", "F", 2), ("bool H", "H", 2)],
+        expected: &[("bool F", "F", 2), ("bool H", "H", 2), ("bool J", "J", 3)],
     },
     Case {
         name: "goto",
@@ -187,6 +193,33 @@ pub const CASES: &[Case] = &[
         expected: &[("void F", "F", 5)],
     },
     Case {
+        name: "finally adds one flat and its body is not nested",
+        file: "a.cs",
+        source: r#"class C {
+    void E1(bool a) {
+        if (a) {
+            G();
+        }
+        try {
+            G();
+        } finally {
+        }
+    }
+    void E2(bool a, bool b) {
+        try {
+            G();
+        } finally {
+            if (a) {
+                if (b) {
+                }
+            }
+        }
+    }
+}
+"#,
+        expected: &[("void E1", "E1", 2), ("void E2", "E2", 4)],
+    },
+    Case {
         name: "runs of boolean operators",
         file: "a.cs",
         source: r#"class C {
@@ -198,6 +231,9 @@ pub const CASES: &[Case] = &[
     }
     bool R3(bool a, bool b, bool c) {
         return a && (b || c) && a;
+    }
+    bool R6(bool a, bool b, bool c) {
+        return a && (b && c);
     }
     object R4(object a, object b, object c) {
         if (a == null) {
@@ -215,9 +251,10 @@ pub const CASES: &[Case] = &[
         expected: &[
             ("bool R1", "R1", 2),
             ("bool R2", "R2", 2),
-            ("bool R3", "R3", 3),
+            ("bool R3", "R3", 2),
             ("object R4", "R4", 2),
             ("void R5", "R5", 2),
+            ("bool R6", "R6", 2),
         ],
     },
     Case {

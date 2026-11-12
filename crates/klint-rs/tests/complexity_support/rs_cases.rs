@@ -174,6 +174,9 @@ fn r2(a: bool, b: bool, c: bool) -> bool {
 fn r3(a: bool, b: bool, c: bool) -> bool {
     a && (b || c) && a
 }
+fn r5(a: bool, b: bool, c: bool) -> bool {
+    a && (b && c)
+}
 fn r4(a: bool, b: bool) {
     if !a && !b {
         g();
@@ -183,8 +186,9 @@ fn r4(a: bool, b: bool) {
         expected: &[
             ("fn r1", "r1", 2),
             ("fn r2", "r2", 2),
-            ("fn r3", "r3", 3),
+            ("fn r3", "r3", 2),
             ("fn r4", "r4", 2),
+            ("fn r5", "r5", 2),
         ],
     },
     Case {

@@ -123,7 +123,7 @@ export const CORPUS: CorpusEntry[] = [
   },
   {
     row: "no-increment",
-    code: "function e26(a) {\n  if (a?.b) {\n    return e26(a.c);\n  }\n  if (a) {\n    throw a;\n  }\n  try {\n    g();\n  } finally {\n  }\n}\n",
+    code: "function e26(a) {\n  if (a?.b) {\n    return e26(a.c);\n  }\n  if (a) {\n    throw a;\n  }\n}\n",
   },
   {
     row: "nested-function",
@@ -162,5 +162,17 @@ export const CORPUS: CorpusEntry[] = [
     row: "nested-function",
     offset: 1,
     code: "const e35 = {\n  m(a) {\n    if (a) {\n      if (a) {\n        g();\n      }\n    }\n  },\n};\n",
+  },
+  {
+    row: "finally",
+    code: "function e36(a) {\n  if (a) {\n    g();\n  }\n  try {\n    g();\n  } finally {\n  }\n}\n",
+  },
+  {
+    row: "finally",
+    code: "function e37(a, b) {\n  try {\n    g();\n  } finally {\n    if (a) {\n      if (b) {\n      }\n    }\n  }\n}\n",
+  },
+  {
+    row: "boolean-run",
+    code: "function e38(a, b, c) {\n  return a && (b && c);\n}\n",
   },
 ];

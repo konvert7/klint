@@ -183,6 +183,9 @@ function r2(a, b, c) {
 function r3(a, b, c) {
   return a && (b || c) && a;
 }
+function r6(a, b, c) {
+  return a && (b && c);
+}
 function r4(a, b, c) {
   if (a) {
     g();
@@ -196,9 +199,10 @@ function r5(a, b, c) {
         expected: &[
             ("function r1", "r1", 2),
             ("function r2", "r2", 2),
-            ("function r3", "r3", 3),
+            ("function r3", "r3", 2),
             ("function r4", "r4", 2),
             ("function r5", "r5", 2),
+            ("function r6", "r6", 2),
         ],
     },
     Case {
@@ -239,7 +243,32 @@ function n2(a, b) {
   }
 }
 "#,
-        expected: &[("function f", "f", 2)],
+        expected: &[("function f", "f", 3)],
+    },
+    Case {
+        name: "finally adds one flat and its body is not nested",
+        file: "a.ts",
+        source: r#"function e1(a) {
+  if (a) {
+    g();
+  }
+  try {
+    g();
+  } finally {
+  }
+}
+function e2(a, b) {
+  try {
+    g();
+  } finally {
+    if (a) {
+      if (b) {
+      }
+    }
+  }
+}
+"#,
+        expected: &[("function e1", "e1", 2), ("function e2", "e2", 4)],
     },
     Case {
         name: "arrow directly in a body starts at nesting one",

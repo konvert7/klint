@@ -60,12 +60,6 @@ impl ComplexityGrammar for Swift {
         }
     }
 
-    fn is_parenthesized(&self, node: Node<'_>) -> bool {
-        node.kind() == "tuple_expression"
-            && node.named_child_count() == 1
-            && node.child_by_field_name("name").is_none()
-    }
-
     fn declared_name(&self, function: Node<'_>, source: &[u8]) -> Option<String> {
         match function.kind() {
             "function_declaration" => field_text(function, "name", source),

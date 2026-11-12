@@ -1,21 +1,18 @@
 use tree_sitter::{Node, TreeCursor};
 
 use super::FunctionScore;
-use super::booleans::boolean_runs;
-use super::grammar::{ComplexityGrammar, Construct};
+use super::grammar::{BooleanOperator, ComplexityGrammar, Construct};
 
 #[derive(Clone, Copy)]
 struct Context<'a> {
     nesting: u32,
     frame: Option<usize>,
-    boolean_parent: bool,
     parent: Option<Node<'a>>,
 }
 
 const ROOT_CONTEXT: Context<'static> = Context {
     nesting: 0,
     frame: None,
-    boolean_parent: false,
     parent: None,
 };
 
@@ -61,14 +58,14 @@ fn visit<'a>(
 ) -> Context<'a> {
     let construct = construct_of(node, context.parent, grammar);
     if construct == Construct::Function {
-        return enter_function(node, context, grammar, scores);
+        return enter_function(node, context, scores);
     }
     let Some(frame) = context.frame else {
-        return child_context(node, context, grammar, 0, None);
+        return child_context(node, 0, None);
     };
     let (points, nesting) = score_step(construct, context.nesting);
-    scores[frame].score += points + boolean_points(node, context, grammar);
-    child_context(node, context, grammar, nesting, Some(frame))
+    scores[frame].score += points + boolean_points(node, context.parent, grammar);
+    child_context(node, nesting, Some(frame))
 }
 
 fn construct_of(
@@ -86,7 +83,6 @@ fn construct_of(
 fn enter_function<'a>(
     node: Node<'a>,
     context: Context<'a>,
-    grammar: &dyn ComplexityGrammar,
     scores: &mut Vec<FunctionScore<'a>>,
 ) -> Context<'a> {
     scores.push(FunctionScore { node, score: 0 });
@@ -95,7 +91,7 @@ fn enter_function<'a>(
     } else {
         context.nesting + 1
     };
-    child_context(node, context, grammar, nesting, Some(scores.len() - 1))
+    child_context(node, nesting, Some(scores.len() - 1))
 }
 
 fn score_step(construct: Construct, nesting: u32) -> (u32, u32) {
@@ -103,33 +99,41 @@ fn score_step(construct: Construct, nesting: u32) -> (u32, u32) {
         Construct::Plain | Construct::Function => (0, nesting),
         Construct::Nesting => (1 + nesting, nesting + 1),
         Construct::ChainedIf => (nesting, nesting),
-        Construct::NestingOnly => (0, nesting + 1),
         Construct::Increment => (1, nesting),
         Construct::LoopElse => (1, nesting.saturating_sub(1)),
     }
 }
 
-fn boolean_points(node: Node<'_>, context: Context<'_>, grammar: &dyn ComplexityGrammar) -> u32 {
-    if !context.boolean_parent && grammar.is_boolean_expression(node) {
-        boolean_runs(node, grammar)
-    } else {
-        0
-    }
+fn boolean_points(
+    node: Node<'_>,
+    parent: Option<Node<'_>>,
+    grammar: &dyn ComplexityGrammar,
+) -> u32 {
+    u32::from(grammar.is_boolean_expression(node) && !continues_run(node, parent, grammar))
 }
 
-fn child_context<'a>(
-    node: Node<'a>,
-    context: Context<'a>,
+fn continues_run(
+    node: Node<'_>,
+    parent: Option<Node<'_>>,
     grammar: &dyn ComplexityGrammar,
-    nesting: u32,
-    frame: Option<usize>,
-) -> Context<'a> {
-    let boolean_parent = grammar.is_boolean_expression(node)
-        || (grammar.is_parenthesized(node) && context.boolean_parent);
+) -> bool {
+    parent.is_some_and(|parent| {
+        grammar.is_boolean_expression(parent)
+            && boolean_operator_of(parent, grammar) == boolean_operator_of(node, grammar)
+    })
+}
+
+fn boolean_operator_of(node: Node<'_>, grammar: &dyn ComplexityGrammar) -> Option<BooleanOperator> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .filter(|child| !child.is_named())
+        .find_map(|child| grammar.boolean_operator(child.kind()))
+}
+
+fn child_context(node: Node<'_>, nesting: u32, frame: Option<usize>) -> Context<'_> {
     Context {
         nesting,
         frame,
-        boolean_parent,
         parent: Some(node),
     }
 }
@@ -142,7 +146,6 @@ mod tests {
     fn each_construct_adds_its_points_and_sets_the_children_nesting() {
         assert_eq!(score_step(Construct::Nesting, 1), (2, 2));
         assert_eq!(score_step(Construct::ChainedIf, 2), (2, 2));
-        assert_eq!(score_step(Construct::NestingOnly, 0), (0, 1));
         assert_eq!(score_step(Construct::Increment, 3), (1, 3));
         assert_eq!(score_step(Construct::LoopElse, 1), (1, 0));
         assert_eq!(score_step(Construct::Plain, 4), (0, 4));

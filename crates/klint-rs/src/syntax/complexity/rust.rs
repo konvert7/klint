@@ -47,10 +47,6 @@ impl ComplexityGrammar for Rust {
         }
     }
 
-    fn is_parenthesized(&self, node: Node<'_>) -> bool {
-        node.kind() == "parenthesized_expression"
-    }
-
     fn declared_name(&self, function: Node<'_>, source: &[u8]) -> Option<String> {
         field_text(function, "name", source)
     }

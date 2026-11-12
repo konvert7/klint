@@ -17,7 +17,6 @@ pub(super) trait ComplexityGrammar: Sync {
     fn construct(&self, node: Node<'_>, parent: Option<Node<'_>>) -> Construct;
     fn is_boolean_expression(&self, node: Node<'_>) -> bool;
     fn boolean_operator(&self, token_kind: &str) -> Option<BooleanOperator>;
-    fn is_parenthesized(&self, node: Node<'_>) -> bool;
     fn declared_name(&self, function: Node<'_>, source: &[u8]) -> Option<String>;
     fn assigned_name(&self, function: Node<'_>, source: &[u8]) -> Option<String>;
 }
@@ -28,7 +27,6 @@ pub(super) enum Construct {
     Function,
     Nesting,
     ChainedIf,
-    NestingOnly,
     Increment,
     LoopElse,
 }

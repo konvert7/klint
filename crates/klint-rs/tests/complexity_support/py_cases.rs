@@ -87,6 +87,28 @@ pub const CASES: &[Case] = &[
         expected: &[("def f", "f", 5)],
     },
     Case {
+        name: "finally adds one flat and its body is not nested",
+        file: "a.py",
+        source: r#"def e1(a):
+    if a:
+        g()
+    try:
+        g()
+    finally:
+        pass
+
+
+def e2(a, b):
+    try:
+        g()
+    finally:
+        if a:
+            if b:
+                pass
+"#,
+        expected: &[("def e1", "e1", 2), ("def e2", "e2", 4)],
+    },
+    Case {
         name: "and or runs and negation",
         file: "a.py",
         source: r#"def r1(a, b, c, d):
@@ -101,6 +123,10 @@ def r3(a, b, c):
     return a and (b or c) and a
 
 
+def r5(a, b, c):
+    return a and (b and c)
+
+
 def r4(a, b):
     if not a and not b:
         g()
@@ -108,8 +134,9 @@ def r4(a, b):
         expected: &[
             ("def r1", "r1", 2),
             ("def r2", "r2", 2),
-            ("def r3", "r3", 3),
+            ("def r3", "r3", 2),
             ("def r4", "r4", 2),
+            ("def r5", "r5", 2),
         ],
     },
     Case {
