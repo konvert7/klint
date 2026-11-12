@@ -61,7 +61,7 @@ export default [{
   files: ["**/*.ts", "**/*.tsx"],
   languageOptions: { parser },
   plugins: { sonarjs },
-  rules: { "sonarjs/cognitive-complexity": ["error", 0] },
+  rules: { "sonarjs/cognitive-complexity": ["error", 1] },
 }];
 `
   );

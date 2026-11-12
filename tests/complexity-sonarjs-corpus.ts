@@ -76,7 +76,7 @@ export const CORPUS: CorpusEntry[] = [
   },
   {
     row: "finally",
-    code: "function e14(a) {\n  try {\n    g();\n  } finally {\n    if (a) {\n      g();\n    }\n  }\n}\n",
+    code: "function e14(a) {\n  if (x) {\n  }\n  try {\n    g();\n  } finally {\n    if (a) {\n      g();\n    }\n  }\n}\n",
   },
   {
     row: "catch",
@@ -96,11 +96,11 @@ export const CORPUS: CorpusEntry[] = [
   },
   {
     row: "boolean-run",
-    code: "function e19(a, b, c, d) {\n  return a && b && c || d;\n}\n",
+    code: "function e19(a, b, c, d) {\n  if (x) {\n  }\n  return a && b && c || d;\n}\n",
   },
   {
     row: "boolean-run",
-    code: "function e20(a, b, c) {\n  return a && (b || c);\n}\n",
+    code: "function e20(a, b, c) {\n  if (x) {\n  }\n  return a && (b || c);\n}\n",
   },
   {
     row: "boolean-run",
@@ -108,11 +108,11 @@ export const CORPUS: CorpusEntry[] = [
   },
   {
     row: "boolean-run",
-    code: "function e22(a, b, c) {\n  if (a) {\n    g();\n  }\n  return a ?? b ?? c;\n}\n",
+    code: "function e22(a, b, c) {\n  if (x) {\n  }\n  if (a) {\n    g();\n  }\n  return a ?? b ?? c;\n}\n",
   },
   {
     row: "boolean-run",
-    code: "function e23(a, b, c) {\n  return (a ?? b) && c;\n}\n",
+    code: "function e23(a, b, c) {\n  if (x) {\n  }\n  return (a ?? b) && c;\n}\n",
   },
   {
     row: "no-increment",
@@ -166,7 +166,7 @@ export const CORPUS: CorpusEntry[] = [
   },
   {
     row: "finally",
-    code: "function e36(a) {\n  if (a) {\n    g();\n  }\n  try {\n    g();\n  } finally {\n  }\n}\n",
+    code: "function e36(a) {\n  if (x) {\n  }\n  if (a) {\n    g();\n  }\n  try {\n    g();\n  } finally {\n  }\n}\n",
   },
   {
     row: "finally",
@@ -174,7 +174,7 @@ export const CORPUS: CorpusEntry[] = [
   },
   {
     row: "boolean-run",
-    code: "function e38(a, b, c) {\n  return a && (b && c);\n}\n",
+    code: "function e38(a, b, c) {\n  if (x) {\n  }\n  return a && (b && c);\n}\n",
   },
   {
     row: "else",
@@ -186,15 +186,15 @@ export const CORPUS: CorpusEntry[] = [
   },
   {
     row: "boolean-run",
-    code: "function e41(a, b) {\n  if (a) {\n    g();\n  }\n  return a ?? b;\n}\n",
+    code: "function e41(a, b) {\n  if (x) {\n  }\n  if (a) {\n    g();\n  }\n  return a ?? b;\n}\n",
   },
   {
     row: "boolean-run",
-    code: "function e42(a, b, c, d) {\n  return a ?? b && c || d;\n}\n",
+    code: "function e42(a, b, c, d) {\n  if (x) {\n  }\n  return a ?? b && c || d;\n}\n",
   },
   {
     row: "boolean-run",
-    code: "function e43(a, b, c) {\n  return a ? b ?? c : c;\n}\n",
+    code: "function e43(a, b, c) {\n  if (x) {\n  }\n  return a ? b ?? c : c;\n}\n",
   },
   {
     row: "boolean-run",
