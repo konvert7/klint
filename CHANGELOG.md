@@ -1,3 +1,10 @@
+## [1.5.2](https://github.com/konvert7/klint/compare/v1.5.1...v1.5.2) (2026-11-12)
+
+
+### Bug Fixes
+
+* **migrate:** name the config with its directory in migrate and --fix output ([0a78e93](https://github.com/konvert7/klint/commit/0a78e9388647a49d8274c9b42ce45ea02aa51472))
+
 ## [1.5.1](https://github.com/konvert7/klint/compare/v1.5.0...v1.5.1) (2026-11-12)
 
 
