@@ -1839,5 +1839,385 @@
         "warnings": 1
       }
     }
+  },
+  {
+    "name": "function-length warn and error give one diagnostic at the highest level",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "core": {
+          "function-length": {
+            "warn": 60,
+            "error": 80
+          }
+        }
+      }
+    },
+    "files": {
+      "src/a.ts": "function f60() {\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n}\nfunction f61() {\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n}\nfunction f80() {\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n}\nfunction f81() {\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/a.ts",
+          "line": 63,
+          "rule": "function-length",
+          "message": "Function `f61` has 61 lines (max 60) — split it into smaller functions.",
+          "severity": "warn",
+          "fix": null
+        },
+        {
+          "file": "src/a.ts",
+          "line": 126,
+          "rule": "function-length",
+          "message": "Function `f80` has 80 lines (max 60) — split it into smaller functions.",
+          "severity": "warn",
+          "fix": null
+        },
+        {
+          "file": "src/a.ts",
+          "line": 208,
+          "rule": "function-length",
+          "message": "Function `f81` has 81 lines (max 80) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 2
+      }
+    }
+  },
+  {
+    "name": "cognitive-complexity warn and error give one diagnostic at the highest level",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "core": {
+          "cognitive-complexity": {
+            "warn": 10,
+            "error": 20
+          }
+        }
+      }
+    },
+    "files": {
+      "src/a.ts": "function f10(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\nfunction f11(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\nfunction f20(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\nfunction f21(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/a.ts",
+          "line": 33,
+          "rule": "cognitive-complexity",
+          "message": "Function `f11` has cognitive complexity 11 (max 10) — split it into smaller functions.",
+          "severity": "warn",
+          "fix": null
+        },
+        {
+          "file": "src/a.ts",
+          "line": 68,
+          "rule": "cognitive-complexity",
+          "message": "Function `f20` has cognitive complexity 20 (max 10) — split it into smaller functions.",
+          "severity": "warn",
+          "fix": null
+        },
+        {
+          "file": "src/a.ts",
+          "line": 130,
+          "rule": "cognitive-complexity",
+          "message": "Function `f21` has cognitive complexity 21 (max 20) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 2
+      }
+    }
+  },
+  {
+    "name": "cognitive-complexity warn alone reports a warning",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "core": {
+          "cognitive-complexity": {
+            "warn": 5
+          }
+        }
+      }
+    },
+    "files": {
+      "src/a.ts": "function at(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\nfunction over(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/a.ts",
+          "line": 18,
+          "rule": "cognitive-complexity",
+          "message": "Function `over` has cognitive complexity 6 (max 5) — split it into smaller functions.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
+    }
+  },
+  {
+    "name": "function-length error alone reports an error",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "core": {
+          "function-length": {
+            "error": 5
+          }
+        }
+      }
+    },
+    "files": {
+      "src/a.ts": "function at() {\n  a();\n  a();\n  a();\n  a();\n  a();\n}\nfunction over() {\n  a();\n  a();\n  a();\n  a();\n  a();\n  a();\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/a.ts",
+          "line": 8,
+          "rule": "function-length",
+          "message": "Function `over` has 6 lines (max 5) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "cognitive-complexity error below warn warns once and runs with error only",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "core": {
+          "cognitive-complexity": {
+            "warn": 20,
+            "error": 10
+          }
+        }
+      }
+    },
+    "files": {
+      "src/a.ts": "function mid(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\nfunction low(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/a.ts",
+          "line": 1,
+          "rule": "cognitive-complexity",
+          "message": "Function `mid` has cognitive complexity 15 (max 10) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null
+        },
+        {
+          "file": "klint.yaml",
+          "line": 5,
+          "rule": "klint/config",
+          "message": "Rule \"cognitive-complexity\" has error 10 below warn 20, so it runs with error 10 only.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
+    }
+  },
+  {
+    "name": "cognitive-complexity list form: the last matching entry wins",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "core": {
+          "cognitive-complexity": [
+            {
+              "error": 15
+            },
+            {
+              "warn": 10,
+              "error": 20,
+              "include": [
+                "scripts/**"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "files": {
+      "src/a.ts": "function f(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\n",
+      "scripts/a.ts": "function f(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "scripts/a.ts",
+          "line": 1,
+          "rule": "cognitive-complexity",
+          "message": "Function `f` has cognitive complexity 16 (max 10) — split it into smaller functions.",
+          "severity": "warn",
+          "fix": null
+        },
+        {
+          "file": "src/a.ts",
+          "line": 1,
+          "rule": "cognitive-complexity",
+          "message": "Function `f` has cognitive complexity 16 (max 15) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 1
+      }
+    }
+  },
+  {
+    "name": "cognitive-complexity list form reversed: the catch-all wins for scripts",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "core": {
+          "cognitive-complexity": [
+            {
+              "warn": 10,
+              "error": 20,
+              "include": [
+                "scripts/**"
+              ]
+            },
+            {
+              "error": 15
+            }
+          ]
+        }
+      }
+    },
+    "files": {
+      "src/a.ts": "function f(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\n",
+      "scripts/a.ts": "function f(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "scripts/a.ts",
+          "line": 1,
+          "rule": "cognitive-complexity",
+          "message": "Function `f` has cognitive complexity 16 (max 15) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null
+        },
+        {
+          "file": "src/a.ts",
+          "line": 1,
+          "rule": "cognitive-complexity",
+          "message": "Function `f` has cognitive complexity 16 (max 15) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 2,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "cognitive-complexity list form does not check a file no entry matches",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "core": {
+          "cognitive-complexity": [
+            {
+              "error": 15,
+              "include": [
+                "src/**"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "files": {
+      "src/a.ts": "function f(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\n",
+      "tools/x.ts": "function g(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/a.ts",
+          "line": 1,
+          "rule": "cognitive-complexity",
+          "message": "Function `f` has cognitive complexity 16 (max 15) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "cognitive-complexity empty list checks nothing",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "core": {
+          "cognitive-complexity": []
+        }
+      }
+    },
+    "files": {
+      "src/a.ts": "function f(a) {\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n  if (a) {\n    g();\n  }\n}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
   }
 ]
