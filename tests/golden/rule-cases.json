@@ -1839,5 +1839,2279 @@
         "warnings": 1
       }
     }
+  },
+  {
+    "name": "no-date-equality reports a date comparison under experimental",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const r = new Date(1) === new Date(2); // HIT ===\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "recommended true without experimental entries stays silent on both experimental rules",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "recommended": true
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nf();\nconst a = new Date(1);\nconst b = new Date(2);\nconst r = a === b;\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "recommended true plus experimental entry reports only the listed rule",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "recommended": true,
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nf();\nconst r = new Date(1) === new Date(2);\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 3,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "severity warn",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "warn"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const r = new Date(1) == new Date(2); // HIT ==\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `==` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
+    }
+  },
+  {
+    "name": "severity off",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "off"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const r = new Date(1) == new Date(2);\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "object severity with matching include",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": {
+            "severity": "error",
+            "include": [
+              "src/hooks/**"
+            ]
+          }
+        }
+      }
+    },
+    "files": {
+      "src/hooks/subject.ts": "const r = new Date(1) == new Date(2);\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/hooks/subject.ts",
+          "line": 1,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `==` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "object severity with include that does not match is silent",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": {
+            "severity": "error",
+            "include": [
+              "src/hooks/**"
+            ]
+          }
+        }
+      }
+    },
+    "files": {
+      "src/tools/subject.ts": "const r = new Date(1) == new Date(2);\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "object severity warn",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": {
+            "severity": "warn"
+          }
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nf(); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
+    }
+  },
+  {
+    "name": "json rule id has no prefix",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "new Promise(() => {}); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality reports operator ==",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const r = new Date(1) == new Date(2); // HIT ==\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `==` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality reports operator ===",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const r = new Date(1) === new Date(2); // HIT ===\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality reports operator !=",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const r = new Date(1) != new Date(2); // HIT !=\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `!=` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality reports operator !==",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const r = new Date(1) !== new Date(2); // HIT !==\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `!==` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality reports two const Date identifiers",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a = new Date(1);\nconst b = new Date(2);\nconst r = a === b; // HIT ===\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 3,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality reports const with Date annotation",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a: Date = new Date(1);\nconst b: Date = new Date(2);\nconst r = a !== b; // HIT !==\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 3,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `!==` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality reports const against new Date",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a = new Date(1);\nconst r = a == new Date(2); // HIT ==\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `==` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality reports const in function scope",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "function f() {\n  const a = new Date(1);\n  const b = new Date(2);\n  return a === b; // HIT ===\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 4,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality reports const in arrow function scope",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "export const f = () => {\n  const a = new Date(1);\n  return a === new Date(2); // HIT ===\n};\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 3,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality reports module const used inside a function",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a = new Date(1);\nfunction f() {\n  return a === new Date(2); // HIT ===\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 3,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality silent for let",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "let a = new Date(1);\nlet b = new Date(2);\nconst r = a === b;\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality silent for var",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "var a = new Date(1);\nvar b = new Date(2);\nconst r = a === b;\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality silent for Date-annotated parameters",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "export function f(a: Date, b: Date) {\n  return a === b;\n}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality silent for properties",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "export function f(a: { created: Date }, b: { created: Date }) {\n  return a.created === b.created;\n}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality silent for function results",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "function now() {\n  return new Date();\n}\nconst r = now() === now();\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality silent when only one side is a Date",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a = new Date(1);\nexport function f(b: Date) {\n  return a === b || new Date(1) == b;\n}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality silent for relational comparisons",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a = new Date(1);\nconst b = new Date(2);\nconst r = a < b;\nconst s = a > b;\nconst t = new Date(1) <= new Date(2);\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality silent against null and undefined",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a = new Date(1);\nconst r = a === null;\nconst s = a == undefined;\nconst t = new Date(1) !== null;\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality silent for const with non-Date annotation",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a: object = new Date(1);\nconst b: object = new Date(2);\nconst r = a === b;\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality silent when const is shadowed by a parameter",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a = new Date(1);\nconst b = new Date(2);\nexport function f(a: number) {\n  return a === b;\n}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality silent when const is shadowed by an inner let",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a = new Date(1);\nconst b = new Date(2);\nexport function f() {\n  let a = 1;\n  return a === b;\n}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality silent when const is shadowed by an inner block const",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a = new Date(1);\nconst b = new Date(2);\nexport function f() {\n  {\n    const a = 5;\n    return a === b;\n  }\n}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports call to async function declaration",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nf(); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports call to async arrow const",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const f = async () => {};\nf(); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports call to async function expression const",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const f = async function () {};\nf(); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports async function declared in enclosing function",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "export function outer() {\n  async function f() {}\n  f(); // HIT\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 3,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports async arrow in enclosing function",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "export function outer() {\n  const f = async () => {};\n  f(); // HIT\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 3,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports module async function called from nested function",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nexport function g() {\n  f(); // HIT\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 3,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports new Promise",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "new Promise((resolve) => resolve(1)); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports Promise.resolve",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "Promise.resolve(1); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports Promise.reject",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "Promise.reject(1); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports Promise.all",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "Promise.all([]); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports Promise.allSettled",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "Promise.allSettled([]); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports Promise.race",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "Promise.race([]); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports Promise.any",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "Promise.any([]); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports then without catch",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nf().then((x) => x); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports finally without catch",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nf().finally(() => {}); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports chained then and finally",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "Promise.resolve(1).then((x) => x).finally(() => {}); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports new Promise then",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "new Promise((r) => r(1)).then((x) => x); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports each of two dropped promises once",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nf(); // HIT\nf(); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        },
+        {
+          "file": "src/subject.ts",
+          "line": 3,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 2,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports with warn severity",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "warn"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nf(); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "warn",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 0,
+        "warnings": 1
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent for await",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nexport async function g() {\n  await f();\n}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent for return",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nexport function g() {\n  return f();\n}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent for void",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nvoid f();\nvoid Promise.resolve(1);\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent for assignment",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nconst p = f();\nlet q;\nq = f();\nexport { p, q };\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent for call argument",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\ndeclare function g(x: unknown): void;\ng(f());\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent for array element",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nconst list = [f(), Promise.resolve(1)];\nexport { list };\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent when catch is in the chain",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nf().catch(() => {});\nf().then((x) => x).catch(() => {});\nf().catch(() => {}).then((x) => x);\nPromise.resolve(1).catch(() => {}).finally(() => {});\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent for then with two arguments",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nf().then((x) => x, () => {});\nPromise.resolve(1).then((x) => x, () => {});\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent for member calls",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "declare const obj: { f(): Promise<void> };\nobj.f();\nclass A {\n  async m() {}\n  run() {\n    this.m();\n  }\n}\nexport { A };\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent for imported functions",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "import { f } from \"./other\";\nf();\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent for non-async functions",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "function f() {\n  return Promise.resolve(1);\n}\nconst g = () => 1;\nf();\ng();\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent when async name is shadowed by a parameter",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nexport function h(f: () => void) {\n  f();\n}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent when async name is shadowed by a local function",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nexport function h() {\n  function f() {}\n  f();\n}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent when async name is shadowed by a local const",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nexport function h() {\n  const f = () => 1;\n  f();\n}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent when Promise is shadowed by a const",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const Promise = { resolve(x: number) { return x; }, all(x: number[]) { return x; } };\nPromise.resolve(1);\nPromise.all([]);\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent when Promise is a parameter",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "export function h(Promise: { resolve(x: number): void }) {\n  Promise.resolve(1);\n}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent when Promise is imported",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "import { Promise } from \"bluebird\";\nPromise.resolve(1);\nPromise.all([]);\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent for new Promise assigned or awaited",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "export async function h() {\n  const p = new Promise((r) => r(1));\n  await new Promise((r) => r(2));\n  return p;\n}\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent for plain expression statements",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const x = 1;\nx;\nconsole.log(x);\n"
+    },
+    "expected": {
+      "violations": [],
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports exported async function",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "export async function f() {}\nf(); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise reports async name shared with an unrelated parameter",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function load() {}\nfunction g(load: number) {}\nload(); // HIT\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 3,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent for optional call",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nf(); // HIT\nf?.();\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent for array destructuring assignment to the name",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nasync function k() {}\n[f] = [k];\nk(); // HIT\nf();\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 4,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent for object destructuring assignment to the name",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nasync function k() {}\n({ f } = { f: k });\nk(); // HIT\nf();\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 4,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise silent when a class declares the Promise name",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "async function f() {}\nf(); // HIT\nclass Promise {}\nPromise.resolve(1);\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 2,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality reports parenthesized new Date operands",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const r = (new Date(1)) == (new Date(2)); // HIT ==\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 1,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `==` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality reports when an unrelated parameter has the same name",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a = new Date(1);\nconst b = new Date(2);\nfunction g(a: number) {}\nconst r = a === b; // HIT ===\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 4,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality reports when a shadowing block has closed",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "const a = new Date(1);\nconst b = new Date(2);\nfunction f() {\n  {\n    const a = 5;\n  }\n  return a === b; // HIT ===\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 7,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality silent when a const is used outside its block",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/subject.ts": "{ const a = new Date(1); }\nconst b = new Date(2);\nconst c = new Date(3);\nconst r = b === c; // HIT ===\nconst s = a === b;\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/subject.ts",
+          "line": 4,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-date-equality silent when Date is declared in the file",
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-date-equality": "error"
+        }
+      }
+    },
+    "files": {
+      "src/control.ts": "const a = new Date(1);\nconst b = new Date(2);\nconst r = a === b; // HIT ===\n",
+      "src/subject.ts": "const Date = X;\nconst a = new Date(1);\nconst b = new Date(2);\nconst r = a === b;\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/control.ts",
+          "line": 3,
+          "rule": "no-date-equality",
+          "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
   }
 ]

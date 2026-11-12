@@ -1,11 +1,14 @@
 mod async_predicate;
 mod consecutive_array_push;
+mod date_equality;
+mod floating_promise;
 mod nested_template_literals;
 mod prefer_at;
 mod prefer_nullish_coalescing_assign;
 mod prefer_string_raw;
 mod prefer_string_raw_regexp;
 mod prefer_string_replaceall;
+mod same_file_bindings;
 mod single_char_class;
 mod string_match;
 mod sync_in_async;
@@ -25,18 +28,32 @@ pub use unguarded_json_parse::scan_unguarded_json_parse;
 
 pub(crate) use async_predicate::async_predicate_record;
 pub(crate) use consecutive_array_push::scan_statement_run;
+pub(crate) use date_equality::date_equality_record;
+pub(crate) use floating_promise::floating_promise_record;
 pub(crate) use nested_template_literals::find_nested_template_literals;
 pub(crate) use prefer_at::prefer_at_record;
 pub(crate) use prefer_nullish_coalescing_assign::prefer_nullish_coalescing_assign_record;
 pub(crate) use prefer_string_raw::prefer_string_raw_record;
 pub(crate) use prefer_string_raw_regexp::prefer_string_raw_regexp_record;
 pub(crate) use prefer_string_replaceall::prefer_string_replaceall_record;
+pub(crate) use same_file_bindings::{SameFileBindings, strip_parentheses};
 pub(crate) use single_char_class::single_char_class_record;
 pub(crate) use string_match::string_match_record;
 pub(crate) use sync_in_async::{is_async_function_like, is_function_like, sync_call_name};
 pub(crate) use unguarded_json_parse::is_json_parse_call;
 
 use super::{language_for_path, raw_node_text};
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct DateEqualityRecord {
+    pub line: usize,
+    pub operator: String,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct FloatingPromiseRecord {
+    pub line: usize,
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct AsyncPredicateRecord {

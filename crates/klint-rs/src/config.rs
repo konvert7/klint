@@ -33,7 +33,7 @@ pub(crate) struct RawConfig {
     #[serde(default)]
     #[schemars(
         schema_with = "crate::schema::rules_schema",
-        description = "Rules, in groups: recommended (true enables the six sonar rules at error), core (built-in rules) and sonar (sonar rules, without the sonar/ prefix). Example: { \"recommended\": true, \"core\": { \"no-string-match\": \"error\" }, \"sonar\": { \"prefer-at\": \"warn\" } }. The v1 flat map (rule name → severity or options, sonar/ prefixed) is still read; run `klint migrate` to upgrade it."
+        description = "Rules, in groups: recommended (true enables the six sonar rules at error), core (built-in rules), sonar (sonar rules, without the sonar/ prefix) and experimental (opt-in rules under trial; never enabled by recommended; ids have no prefix). Example: { \"recommended\": true, \"core\": { \"no-string-match\": \"error\" }, \"sonar\": { \"prefer-at\": \"warn\" } }. The v1 flat map (rule name → severity or options, sonar/ prefixed) is still read; run `klint migrate` to upgrade it."
     )]
     pub(crate) rules: Option<BTreeMap<String, serde_json::Value>>,
     pub(crate) arch: Option<ArchConfig>,

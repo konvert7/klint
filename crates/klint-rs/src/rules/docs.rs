@@ -131,4 +131,19 @@ pub(crate) const RULE_DOCS: &[RuleDoc] = &[
         ],
         options_schema: Some(super::function_length::function_length_schema),
     },
+    RuleDoc {
+        name: "no-date-equality",
+        description: "Experimental, opt-in: list it under rules.experimental. Flags ==, ===, != and !== between two values the same file proves are Date objects (a new Date(...) or a const initialised with one) — these compare identity, not time. Stays silent unless the file proves both sides are Dates; no autofix.",
+        examples: &[
+            "no-date-equality: error",
+            "no-date-equality:\n  severity: warn\n  include: [\"src/**\"]",
+        ],
+        options_schema: None,
+    },
+    RuleDoc {
+        name: "no-floating-promise",
+        description: "Experimental, opt-in: list it under rules.experimental. Flags an expression statement that drops a promise the same file proves it created: a call to a same-file async function, new Promise(...), or Promise.resolve/reject/all/allSettled/race/any(...), optionally followed by .then(onFulfilled) or .finally(...) with no .catch. Stays silent unless the file proves it; no autofix.",
+        examples: &["no-floating-promise: error", "no-floating-promise: warn"],
+        options_schema: None,
+    },
 ];

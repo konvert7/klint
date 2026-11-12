@@ -2,6 +2,7 @@ mod blank_lines;
 mod builtin;
 mod complexity;
 mod docs;
+mod experimental;
 mod function_length;
 mod scope;
 mod sonar;
@@ -208,6 +209,26 @@ const CHECKS: &[RuleSpec] = &[
     },
 ];
 
+/// Opt-in rules that run only when listed under `rules.experimental`.
+const EXPERIMENTAL_CHECKS: &[RuleSpec] = &[
+    RuleSpec::javascript(
+        "no-date-equality",
+        experimental::run_no_date_equality,
+        |wants| {
+            wants.binary_expressions = true;
+            wants.identifiers = true;
+        },
+    ),
+    RuleSpec::javascript(
+        "no-floating-promise",
+        experimental::run_no_floating_promise,
+        |wants| {
+            wants.expression_statements = true;
+            wants.identifiers = true;
+        },
+    ),
+];
+
 /// A configured rule bound to the files it applies to. `applies` is indexed by
 /// position in the engine's global file list, so per-file applicability is a
 /// lookup rather than a glob match.
@@ -255,14 +276,30 @@ pub(crate) fn is_supported_rule(name: &str) -> bool {
     CHECKS.iter().any(|spec| spec.name == name)
 }
 
+pub(crate) fn is_experimental_rule(name: &str) -> bool {
+    EXPERIMENTAL_CHECKS.iter().any(|spec| spec.name == name)
+}
+
 pub(crate) fn plan_rule_passes(
     rules: &BTreeMap<String, RuleConfig>,
+    experimental: &BTreeMap<String, RuleConfig>,
     files: &[PathBuf],
     root: &Path,
 ) -> Vec<RulePass> {
-    CHECKS
+    let mut passes = plan_group(CHECKS, rules, files, root);
+    passes.extend(plan_group(EXPERIMENTAL_CHECKS, experimental, files, root));
+    passes
+}
+
+fn plan_group(
+    specs: &[RuleSpec],
+    configs: &BTreeMap<String, RuleConfig>,
+    files: &[PathBuf],
+    root: &Path,
+) -> Vec<RulePass> {
+    specs
         .iter()
-        .filter_map(|spec| plan_pass(spec, rules.get(spec.name)?, files, root))
+        .filter_map(|spec| plan_pass(spec, configs.get(spec.name)?, files, root))
         .collect()
 }
 

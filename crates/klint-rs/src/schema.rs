@@ -4,7 +4,7 @@ use serde_json::{Map, Value, json};
 
 use crate::config::{RawConfig, RuleConfig};
 use crate::plugins::SONAR_PREFIX;
-use crate::rules::{RULE_DOCS, v1_options_schema};
+use crate::rules::{RULE_DOCS, is_experimental_rule, v1_options_schema};
 use crate::version::schema_url_for_version;
 
 const DRAFT_07: &str = "http://json-schema.org/draft-07/schema#";
@@ -65,7 +65,11 @@ fn rules_map<'a>(
 }
 
 fn core_name(name: &str) -> Option<&str> {
-    (!name.starts_with(SONAR_PREFIX)).then_some(name)
+    (!name.starts_with(SONAR_PREFIX) && !is_experimental_rule(name)).then_some(name)
+}
+
+fn experimental_name(name: &str) -> Option<&str> {
+    is_experimental_rule(name).then_some(name)
 }
 
 pub(crate) fn rules_schema(generator: &mut SchemaGenerator) -> Schema {
@@ -73,9 +77,11 @@ pub(crate) fn rules_schema(generator: &mut SchemaGenerator) -> Schema {
     let entries = rule_entries(generator, false);
     let core = rules_map(&entries, core_name);
     let sonar = rules_map(&entries, |name| name.strip_prefix(SONAR_PREFIX));
+    let experimental = rules_map(&entries, experimental_name);
     let v1_entries = rule_entries(generator, true);
     let v1: Map<String, Value> = v1_entries
         .iter()
+        .filter(|(name, _)| !is_experimental_rule(name))
         .map(|(name, entry)| (name.to_string(), entry.clone()))
         .collect();
     json_schema!({
@@ -99,6 +105,12 @@ pub(crate) fn rules_schema(generator: &mut SchemaGenerator) -> Schema {
                         "type": "object",
                         "description": "Sonar rules without the sonar/ prefix.",
                         "properties": sonar,
+                        "additionalProperties": rule_value,
+                    },
+                    "experimental": {
+                        "type": "object",
+                        "description": "Opt-in experimental rules: each runs only when listed here with error, warn or {severity, include}. recommended: true never enables them. Rule ids have no prefix, so they stay the same when a rule is promoted to core.",
+                        "properties": experimental,
                         "additionalProperties": rule_value,
                     },
                 },
