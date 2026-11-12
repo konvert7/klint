@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/konvert7/klint/compare/v1.5.0...v1.5.1) (2026-11-12)
+
+
+### Bug Fixes
+
+* **config:** mixed keys in list entries, clearer migrate --check message ([3704450](https://github.com/konvert7/klint/commit/37044506569725c72a26b82f5879859b22a3a1e2))
+
 # [1.5.0](https://github.com/konvert7/klint/compare/v1.4.1...v1.5.0) (2026-11-12)
 
 
