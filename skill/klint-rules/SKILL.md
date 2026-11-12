@@ -298,9 +298,9 @@ separates statements like a blank line, so no line is inserted next to it.
 
 ### Cognitive complexity — cap per-function complexity
 
-Pick `cognitive-complexity` to gate how complex each function may get, the way Biome's
-`noExcessiveCognitiveComplexity` does, with the same scores, on TypeScript/JavaScript, Python, Swift,
-Rust and C#. It is opt-in.
+Pick `cognitive-complexity` to gate how complex each function may get, the way SonarJS's
+`cognitive-complexity` rule (S3776, `eslint-plugin-sonarjs` 3.0.5) does, with the same scores, on
+TypeScript/JavaScript, Python, Swift, Rust and C#. It is opt-in.
 
 ```yaml
 rules:
@@ -321,8 +321,8 @@ rules:
 
 - `max` defaults to 15, and a function whose score is **above** it is reported. An invalid `max`
   (0, a negative number, a fraction, a string) raises one `klint/config` warning and the rule uses 15.
-- There is no `--fix`: split the function. A nested closure is reported on its own, not added to the
-  enclosing function. Files with a syntax error are skipped.
+- There is no `--fix`: split the function. A nested closure is reported on its own, starting at
+  nesting 0, not added to the enclosing function. Files with a syntax error are skipped.
 
 ### Function length — cap per-function length
 

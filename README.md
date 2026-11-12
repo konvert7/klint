@@ -745,7 +745,7 @@ doc-comments alongside `/** */`.
 | `no-string-match` | `String#match()` usage better expressed with clearer APIs |
 | `blank-line-before-control-flow` | Blank line above a control-flow statement that follows another statement; autofix |
 | `blank-line-after-block` | Blank line below a block statement when another statement follows; autofix |
-| `cognitive-complexity` | Function whose cognitive complexity (Biome / SonarSource model) is above `max`, in all five languages; opt-in, no autofix |
+| `cognitive-complexity` | Function whose cognitive complexity (SonarJS / SonarSource model) is above `max`, in all five languages; opt-in, no autofix |
 | `function-length` | Function whose body has more lines than `max` (counted like Biome's `noExcessiveLinesPerFunction`), in all five languages; opt-in, no autofix |
 
 Rules that needed TypeScript's type checker were removed in 1.0; see [Upgrading from klint 0.x](#upgrading-from-klint-0x).
@@ -800,7 +800,7 @@ rules:
 
 ### Cognitive complexity
 
-`cognitive-complexity` reports every function whose cognitive complexity is above `max`, in TypeScript/JavaScript, Python, Swift, Rust and C#. It is opt-in and has no fix. It uses Biome 2.6.5's `noExcessiveCognitiveComplexity` scoring (the SonarSource Cognitive Complexity model, G. Ann Campbell 2017) for every language, so a TypeScript function gets the same score as in Biome.
+`cognitive-complexity` reports every function whose cognitive complexity is above `max`, in TypeScript/JavaScript, Python, Swift, Rust and C#. It is opt-in and has no fix. It scores like SonarSource's own implementation, `eslint-plugin-sonarjs` 3.0.5 rule S3776 (the SonarSource Cognitive Complexity model, G. Ann Campbell 2017), for every language, so a TypeScript function gets the same score as in SonarJS.
 
 ```yaml
 rules:
@@ -821,37 +821,38 @@ rules:
 - The message has the form ``Function `big` has cognitive complexity 16 (max 15) — split it into smaller functions.``. The name is the declared name. For an anonymous function assigned to a variable or property it is that name. Otherwise it is `<anonymous>`. The line is the function's first line.
 - Each function starts at 0. Top-level code is not scored.
 
-**Scoring.** "Nesting" is how deep a construct sits: each enclosing `if`, loop, `switch`, `catch`, `guard`, `let … else` body and each enclosing function adds one.
+**Scoring.** "Nesting" is how deep a construct sits: nesting is added by each enclosing `if`, loop, `switch`, `catch`, `guard` and `let … else` body; a nested function starts again at 0. Only a construct's body is nested: its condition, loop head, `switch` value or ternary test sits at the construct's own nesting. For example, in `if (a ? b : c) {}` the ternary adds 1, not 2.
 
 | Increment | TypeScript / JavaScript | Python | Swift | Rust | C# |
 |---|---|---|---|---|---|
-| +1 plus nesting: `if`, and `else if` (which also gets the nesting) | `if`, `else if` | `if`, `elif` | `if`, `else if` | `if`, `if let`, `else if` | `if`, `else if` |
+| +1 plus nesting: `if` | `if` | `if` | `if`, `if let` | `if` |
+| +1, no nesting: `else if` (its body is nested like the `if` body) | `else if` | `elif` | `else if` | `else if` | `else if` |
 | +1 plus nesting: ternary | `?:` | `x if c else y` | `?:` | — | `?:` |
 | +1 plus nesting: switch / match | `switch` | `match` | `switch` | `match` | `switch` statement, `switch` expression |
 | +1 plus nesting: loops | `for`, `for…in`, `for…of`, `while`, `do…while` | `for`, `while` | `for`, `while`, `repeat…while` | `for`, `while`, `while let`, `loop` | `for`, `foreach`, `while`, `do` |
 | +1 plus nesting: `catch` | `catch` | `except` | `catch` | — | `catch` |
 | +1 plus nesting: `guard`, `let … else` (its `else` body is nested) | — | — | `guard` | `let … else` | — |
-| +1, no nesting: `finally` (its body is not nested) | `finally` | `finally` | — | — | `finally` |
-| nesting only: nested function (scored on its own, see below) | arrow, function expression, function declaration, method | `lambda`, `def` | closure | closure | lambda, local function, anonymous method |
+| no increment: nested function (scored on its own, starting at nesting 0) | arrow, function expression, function declaration, method | `lambda`, `def` | closure | closure | lambda, local function, anonymous method |
 | +1, no nesting: plain `else` (not `else if`/`elif`) | `else` | `else` of `if`, `try`, `for`, `while` | `else` | `else` | `else` |
 | +1: labeled `break` / `continue`, `goto` | `break label`, `continue label` | — | `break label`, `continue label` | `break 'label`, `continue 'label` | `goto` |
-| +1 per logical operator, unless its direct parent is the same operator | `&&`, `\|\|`, `??` | `and`, `or` | `&&`, `\|\|`, `??` | `&&`, `\|\|` | `&&`, `\|\|`, `??`, pattern `and`, `or` |
+| +1 per run of `&&` (see below); `\|\|`, `or`, `??` add nothing | `&&` | `and` | `&&` | `&&` | `&&`, pattern `and` |
 | +1: comprehension `if` | — | comprehension `if` | — | — | — |
 | +1: guard on a case or arm | — | — | `case … where` | match-arm guard | `when` clause |
 
-Each logical operator scores +1, unless its direct parent is a logical operator of the same kind. Parentheses break that link, so a parenthesised group scores on its own: `a && b || c` is 2, `a && (b || c) && a` is 2, `a && (b && c)` is 2, and `a ?? b ?? c` is 1. Negation (`!`, `not`) adds nothing.
+Logical operators form one sequence per expression, read in source order through parentheses; negation, calls and other expressions start a new sequence. Each `&&` (`and`) scores +1 unless the operator before it in the sequence is also `&&`. `||`, `or`, `??` and pattern `or` add nothing but end a run: `a && b || c` is 1, `a && (b || c) && a` is 2, `a && (b && c)` is 1, and `a ?? b ?? c` is 0. Negation (`!`, `not`) adds nothing. In TypeScript/JavaScript, a short-circuit directly inside a JSX expression that uses one operator and has no ternary operand (`{a && <X/>}`, `{a && b && <X/>}`) adds nothing; a mixed one (`{a && b || <X/>}`) is counted as usual. A function used as a branch of a conditional expression (`a ? () => {…} : b` in TypeScript/JavaScript and C#, a Swift closure in a ternary, `(lambda: …) if a else b` in Python) is scored on its own from nesting 0 like any nested function, and every later construct in the enclosing function that adds "plus nesting" in the table above scores one more.
 
-It adds nothing for `try` itself, `return`, `throw`, recursion, Rust `?`, Python `with`, Swift `do` without `catch`, an `if let` or `while let` beyond the `if` or `while`, optional chaining `?.`, assignment operators `||=`, `&&=`, `??=`, and a Rust `let` without `else`.
+It adds nothing for `try` itself, `finally`, `return`, `throw`, recursion, Rust `?`, Python `with`, Swift `do` without `catch`, an `if let` or `while let` beyond the `if` or `while`, optional chaining `?.`, assignment operators `||=`, `&&=`, `??=`, and a Rust `let` without `else`.
 
-**Differences from the Sonar paper.** This rule follows Biome, which differs from the paper in these places:
+**Differences from the Sonar paper.** SonarJS, and so klint, departs from the 2017 paper in one place: `||` (Python `or`, C# pattern `or`) adds nothing; the paper counts it.
 
-- `else if` gets the nesting increment.
-- `finally` adds one and does not nest its body.
-- `??` counts as a boolean operator.
-- A logical operator is scored unless its direct parent is the same operator, so `a && (b && c)` is 2, not 1.
-- Recursion adds nothing.
-- Biome 2.6.5 lowers the nesting level of the code after a plain `else` (an unbalanced decrement), so it can score such functions lower; klint keeps the nesting.
-- A nested function (closure, lambda, arrow, local function) is scored and reported on its own. It starts at its enclosing nesting level plus one and does not add to the outer function.
+**Differences from Biome 2.6.5.** Biome's `noExcessiveCognitiveComplexity` differs from SonarJS in four ways, and klint follows SonarJS:
+
+- `else if` gets no nesting increment (Biome adds it).
+- `??` adds nothing (Biome counts it).
+- `||` adds nothing (Biome counts it).
+- Biome 2.6.5 lowers the nesting level of the code after a plain `else` (an unbalanced decrement). That is a Biome bug; klint keeps the nesting.
+
+A nested function (closure, lambda, arrow, local function) is scored and reported on its own and does not add to the outer function.
 
 **What counts as a function.** TypeScript/JavaScript: `function` declarations and expressions, arrow functions, methods (including getters and setters), generator functions. Python: `def` and `lambda`. Swift: `func`, `init`, `deinit`, closures, computed getters and setters. Rust: `fn` items and closures. C#: methods, constructors, destructors, local functions, lambdas, anonymous methods, property and indexer accessors, operators and conversion operators.
 
