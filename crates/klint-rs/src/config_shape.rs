@@ -12,13 +12,13 @@ use crate::plugins::{SONAR_PREFIX, effective_rules, recommended_rules};
 pub(crate) const V1_MESSAGE: &str =
     "This config uses the v1 format — run `klint migrate` to upgrade it in place.";
 const RULE: &str = "klint/config";
-const V2_KEYS: &[&str] = &["recommended", "core", "sonar"];
-const RESERVED_KEYS: &[&str] = &["experimental"];
+const V2_KEYS: &[&str] = &["recommended", "core", "sonar", "experimental"];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Group {
     Core,
     Sonar,
+    Experimental,
 }
 
 impl Group {
@@ -26,8 +26,15 @@ impl Group {
         match self {
             Group::Core => "core",
             Group::Sonar => "sonar",
+            Group::Experimental => "experimental",
         }
     }
+}
+
+pub(crate) struct Misgrouped {
+    pub(crate) name: String,
+    pub(crate) written_in: Group,
+    pub(crate) belongs_in: Group,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -59,6 +66,8 @@ pub(crate) struct ResolvedRules {
     pub(crate) misplaced: Vec<String>,
     pub(crate) unknown_rules_keys: Vec<String>,
     pub(crate) shape: ConfigShape,
+    pub(crate) experimental: BTreeMap<String, RuleConfig>,
+    pub(crate) misgrouped: Vec<Misgrouped>,
 }
 
 impl ResolvedRules {
@@ -81,10 +90,6 @@ fn is_v2_key(key: &str) -> bool {
     V2_KEYS.contains(&key)
 }
 
-fn is_reserved_key(key: &str) -> bool {
-    RESERVED_KEYS.contains(&key)
-}
-
 pub(crate) fn config_shape(raw: &RawConfig) -> ConfigShape {
     let keys: Vec<&str> = raw
         .rules
@@ -94,11 +99,9 @@ pub(crate) fn config_shape(raw: &RawConfig) -> ConfigShape {
     let v1_names: Vec<&str> = keys
         .iter()
         .copied()
-        .filter(|key| !is_v2_key(key) && !is_reserved_key(key) && is_v1_rule_name(key))
+        .filter(|key| !is_v2_key(key) && is_v1_rule_name(key))
         .collect();
-    let has_flat = keys
-        .iter()
-        .any(|key| !is_v2_key(key) && !is_reserved_key(key));
+    let has_flat = keys.iter().any(|key| !is_v2_key(key));
 
     match (has_v2, raw.plugins.is_some() || has_flat) {
         (true, _) => shape_with_v2_keys(raw, &v1_names),
@@ -136,7 +139,7 @@ fn resolve_v1(raw: &RawConfig) -> Result<ResolvedRules, ResolveError> {
     let all = all_rules(raw);
     let mut flat = BTreeMap::new();
 
-    for (key, value) in all.iter().filter(|(key, _)| !is_reserved_key(key)) {
+    for (key, value) in &all {
         flat.insert(key.clone(), to_rule_config(value, false)?.into_v1());
     }
 
@@ -148,50 +151,138 @@ fn resolve_v1(raw: &RawConfig) -> Result<ResolvedRules, ResolveError> {
         rules,
         written,
         misplaced: Vec::new(),
-        unknown_rules_keys: all
-            .keys()
-            .filter(|key| is_reserved_key(key))
-            .cloned()
-            .collect(),
+        unknown_rules_keys: Vec::new(),
         shape: ConfigShape::V1,
+        experimental: BTreeMap::new(),
+        misgrouped: Vec::new(),
     })
 }
 
 fn resolve_v2(raw: &RawConfig, shape: ConfigShape) -> Result<ResolvedRules, ResolveError> {
     let all = all_rules(raw);
-    let mut rules = if recommended_enabled(&all)? {
+    let rules = if recommended_enabled(&all)? {
         recommended_rules()
     } else {
         BTreeMap::new()
     };
-    let mut written = BTreeMap::new();
-    let mut misplaced = Vec::new();
+    let mut placed = Placed {
+        rules,
+        experimental: BTreeMap::new(),
+        written: BTreeMap::new(),
+        misplaced: Vec::new(),
+        misgrouped: Vec::new(),
+    };
 
-    for group in [Group::Core, Group::Sonar] {
+    for group in [Group::Core, Group::Sonar, Group::Experimental] {
         for (name, value) in group_entries(&all, group)? {
-            if is_misplaced(group, name) {
-                misplaced.push(name.to_string());
-                continue;
-            }
-
-            let id = rule_id(group, name);
-            let list_allowed = crate::rules::accepts_list_form(&id);
-            rules.insert(id.clone(), to_rule_config(value, list_allowed)?);
-            written.insert(id, name.to_string());
+            place_entry(group, name, value, &mut placed)?;
         }
     }
 
     Ok(ResolvedRules {
-        rules,
-        written,
-        misplaced,
+        rules: placed.rules,
+        written: placed.written,
+        misplaced: placed.misplaced,
         unknown_rules_keys: all
             .keys()
             .filter(|key| !is_v2_key(key) && !is_v1_rule_name(key))
             .cloned()
             .collect(),
         shape,
+        experimental: placed.experimental,
+        misgrouped: placed.misgrouped,
     })
+}
+
+struct Placed {
+    rules: BTreeMap<String, RuleConfig>,
+    experimental: BTreeMap<String, RuleConfig>,
+    written: BTreeMap<String, String>,
+    misplaced: Vec<String>,
+    misgrouped: Vec<Misgrouped>,
+}
+
+fn place_entry(
+    group: Group,
+    name: &str,
+    value: &Value,
+    placed: &mut Placed,
+) -> Result<(), ResolveError> {
+    if group == Group::Experimental {
+        return place_experimental_entry(name, value, placed);
+    }
+
+    if home_group(name) == Some(Group::Experimental) {
+        placed.misgrouped.push(Misgrouped {
+            name: name.to_string(),
+            written_in: group,
+            belongs_in: Group::Experimental,
+        });
+
+        return Ok(());
+    }
+
+    place_grouped_entry(group, name, value, placed)
+}
+
+fn place_grouped_entry(
+    group: Group,
+    name: &str,
+    value: &Value,
+    placed: &mut Placed,
+) -> Result<(), ResolveError> {
+    if is_misplaced(group, name) {
+        placed.misplaced.push(name.to_string());
+
+        return Ok(());
+    }
+
+    let id = rule_id(group, name);
+    let list_allowed = crate::rules::accepts_list_form(&id);
+    placed
+        .rules
+        .insert(id.clone(), to_rule_config(value, list_allowed)?);
+    placed.written.insert(id, name.to_string());
+    Ok(())
+}
+
+fn place_experimental_entry(
+    name: &str,
+    value: &Value,
+    placed: &mut Placed,
+) -> Result<(), ResolveError> {
+    match home_group(name) {
+        Some(Group::Experimental) => {
+            placed
+                .experimental
+                .insert(name.to_string(), to_rule_config(value, false)?);
+            placed.written.insert(name.to_string(), name.to_string());
+        }
+        Some(belongs_in) => placed.misgrouped.push(Misgrouped {
+            name: name.to_string(),
+            written_in: Group::Experimental,
+            belongs_in,
+        }),
+        None => return place_grouped_entry(Group::Core, name, value, placed),
+    }
+
+    Ok(())
+}
+
+fn home_group(name: &str) -> Option<Group> {
+    if crate::rules::is_experimental_rule(name) {
+        return Some(Group::Experimental);
+    }
+
+    if crate::rules::is_supported_rule(name) {
+        return Some(v2_location(name).0);
+    }
+
+    if crate::rules::is_supported_rule(&format!("{SONAR_PREFIX}{name}")) {
+        return Some(Group::Sonar);
+    }
+
+    None
 }
 
 fn all_rules(raw: &RawConfig) -> BTreeMap<String, Value> {
@@ -222,8 +313,8 @@ fn group_entries(
 
 fn rule_id(group: Group, name: &str) -> String {
     match group {
-        Group::Core => name.to_string(),
         Group::Sonar => format!("{SONAR_PREFIX}{name}"),
+        Group::Core | Group::Experimental => name.to_string(),
     }
 }
 
@@ -252,11 +343,23 @@ pub(crate) fn shape_advisories(resolved: &ResolvedRules, text: &str, file: &str)
                 file,
                 line_of_key(text, key),
                 format!(
-                    "Unknown key \"rules.{key}\" is ignored — rules accepts recommended, core and sonar."
+                    "Unknown key \"rules.{key}\" is ignored — rules accepts recommended, core, sonar and experimental."
                 ),
             )
         }))
+        .chain(resolved.misgrouped.iter().map(|entry| {
+            advisory(file, line_of_key(text, &entry.name), misgrouped_message(entry))
+        }))
         .collect()
+}
+
+fn misgrouped_message(entry: &Misgrouped) -> String {
+    format!(
+        "Rule \"{}\" belongs in rules.{}, not rules.{}, so this entry is ignored.",
+        entry.name,
+        entry.belongs_in.key(),
+        entry.written_in.key()
+    )
 }
 
 fn shape_warning(shape: &ConfigShape, text: &str, file: &str) -> Option<Violation> {

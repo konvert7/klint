@@ -1,6 +1,6 @@
 use serde_json::{Map, Value};
 
-const RULE_GROUPS: [&str; 2] = ["core", "sonar"];
+const RULE_GROUPS: [&str; 3] = ["core", "sonar", "experimental"];
 
 #[doc(hidden)]
 pub fn config_key_paths() -> Vec<String> {

@@ -119,8 +119,12 @@ pub(crate) fn lint_loaded(config_dir: &Path, loaded: LoadedConfig) -> Result<Lin
         .into_iter()
         .filter(|(name, config)| has_valid_severity(name, config))
         .collect();
+    let experimental: BTreeMap<String, RuleConfig> = std::mem::take(&mut resolved.experimental)
+        .into_iter()
+        .filter(|(name, config)| has_valid_severity(name, config))
+        .collect();
 
-    let rule_passes = plan_rule_passes(&rules, &files, &root);
+    let rule_passes = plan_rule_passes(&rules, &experimental, &files, &root);
     let arch_plan = raw
         .arch
         .as_ref()

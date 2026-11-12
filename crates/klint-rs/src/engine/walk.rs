@@ -38,6 +38,9 @@ pub(crate) struct Wants {
     pub statement_blocks: bool,
     pub functions: bool,
     pub function_lengths: bool,
+    pub binary_expressions: bool,
+    pub expression_statements: bool,
+    pub identifiers: bool,
 }
 
 impl Wants {
@@ -53,6 +56,9 @@ impl Wants {
             || self.statement_blocks
             || self.functions
             || self.function_lengths
+            || self.binary_expressions
+            || self.expression_statements
+            || self.identifiers
     }
 }
 
@@ -72,6 +78,9 @@ pub(crate) struct NodeIndex<'a> {
     pub statement_blocks: Vec<Node<'a>>,
     pub scores: Vec<FunctionScore<'a>>,
     pub function_lengths: Vec<FunctionLength<'a>>,
+    pub binary_expressions: Vec<Node<'a>>,
+    pub expression_statements: Vec<Node<'a>>,
+    pub identifiers: Vec<Node<'a>>,
     pub has_syntax_error: bool,
     tally: LineTally,
     pending_bodies: Vec<(usize, Node<'a>)>,
@@ -141,6 +150,21 @@ impl<'a> NodeIndex<'a> {
         });
     }
 
+    fn push_expression_buckets(&mut self, node: Node<'a>, wants: Wants) {
+        match node.kind() {
+            "binary_expression" if wants.binary_expressions => self.binary_expressions.push(node),
+            "expression_statement" if wants.expression_statements => {
+                self.expression_statements.push(node);
+            }
+            "identifier" | "shorthand_property_identifier_pattern" | "type_identifier"
+                if wants.identifiers =>
+            {
+                self.identifiers.push(node);
+            }
+            _ => {}
+        }
+    }
+
     fn visit_children(
         &mut self,
         node: Node<'a>,
@@ -208,7 +232,7 @@ impl<'a> NodeIndex<'a> {
             "new_expression" if wants.new_expressions => self.new_expressions.push(node),
             "if_statement" if wants.if_statements => self.if_statements.push(node),
             "program" | "statement_block" if wants.containers => self.containers.push(node),
-            _ => {}
+            _ => self.push_expression_buckets(node, wants),
         }
 
         self.visit_children(node, source, wants, language, descent);

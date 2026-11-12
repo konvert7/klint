@@ -181,18 +181,6 @@ fn unknown_key_under_rules_warns_naming_it() {
 }
 
 #[test]
-fn rules_experimental_is_not_accepted_yet() {
-    let config = "include: [\"src\"]\nrules:\n  experimental:\n    x: error\n";
-    let warnings = config_warnings(&lint_json(&project_with(config).root));
-    assert!(
-        warnings
-            .iter()
-            .any(|w| w["message"].as_str().expect("m").contains("experimental")),
-        "{warnings:?}"
-    );
-}
-
-#[test]
 fn v1_name_inside_a_v2_group_says_where_it_moved() {
     let config = "include: [\"src\"]\nrules:\n  sonar:\n    sonar/prefer-at: error\n";
     let json = lint_json(&project_with(config).root);
@@ -278,9 +266,16 @@ fn empty_rules_map_is_v2() {
 }
 
 #[test]
-fn experimental_with_a_flat_unknown_name_is_v1() {
+fn experimental_with_a_flat_unknown_name_is_v2_and_warns_for_the_unknown_key() {
     let config = "include: [\"src\"]\nrules:\n  experimental:\n    x: error\n  bogus: error\n";
-    assert_eq!(v1_warning_count(config), 1);
+    assert_eq!(v1_warning_count(config), 0);
+    let warnings = config_warnings(&lint_json(&project_with(config).root));
+    assert!(
+        warnings
+            .iter()
+            .any(|w| w["message"].as_str().expect("m").contains("bogus")),
+        "{warnings:?}"
+    );
 }
 
 #[test]

@@ -46,6 +46,7 @@ fn invalid_severity_advisories(resolved: &ResolvedRules, text: &str, file: &str)
     resolved
         .rules
         .iter()
+        .chain(resolved.experimental.iter())
         .filter(|(name, config)| !has_valid_severity(name, config))
         .map(|(name, config)| {
             advisory(
