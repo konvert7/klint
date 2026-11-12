@@ -8,6 +8,7 @@ pub(crate) struct LineTotals {
 pub(crate) struct LineTally {
     totals: LineTotals,
     previous_token_end: usize,
+    pending_breaks: u32,
 }
 
 pub(crate) fn line_breaks_between(source: &[u8], from: usize, to: usize) -> u32 {
@@ -28,7 +29,8 @@ impl LineTotals {
 
 impl LineTally {
     pub(crate) fn add_token(&mut self, source: &[u8], kind: &str, start: usize, end: usize) {
-        let breaks = line_breaks_between(source, self.previous_token_end, start);
+        let breaks = line_breaks_between(source, self.previous_token_end, start)
+            .saturating_add(std::mem::take(&mut self.pending_breaks));
         self.previous_token_end = end;
         if is_brace_kind(kind) {
             return;
@@ -37,6 +39,12 @@ impl LineTally {
         if breaks > 0 {
             self.totals.non_blank_lines = self.totals.non_blank_lines.saturating_add(1);
         }
+    }
+
+    pub(crate) fn absorb_comment(&mut self, source: &[u8], start: usize, end: usize) {
+        let breaks = line_breaks_between(source, self.previous_token_end, start);
+        self.pending_breaks = self.pending_breaks.saturating_add(breaks);
+        self.previous_token_end = self.previous_token_end.max(end);
     }
 
     pub(crate) fn absorb_gap_before(&mut self, start: usize) {

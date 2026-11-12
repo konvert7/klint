@@ -12,7 +12,8 @@ pub(crate) use complexity::{
     FunctionScore, ScoringContext, function_name, is_scored_function, score_node, sort_by_position,
 };
 pub(crate) use function_length::{
-    FunctionLength, LineTally, LineTotals, is_token, measured_body, starts_uncounted_region,
+    FunctionLength, LineTally, LineTotals, is_comment, is_token, measured_body,
+    starts_uncounted_region,
 };
 
 pub use architecture::{

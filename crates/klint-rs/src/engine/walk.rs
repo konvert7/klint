@@ -2,8 +2,8 @@ use tree_sitter::Node;
 
 use crate::syntax::{
     FunctionLength, FunctionScore, LineTally, LineTotals, ScoringContext, SourceLanguage,
-    is_async_function_like, is_function_like, is_scored_function, is_statement_container, is_token,
-    measured_body, score_node, starts_uncounted_region,
+    is_async_function_like, is_comment, is_function_like, is_scored_function,
+    is_statement_container, is_token, measured_body, score_node, starts_uncounted_region,
 };
 
 fn is_scored_node(language: SourceLanguage, node: Node<'_>) -> bool {
@@ -108,10 +108,13 @@ impl<'a> NodeIndex<'a> {
         }
     }
 
-    fn tally_token(&mut self, node: Node<'a>, source: &[u8], language: SourceLanguage) {
+    fn tally_node(&mut self, node: Node<'a>, source: &[u8], language: SourceLanguage) {
         if is_token(language, node) {
             self.tally
                 .add_token(source, node.kind(), node.start_byte(), node.end_byte());
+        } else if is_comment(node) {
+            self.tally
+                .absorb_comment(source, node.start_byte(), node.end_byte());
         }
     }
 
@@ -167,7 +170,7 @@ impl<'a> NodeIndex<'a> {
         let before_body = self.tally.totals();
         let scoring = self.score(node, wants, language, descent);
         if wants.function_lengths && !descent.in_uncounted {
-            self.tally_token(node, source, language);
+            self.tally_node(node, source, language);
         }
         let descent = Descent {
             scoring,

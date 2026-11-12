@@ -71,6 +71,10 @@ pub(crate) fn starts_uncounted_region(language: SourceLanguage, node: Node<'_>) 
     node.is_extra() || is_single_token_kind(language, node.kind())
 }
 
+pub(crate) fn is_comment(node: Node<'_>) -> bool {
+    node.is_extra() && node.kind().contains("comment")
+}
+
 pub(crate) fn is_token(language: SourceLanguage, node: Node<'_>) -> bool {
     !node.is_extra() && (node.child_count() == 0 || is_single_token_kind(language, node.kind()))
 }
