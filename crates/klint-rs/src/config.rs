@@ -143,6 +143,11 @@ pub(crate) fn find_config(config_dir: &Path) -> Result<PathBuf, String> {
         return Ok(json);
     }
 
+    let yml = config_dir.join("klint.yml");
+    if yml.exists() {
+        return Ok(yml);
+    }
+
     Err(format!(
         "klint: no config file found — create klint.yaml (or klint.config.json) at {}",
         config_dir.display()
