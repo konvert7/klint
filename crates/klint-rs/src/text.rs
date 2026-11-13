@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use klint_rs::Violation;
+use klint_rs::{Violation, fix_hint};
 
 const HEADER_WIDTH: usize = 80;
 
@@ -29,6 +29,10 @@ pub fn render(violations: &[Violation], elapsed: Duration) -> TextReport {
 
     if !errors.is_empty() {
         stderr.push_str(&section("error(s)", &errors));
+    }
+
+    if let Some(hint) = fix_hint(violations) {
+        stderr.push_str(&format!("\nklint: {hint}\n"));
     }
 
     stderr.push_str(&format!("\nklint: finished in {duration}\n"));
@@ -110,6 +114,20 @@ mod tests {
         let long = "a/".repeat(60);
         let report = render(&[violation(&long, "error")], Duration::from_millis(5));
         assert!(report.stderr.contains(&format!("{long}:1  [r] \n")));
+    }
+
+    #[test]
+    fn report_points_at_fix_when_a_violation_is_fixable() {
+        let mut fixable = violation("a.ts", "error");
+        fixable.fix = Some(serde_json::json!({}));
+        let report = render(&[fixable], Duration::from_millis(5));
+        assert!(report.stderr.contains("run `klint --fix`"));
+    }
+
+    #[test]
+    fn report_stays_silent_about_fix_when_nothing_is_fixable() {
+        let report = render(&[violation("a.ts", "error")], Duration::from_millis(5));
+        assert!(!report.stderr.contains("--fix"));
     }
 
     #[test]

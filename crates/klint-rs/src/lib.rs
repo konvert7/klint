@@ -32,7 +32,7 @@ use files::{read_files, resolve_files};
 pub use fix::MAX_FIX_PASSES;
 use fix::{Originals, apply_fixes, fix_until_stable, has_fixes};
 pub use migrate::{MigrateOptions, MigrateOutcome, migrate};
-pub use output::{JsonOutput, Summary, Violation};
+pub use output::{JsonOutput, Summary, Violation, fix_hint};
 use rules::plan_rule_passes;
 pub use schema::config_schema;
 pub use skill::install::{InstallRequest, install_skill};

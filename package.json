@@ -46,6 +46,12 @@
     "knip": "knip-bun",
     "klint": "cargo run --quiet -p klint-rs --",
     "jscpd": "jscpd --noTips",
+    "madge": "madge --circular --extensions ts --ts-config tsconfig.json tools tests .agents/hooks",
+    "lf": "bun tools/check-lf.ts",
+    "lf:fix": "bun tools/check-lf.ts --fix",
+    "exact-versions": "bun tools/check-exact-versions.ts",
+    "lock:check": "bun tools/check-lock.ts",
+    "secretlint": "secretlint \"**/*\"",
     "schema": "cargo run --quiet -p klint-rs --example generate_schema -- $npm_package_version",
     "lint-staged": "lint-staged",
     "prepare": "bun .husky/install.mjs"
@@ -53,6 +59,9 @@
   "lint-staged": {
     "*.ts": [
       "bun run check"
+    ],
+    "{package.json,bun.lock,bunfig.toml,.npmrc,Cargo.toml,Cargo.lock}": [
+      "bun run lock:check"
     ]
   },
   "optionalDependencies": {
@@ -65,23 +74,26 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.5",
-    "@commitlint/cli": "^20.5.3",
-    "@commitlint/config-conventional": "^20.5.3",
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/git": "^10.0.1",
-    "@semantic-release/github": "^12.0.6",
-    "@types/bun": "latest",
-    "@types/node": "latest",
+    "@commitlint/cli": "20.5.3",
+    "@commitlint/config-conventional": "20.5.3",
+    "@secretlint/secretlint-rule-preset-recommend": "13.1.0",
+    "@semantic-release/changelog": "6.0.3",
+    "@semantic-release/git": "10.0.1",
+    "@semantic-release/github": "12.0.8",
+    "@types/bun": "1.3.14",
+    "@types/node": "25.8.0",
     "@typescript-eslint/parser": "8.72.2",
     "eslint": "9.39.5",
     "eslint-plugin-sonarjs": "3.0.5",
-    "husky": "^9.1.7",
+    "husky": "9.1.7",
     "jscpd": "4.2.3",
-    "knip": "^6.9.0",
-    "lint-staged": "^15.5.2",
-    "semantic-release": "^25.0.3",
-    "typescript": "^5.9.3",
-    "yaml": "^2.9.0"
+    "knip": "6.14.1",
+    "lint-staged": "15.5.2",
+    "madge": "8.0.0",
+    "secretlint": "13.1.0",
+    "semantic-release": "25.0.3",
+    "typescript": "5.9.3",
+    "yaml": "2.9.0"
   },
   "directories": {
     "test": "tests"
