@@ -46,14 +46,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun .agents/hooks/rust-engine.ts --codex"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "bun .agents/hooks/pack-check.ts --codex"
           }
         ]
@@ -81,6 +73,23 @@
             "command": "bun .agents/hooks/klint.ts --codex"
           }
         ]
+      },
+      {
+        "hooks": [{ "type": "command", "command": "bun .agents/hooks/madge.ts --codex" }]
+      },
+      {
+        "hooks": [{ "type": "command", "command": "bun .agents/hooks/lf.ts --codex" }]
+      },
+      {
+        "hooks": [
+          { "type": "command", "command": "bun .agents/hooks/exact-versions.ts --codex" }
+        ]
+      },
+      {
+        "hooks": [{ "type": "command", "command": "bun .agents/hooks/lock-check.ts --codex" }]
+      },
+      {
+        "hooks": [{ "type": "command", "command": "bun .agents/hooks/secretlint.ts --codex" }]
       }
     ]
   }

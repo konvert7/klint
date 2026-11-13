@@ -5,6 +5,7 @@
   "includeEntryExports": true,
   "tags": ["-lintignore"],
   "ignoreDependencies": [
+    "@secretlint/secretlint-rule-preset-recommend",
     "@semantic-release/github",
     "@typescript-eslint/parser",
     "eslint",

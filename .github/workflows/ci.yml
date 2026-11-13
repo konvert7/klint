@@ -71,6 +71,21 @@ jobs:
       - name: Klint
         run: bun run klint
 
+      - name: Madge
+        run: bun run madge
+
+      - name: Line endings
+        run: bun run lf
+
+      - name: Exact dependency versions
+        run: bun run exact-versions
+
+      - name: Lockfiles match manifests
+        run: bun run lock:check
+
+      - name: Secretlint
+        run: bun run secretlint
+
       - name: Rust debug build
         run: cargo build -p klint-rs
 
