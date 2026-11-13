@@ -90,5 +90,10 @@
   "bugs": {
     "url": "https://github.com/konvert7/klint/issues"
   },
-  "homepage": "https://github.com/konvert7/klint#readme"
+  "homepage": "https://klint.dev",
+  "overrides": {
+    "eslint-plugin-sonarjs": {
+      "minimatch": "9.0.7"
+    }
+  }
 }
