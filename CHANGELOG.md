@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/konvert7/klint/compare/v1.6.0...v1.7.0) (2026-11-13)
+
+
+### Features
+
+* **output:** tell the reader to run klint --fix when a violation is fixable ([2b2f574](https://github.com/konvert7/klint/commit/2b2f574b1bdf40985d54a985cd22b882678f09a7))
+
 # [1.6.0](https://github.com/konvert7/klint/compare/v1.5.3...v1.6.0) (2026-11-12)
 
 
