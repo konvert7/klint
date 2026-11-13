@@ -25,12 +25,28 @@ export function versionsStampedAtRelease(): Set<string> {
   return new Set(nativePackages().map((nativePackage) => nativePackage.packageName));
 }
 
+type VersionTree = { [name: string]: string | VersionTree };
+
+function qualifiedName(parent: string, key: string): string {
+  if (key === ".") return parent;
+
+  return parent ? `${parent} > ${key}` : key;
+}
+
+function flattenVersions(tree: VersionTree, parent = ""): Array<[string, string]> {
+  return Object.entries(tree).flatMap(([key, value]): Array<[string, string]> => {
+    const name = qualifiedName(parent, key);
+
+    return typeof value === "string" ? [[name, value]] : flattenVersions(value, name);
+  });
+}
+
 export function nonExactVersions(
   manifest: Manifest,
   stampedAtRelease: Set<string> = new Set()
 ): NonExactVersion[] {
   return DEPENDENCY_SECTIONS.flatMap((section) =>
-    Object.entries((manifest[section] ?? {}) as Record<string, string>)
+    flattenVersions((manifest[section] ?? {}) as VersionTree)
       .filter(
         ([name, version]) => !stampedAtRelease.has(name) && !EXACT_SEMVER.test(version)
       )

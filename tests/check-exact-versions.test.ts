@@ -34,6 +34,19 @@ describe("nonExactVersions", () => {
     expect(nonExactVersions(manifest)).toEqual([]);
   });
 
+  test("reads nested overrides and npm's '.' self-version", () => {
+    const manifest = {
+      overrides: {
+        "eslint-plugin-sonarjs": { minimatch: "9.0.7" },
+        foo: { ".": "^1.0.0", bar: "~2.0.0" },
+      },
+    };
+    expect(nonExactVersions(manifest)).toEqual([
+      { section: "overrides", name: "foo", version: "^1.0.0" },
+      { section: "overrides", name: "foo > bar", version: "~2.0.0" },
+    ]);
+  });
+
   test("skips a package whose version the release writes", () => {
     const manifest = { optionalDependencies: { native: "*", other: "*" } };
     expect(nonExactVersions(manifest, new Set(["native"]))).toEqual([
