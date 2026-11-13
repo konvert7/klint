@@ -17,7 +17,7 @@ export function homebrewFormula(options: FormulaOptions): string {
 
 class Klint < Formula
   desc "Architecture-as-Code linter: layer boundaries, imports and forbidden patterns"
-  homepage "https://github.com/konvert7/klint"
+  homepage "https://klint.dev"
   version "${version}"
   license "MIT"
 

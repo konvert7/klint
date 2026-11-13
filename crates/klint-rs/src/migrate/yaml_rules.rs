@@ -105,8 +105,14 @@ pub(super) fn entries(lines: &Lines, body: Span) -> (Option<usize>, Vec<Entry>) 
     let mut found: Vec<Entry> = Vec::new();
     let mut pending: Vec<usize> = Vec::new();
 
-    for i in body.start..body.end {
-        let text = &lines.lines[i].text;
+    for (i, line) in lines
+        .lines
+        .iter()
+        .enumerate()
+        .take(body.end)
+        .skip(body.start)
+    {
+        let text = &line.text;
         if is_blank(text) || is_comment(text) {
             pending.push(i);
         } else if indent_of(text) == child || found.is_empty() {
@@ -196,8 +202,14 @@ pub(super) fn check_supported(lines: &Lines, span: Span) -> Result<(), String> {
     );
     let mut scan = DuplicateScan::new(child);
 
-    for i in span.start..span.end {
-        let text = &lines.lines[i].text;
+    for (i, line) in lines
+        .lines
+        .iter()
+        .enumerate()
+        .take(span.end)
+        .skip(span.start)
+    {
+        let text = &line.text;
         let number = i + 1;
         let code = without_comment(text);
 
