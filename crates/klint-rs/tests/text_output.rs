@@ -29,6 +29,8 @@ src/index.ts:2  [arch/forbidden] ━━━━━━━━━━━━━━━�
 
   × Use logger
 
+klint: 1 violation(s) can be fixed automatically: run `klint --fix`.
+
 klint: finished in ";
 
 fn temp_root(name: &str) -> PathBuf {

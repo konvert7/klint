@@ -37,8 +37,10 @@
       ],
       "summary": {
         "errors": 1,
-        "warnings": 1
-      }
+        "warnings": 1,
+        "fixable": 1
+      },
+      "hint": "1 violation(s) can be fixed automatically: run `klint --fix`."
     }
   },
   {
@@ -111,8 +113,10 @@
       ],
       "summary": {
         "errors": 0,
-        "warnings": 2
-      }
+        "warnings": 2,
+        "fixable": 1
+      },
+      "hint": "1 violation(s) can be fixed automatically: run `klint --fix`."
     }
   },
   {
@@ -765,8 +769,10 @@
       ],
       "summary": {
         "errors": 1,
-        "warnings": 1
-      }
+        "warnings": 1,
+        "fixable": 1
+      },
+      "hint": "1 violation(s) can be fixed automatically: run `klint --fix`."
     }
   },
   {
@@ -837,8 +843,10 @@
       ],
       "summary": {
         "errors": 1,
-        "warnings": 1
-      }
+        "warnings": 1,
+        "fixable": 1
+      },
+      "hint": "1 violation(s) can be fixed automatically: run `klint --fix`."
     }
   },
   {
@@ -879,8 +887,10 @@
       ],
       "summary": {
         "errors": 1,
-        "warnings": 1
-      }
+        "warnings": 1,
+        "fixable": 1
+      },
+      "hint": "1 violation(s) can be fixed automatically: run `klint --fix`."
     }
   },
   {
@@ -951,8 +961,10 @@
       ],
       "summary": {
         "errors": 1,
-        "warnings": 1
-      }
+        "warnings": 1,
+        "fixable": 1
+      },
+      "hint": "1 violation(s) can be fixed automatically: run `klint --fix`."
     }
   },
   {
@@ -993,8 +1005,10 @@
       ],
       "summary": {
         "errors": 1,
-        "warnings": 1
-      }
+        "warnings": 1,
+        "fixable": 1
+      },
+      "hint": "1 violation(s) can be fixed automatically: run `klint --fix`."
     }
   },
   {
@@ -1065,8 +1079,10 @@
       ],
       "summary": {
         "errors": 1,
-        "warnings": 1
-      }
+        "warnings": 1,
+        "fixable": 1
+      },
+      "hint": "1 violation(s) can be fixed automatically: run `klint --fix`."
     }
   },
   {
@@ -1107,8 +1123,10 @@
       ],
       "summary": {
         "errors": 1,
-        "warnings": 1
-      }
+        "warnings": 1,
+        "fixable": 1
+      },
+      "hint": "1 violation(s) can be fixed automatically: run `klint --fix`."
     }
   },
   {
@@ -1179,8 +1197,10 @@
       ],
       "summary": {
         "errors": 1,
-        "warnings": 1
-      }
+        "warnings": 1,
+        "fixable": 1
+      },
+      "hint": "1 violation(s) can be fixed automatically: run `klint --fix`."
     }
   },
   {
@@ -1251,8 +1271,10 @@
       ],
       "summary": {
         "errors": 1,
-        "warnings": 1
-      }
+        "warnings": 1,
+        "fixable": 1
+      },
+      "hint": "1 violation(s) can be fixed automatically: run `klint --fix`."
     }
   },
   {
@@ -1293,8 +1315,10 @@
       ],
       "summary": {
         "errors": 1,
-        "warnings": 1
-      }
+        "warnings": 1,
+        "fixable": 1
+      },
+      "hint": "1 violation(s) can be fixed automatically: run `klint --fix`."
     }
   },
   {
@@ -1365,8 +1389,10 @@
       ],
       "summary": {
         "errors": 1,
-        "warnings": 1
-      }
+        "warnings": 1,
+        "fixable": 1
+      },
+      "hint": "1 violation(s) can be fixed automatically: run `klint --fix`."
     }
   },
   {
@@ -1407,8 +1433,10 @@
       ],
       "summary": {
         "errors": 1,
-        "warnings": 1
-      }
+        "warnings": 1,
+        "fixable": 1
+      },
+      "hint": "1 violation(s) can be fixed automatically: run `klint --fix`."
     }
   },
   {
@@ -1836,8 +1864,10 @@
       ],
       "summary": {
         "errors": 4,
-        "warnings": 1
-      }
+        "warnings": 1,
+        "fixable": 2
+      },
+      "hint": "2 violation(s) can be fixed automatically: run `klint --fix`."
     }
   },
   {
