@@ -38,7 +38,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: "1.4"
+          bun-version: "1.4.4"
 
       - name: Setup Rust
         run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
@@ -138,7 +138,7 @@ jobs:
           restore-keys: alpine-
 
       - name: Test on Alpine
-        # 2026-11-13: bun@1.4 from npm ships the musl build; matches setup-bun's "1.4" line
+        # 2026-11-13: bun@1.4.4 from npm ships the musl build; matches setup-bun's "1.4.4" pin
         run: |
           mkdir -p .alpine-cache/cargo-registry .alpine-cache/bun
           docker run --rm -e CI -e GITHUB_BASE_REF -v "$PWD:/io" -w /io \
@@ -147,7 +147,7 @@ jobs:
             rust:1-alpine sh -euc '
             apk add -q bash nodejs npm git musl-dev libstdc++ libgcc tar
             git config --global --add safe.directory /io
-            npm install -g --silent bun@1.4
+            npm install -g --silent bun@1.4.4
             bun install --frozen-lockfile
             cargo build -p klint-rs
             bun run test
@@ -206,7 +206,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: "1.4"
+          bun-version: "1.4.4"
 
       - name: Setup Rust
         if: matrix.manylinux-image == ''
