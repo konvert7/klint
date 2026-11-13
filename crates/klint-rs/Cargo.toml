@@ -5,7 +5,6 @@ edition = "2024"
 rust-version = "1.85"
 description = "Architecture-as-Code linter: layer boundaries, import rules and forbidden patterns declared in YAML."
 repository = "https://github.com/konvert7/klint"
-homepage = "https://github.com/konvert7/klint"
 license = "MIT"
 readme = "../../README.md"
 keywords = ["linter", "architecture", "agent", "typescript", "cli"]
