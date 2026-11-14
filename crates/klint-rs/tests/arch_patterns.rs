@@ -46,6 +46,7 @@ arch:
             message: "Use logger".to_string(),
             severity: "error".to_string(),
             fix: None,
+            span: None,
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -124,6 +125,7 @@ arch:
             message: "Use logger".to_string(),
             severity: "error".to_string(),
             fix: None,
+            span: None,
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -166,6 +168,7 @@ arch:
             message: "Use networking client".to_string(),
             severity: "error".to_string(),
             fix: None,
+            span: None,
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -215,6 +218,7 @@ arch:
             message: "Use auth module".to_string(),
             severity: "error".to_string(),
             fix: None,
+            span: None,
         }]
     );
     assert_eq!(output.summary.errors, 1);
@@ -301,6 +305,7 @@ arch:
             message: "Use auth module".to_string(),
             severity: "error".to_string(),
             fix: None,
+            span: None,
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -350,6 +355,7 @@ arch:
             message: "Use AppConfig".to_string(),
             severity: "error".to_string(),
             fix: None,
+            span: None,
         }]
     );
     let _ = fs::remove_dir_all(root);

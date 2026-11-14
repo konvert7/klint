@@ -25,6 +25,7 @@ pub(super) fn run_no_string_match(scan: RuleScan<'_>) -> Vec<Report> {
                     &replacement,
                 ),
                 level: None,
+                bytes: Some(record.start_byte..record.end_byte),
             }
         })
         .collect()
@@ -52,6 +53,7 @@ pub(super) fn run_no_nested_template_literals(scan: RuleScan<'_>) -> Vec<Report>
                     .to_string(),
             fix: None,
             level: None,
+            bytes: None,
         })
         .collect()
 }
@@ -73,6 +75,7 @@ pub(super) fn run_no_consecutive_array_push(scan: RuleScan<'_>) -> Vec<Report> {
             ),
             fix: None,
             level: None,
+            bytes: None,
         })
         .collect()
 }
@@ -89,6 +92,7 @@ pub(super) fn run_no_unguarded_json_parse(scan: RuleScan<'_>) -> Vec<Report> {
                     .to_string(),
             fix: None,
             level: None,
+            bytes: Some(call.node.byte_range()),
         })
         .collect()
 }
@@ -106,6 +110,7 @@ pub(super) fn run_no_sync_in_async(scan: RuleScan<'_>) -> Vec<Report> {
             ),
             fix: None,
             level: None,
+            bytes: Some(node.byte_range()),
         })
         .collect()
 }
@@ -123,6 +128,7 @@ pub(super) fn run_no_async_predicate(scan: RuleScan<'_>) -> Vec<Report> {
             ),
             fix: None,
             level: None,
+            bytes: None,
         })
         .collect()
 }

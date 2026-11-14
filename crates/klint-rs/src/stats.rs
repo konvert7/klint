@@ -297,6 +297,7 @@ mod tests {
             message: message.to_string(),
             severity: "error".to_string(),
             fix: None,
+            span: None,
         }
     }
 

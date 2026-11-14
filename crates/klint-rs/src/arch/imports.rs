@@ -108,6 +108,7 @@ impl ImportPass {
             message: self.message.as_deref().unwrap_or(fallback).to_string(),
             severity: self.severity.clone(),
             fix: None,
+            span: None,
         }
     }
 }

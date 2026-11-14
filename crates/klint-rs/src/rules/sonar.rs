@@ -24,6 +24,7 @@ pub(super) fn run_sonar_no_single_char_class(scan: RuleScan<'_>) -> Vec<Report> 
                 &record.fixed_regex,
             ),
             level: None,
+            bytes: Some(record.start_byte..record.end_byte),
         })
         .collect()
 }
@@ -50,6 +51,7 @@ pub(super) fn run_sonar_prefer_at(scan: RuleScan<'_>) -> Vec<Report> {
                     &replacement,
                 ),
                 level: None,
+                bytes: Some(record.start_byte..record.end_byte),
             }
         })
         .collect()
@@ -80,6 +82,7 @@ pub(super) fn run_sonar_prefer_string_replaceall(scan: RuleScan<'_>) -> Vec<Repo
                     &replacement,
                 ),
                 level: None,
+                bytes: Some(record.start_byte..record.end_byte),
             }
         })
         .collect()
@@ -104,6 +107,7 @@ pub(super) fn run_sonar_prefer_string_raw_regexp(scan: RuleScan<'_>) -> Vec<Repo
                 &record.fixed_arg,
             ),
             level: None,
+            bytes: Some(record.start_byte..record.end_byte),
         })
         .collect()
 }
@@ -127,6 +131,7 @@ pub(super) fn run_sonar_prefer_string_raw(scan: RuleScan<'_>) -> Vec<Report> {
                 &record.fixed,
             ),
             level: None,
+            bytes: Some(record.start_byte..record.end_byte),
         })
         .collect()
 }
@@ -153,6 +158,7 @@ pub(super) fn run_sonar_prefer_nullish_coalescing_assign(scan: RuleScan<'_>) -> 
                     &replacement,
                 ),
                 level: None,
+                bytes: Some(record.start_byte..record.end_byte),
             }
         })
         .collect()

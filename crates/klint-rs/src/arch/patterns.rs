@@ -174,6 +174,7 @@ impl PatternPass {
             message: self.message.clone(),
             severity: self.severity.clone(),
             fix: None,
+            span: None,
         }
     }
 }

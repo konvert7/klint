@@ -399,6 +399,7 @@ impl MaxLinesPass {
                 .unwrap_or_else(|| format!("File exceeds the maximum of {} lines", self.limit)),
             severity: self.severity.clone(),
             fix: None,
+            span: None,
         }]
     }
 }

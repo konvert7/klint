@@ -8,6 +8,7 @@ use klint_rs::{
     Violation, fix, install_skill, known_agent_names, known_agents, migrate, record_run, run,
     stats_report,
 };
+use std::io::IsTerminal;
 use std::path::PathBuf;
 use std::time::Instant;
 
@@ -157,7 +158,7 @@ fn lint_command(values: &Values) -> i32 {
     };
 
     if values.flag("fix") {
-        return fix_command(config_dir, source, started_at);
+        return fix_command(config_dir, source, started_at, stderr_style(values));
     }
 
     match run(RunOptions {
@@ -172,7 +173,11 @@ fn lint_command(values: &Values) -> i32 {
                     serde_json::to_string(&output).expect("klint-rs output should be serializable")
                 );
             } else {
-                let report = text::render(&output.violations, started_at.elapsed());
+                let report = text::render(
+                    &output.violations,
+                    started_at.elapsed(),
+                    stderr_style(values),
+                );
                 print!("{}", report.stdout);
                 eprint!("{}", report.stderr);
             }
@@ -242,6 +247,7 @@ fn refusal_warning(file: String, line: usize, reason: &str) -> Violation {
         message: format!("Cannot migrate this config to v2: {reason}"),
         severity: "warn".to_string(),
         fix: None,
+        span: None,
     }
 }
 
@@ -279,7 +285,20 @@ fn migrate_before_fixing(config_dir: &std::path::Path) -> Option<Violation> {
     }
 }
 
-fn fix_command(config_dir: PathBuf, source: RunSource, started_at: Instant) -> i32 {
+fn stderr_style(values: &Values) -> text::TextStyle {
+    text::style_for(
+        values.flag("hook"),
+        std::io::stderr().is_terminal(),
+        std::env::var_os("NO_COLOR").as_deref(),
+    )
+}
+
+fn fix_command(
+    config_dir: PathBuf,
+    source: RunSource,
+    started_at: Instant,
+    style: text::TextStyle,
+) -> i32 {
     let refusal = migrate_before_fixing(&config_dir);
 
     match fix(RunOptions {
@@ -287,7 +306,10 @@ fn fix_command(config_dir: PathBuf, source: RunSource, started_at: Instant) -> i
     }) {
         Ok(mut outcome) => {
             if let Some(warning) = refusal {
-                eprint!("{}", text::warnings_section(std::slice::from_ref(&warning)));
+                eprint!(
+                    "{}",
+                    text::warnings_section(std::slice::from_ref(&warning), style)
+                );
                 outcome.remaining.violations.push(warning);
                 outcome.remaining.summary.warnings += 1;
             }
