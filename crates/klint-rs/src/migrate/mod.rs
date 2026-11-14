@@ -13,11 +13,14 @@ use crate::LoadedConfig;
 use crate::config::{ConfigFormat, find_config, parse_config_text};
 use crate::config_shape::{ConfigShape, Group, config_shape};
 use crate::plugins::SONAR_PREFIX;
+use crate::rules::is_experimental_rule;
 use levels::LevelPlan;
+pub use proof::NewlyRunning;
 
 pub(crate) fn v2_location(v1_name: &str) -> (Group, &str) {
     match v1_name.strip_prefix(SONAR_PREFIX) {
         Some(short) => (Group::Sonar, short),
+        None if is_experimental_rule(v1_name) => (Group::Experimental, v1_name),
         None => (Group::Core, v1_name),
     }
 }
@@ -37,6 +40,7 @@ pub enum MigrateOutcome {
     },
     Migrated {
         file: String,
+        newly_running: Vec<NewlyRunning>,
     },
     Refused {
         file: String,
@@ -146,12 +150,16 @@ pub fn migrate(options: &MigrateOptions) -> Result<MigrateOutcome, String> {
         path: path.clone(),
         raw,
     };
-    if let Err(reason) = proof::prove_same_findings(dir, old, &new_text) {
-        return Ok(refused(&file, reason));
-    }
+    let newly_running = match proof::prove_same_findings(dir, old, &new_text) {
+        Ok(newly_running) => newly_running,
+        Err(reason) => return Ok(refused(&file, reason)),
+    };
 
     match fs::write(&path, new_text) {
-        Ok(()) => Ok(MigrateOutcome::Migrated { file }),
+        Ok(()) => Ok(MigrateOutcome::Migrated {
+            file,
+            newly_running,
+        }),
         Err(err) => Ok(refused(
             &file,
             format!("failed to write {}: {err}", path.display()),

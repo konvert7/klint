@@ -152,7 +152,7 @@ fn new_rules<'v, 'a>(
         members.push(("recommended".to_string(), Printed::True));
     }
 
-    for group in [Group::Core, Group::Sonar] {
+    for group in [Group::Core, Group::Sonar, Group::Experimental] {
         let found = flat.map_or_else(Vec::new, |flat| grouped(flat, group));
         if !found.is_empty() {
             members.push((group.key().to_string(), Printed::Object(found)));

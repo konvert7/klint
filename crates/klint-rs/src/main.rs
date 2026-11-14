@@ -4,9 +4,9 @@ mod text;
 
 use command::{Dispatch, Group, Leaf, OptionSpec, Values, dispatch};
 use klint_rs::{
-    InstallRequest, MAX_FIX_PASSES, MigrateOptions, MigrateOutcome, RunOptions, RunSource,
-    Violation, fix, install_skill, known_agent_names, known_agents, migrate, record_run, run,
-    stats_report,
+    InstallRequest, MAX_FIX_PASSES, MigrateOptions, MigrateOutcome, NewlyRunning, RunOptions,
+    RunSource, Violation, fix, install_skill, known_agent_names, known_agents, migrate, record_run,
+    run, stats_report,
 };
 use std::io::IsTerminal;
 use std::path::PathBuf;
@@ -214,8 +214,11 @@ fn migrate_command(values: &Values) -> i32 {
             );
             0
         }
-        Ok(MigrateOutcome::Migrated { file }) => {
-            println!("klint: migrated {} to v2.", shown(&file));
+        Ok(MigrateOutcome::Migrated {
+            file,
+            newly_running,
+        }) => {
+            println!("{}", migrated_message(&shown(&file), &newly_running));
             0
         }
         Ok(MigrateOutcome::NeedsMigration { file }) => {
@@ -237,6 +240,17 @@ fn migrate_command(values: &Values) -> i32 {
             1
         }
     }
+}
+
+fn migrated_message(shown: &str, newly_running: &[NewlyRunning]) -> String {
+    let mut lines = vec![format!("klint: migrated {shown} to v2.")];
+    lines.extend(newly_running.iter().map(|n| {
+        format!(
+            "klint: {} now runs (rules.experimental): {} finding(s).",
+            n.rule, n.findings
+        )
+    }));
+    lines.join("\n")
 }
 
 fn refusal_warning(file: String, line: usize, reason: &str) -> Violation {
@@ -266,10 +280,13 @@ fn migrate_before_fixing(config_dir: &std::path::Path) -> Option<Violation> {
         check_only: false,
     });
     match outcome {
-        Ok(MigrateOutcome::Migrated { file }) => {
+        Ok(MigrateOutcome::Migrated {
+            file,
+            newly_running,
+        }) => {
             eprintln!(
-                "klint: migrated {} to v2.",
-                shown_config_path(config_dir, &file)
+                "{}",
+                migrated_message(&shown_config_path(config_dir, &file), &newly_running)
             );
             None
         }
