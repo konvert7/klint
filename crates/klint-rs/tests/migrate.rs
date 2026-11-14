@@ -328,6 +328,58 @@ fn unknown_rule_name_moves_to_the_core_group() {
 }
 
 #[test]
+fn experimental_rules_move_to_the_experimental_group() {
+    let p = yaml(
+        "include: [\"src\"]\nrules:\n  no-date-equality: error\n  no-string-match: error\n  no-floating-promise: warn\n",
+    );
+    let ran = klint(&p.root, &["migrate"]);
+    assert_eq!(ran.status, 0, "{}", ran.all());
+    assert_eq!(
+        file(&p, "klint.yaml"),
+        "include: [\"src\"]\nrules:\n  core:\n    no-string-match: error\n  experimental:\n    no-date-equality: error\n    no-floating-promise: warn\n"
+    );
+    assert!(config_warnings(&lint_json(&p.root)).is_empty());
+}
+
+#[test]
+fn migrate_accepts_findings_from_experimental_rules_v1_ignored_and_reports_them() {
+    let p = yaml("include: [\"src\"]\nrules:\n  no-floating-promise: error\n");
+    write(
+        p.root.join("src/a.ts"),
+        "async function f() {}\nf();\nf();\n",
+    )
+    .expect("write source");
+
+    let ran = klint(&p.root, &["migrate"]);
+
+    assert_eq!(ran.status, 0, "{}", ran.all());
+    assert!(file(&p, "klint.yaml").contains("experimental:\n    no-floating-promise: error"));
+    assert!(
+        ran.all()
+            .contains("no-floating-promise now runs (rules.experimental): 2 finding(s)"),
+        "{}",
+        ran.all()
+    );
+}
+
+#[test]
+fn json_experimental_rules_move_to_the_experimental_group() {
+    let v1 = "{\n  \"include\": [\"src\"],\n  \"rules\": {\n    \"no-floating-promise\": \"error\",\n    \"no-string-match\": \"error\"\n  }\n}\n";
+    let p = project("klint.config.json", v1.as_bytes());
+    let ran = klint(&p.root, &["migrate"]);
+    assert_eq!(ran.status, 0, "{}", ran.all());
+    let migrated: serde_json::Value =
+        serde_json::from_str(&file(&p, "klint.config.json")).expect("json");
+    assert_eq!(
+        migrated["rules"],
+        serde_json::json!({
+            "core": {"no-string-match": "error"},
+            "experimental": {"no-floating-promise": "error"}
+        })
+    );
+}
+
+#[test]
 fn quoted_glob_with_bang_and_star_in_rules_is_not_refused() {
     let config = "include: [\"src\"]\nrules:\n  no-string-match:\n    severity: error\n    include: [\"!src/**/*.test.ts\"]\n";
     let p = yaml(config);
