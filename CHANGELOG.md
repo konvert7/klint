@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/konvert7/klint/compare/v1.7.0...v1.7.1) (2026-11-14)
+
+
+### Bug Fixes
+
+* **migrate:** move experimental rules to rules.experimental ([096d741](https://github.com/konvert7/klint/commit/096d7418322e9ab038ec5490f71895b544ae34c0))
+
 # [1.7.0](https://github.com/konvert7/klint/compare/v1.6.0...v1.7.0) (2026-11-13)
 
 
