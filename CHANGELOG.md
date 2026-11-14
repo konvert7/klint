@@ -1,3 +1,15 @@
+# [1.8.0](https://github.com/konvert7/klint/compare/v1.7.1...v1.8.0) (2026-11-14)
+
+
+### Bug Fixes
+
+* **hooks:** clear git's repository env vars before tests run ([92d64da](https://github.com/konvert7/klint/commit/92d64dad248c09bfd6d597ac0b7be86bcc8f09fe))
+
+
+### Features
+
+* **output:** colour text output and underline the offending span ([6c61a8b](https://github.com/konvert7/klint/commit/6c61a8b4e8e811c57886a5c8b2d94db91ee46e9c))
+
 ## [1.7.1](https://github.com/konvert7/klint/compare/v1.7.0...v1.7.1) (2026-11-14)
 
 
