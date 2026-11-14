@@ -261,7 +261,7 @@ arch:
 
 The rule ids in the output stay `sonar/…`, for example `sonar/prefer-at`.
 
-**v1 still works.** The flat map under `rules` (with `sonar/` prefixes) and `plugins: [sonar]` are still read. A v1 config gets one `klint/config` warning. `klint migrate` or `klint --fix` upgrades it in place and keeps comments, blank lines and key order. It refuses, naming the line, when it cannot do that safely: YAML anchors, aliases, tags, a flow-map `rules`, duplicate keys, or a config that mixes v1 and v2 keys. A mixed config is read as v2 and the v1 entries are ignored, with one warning.
+**v1 still works.** The flat map under `rules` (with `sonar/` prefixes) and `plugins: [sonar]` are still read. A v1 config gets one `klint/config` warning. `klint migrate` or `klint --fix` upgrades it in place and keeps comments, blank lines and key order. It refuses, naming the line, when it cannot do that safely: YAML anchors, aliases, tags, a flow-map `rules`, duplicate keys, or a config that mixes v1 and v2 keys. A mixed config is read as v2 and the v1 entries are ignored, with one warning. `no-date-equality` and `no-floating-promise` move to `rules.experimental`. A v1 config ignores them, so after the migration they run for the first time; `klint migrate` prints how many findings each one has.
 
 `arch` declares architecture constraints without writing a custom rule.
 

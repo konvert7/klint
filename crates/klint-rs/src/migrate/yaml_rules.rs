@@ -335,6 +335,7 @@ impl Migration<'_> {
 
         out.extend(group_lines(self.lines, &found, Group::Core, child));
         out.extend(group_lines(self.lines, &found, Group::Sonar, child));
+        out.extend(group_lines(self.lines, &found, Group::Experimental, child));
 
         if out.is_empty() {
             return Ok(None);

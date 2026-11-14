@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use crate::config::read_config;
+use crate::rules::is_experimental_rule;
 use crate::{LoadedConfig, Violation, lint_loaded};
 
 fn read_candidate(old_path: &Path, new_text: &str) -> Result<crate::config::RawConfig, String> {
@@ -48,11 +49,44 @@ fn forced_mismatch() -> bool {
     false
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct NewlyRunning {
+    pub rule: String,
+    pub findings: usize,
+}
+
+fn newly_running_experimental(before: &[Violation], after: &[Violation]) -> Vec<NewlyRunning> {
+    let mut newly: Vec<NewlyRunning> = Vec::new();
+
+    for finding in after.iter().filter(|f| is_experimental_rule(&f.rule)) {
+        if before.iter().any(|b| b.rule == finding.rule) {
+            continue;
+        }
+
+        match newly.iter_mut().find(|n| n.rule == finding.rule) {
+            Some(entry) => entry.findings += 1,
+            None => newly.push(NewlyRunning {
+                rule: finding.rule.clone(),
+                findings: 1,
+            }),
+        }
+    }
+
+    newly
+}
+
+fn without_rules(findings: Vec<Violation>, newly: &[NewlyRunning]) -> Vec<Violation> {
+    findings
+        .into_iter()
+        .filter(|f| !newly.iter().any(|n| n.rule == f.rule))
+        .collect()
+}
+
 pub(super) fn prove_same_findings(
     config_dir: &Path,
     old: LoadedConfig,
     new_text: &str,
-) -> Result<(), String> {
+) -> Result<Vec<NewlyRunning>, String> {
     if forced_mismatch() {
         return Err(
             "findings would change — first difference: forced by KLINT_MIGRATE_FORCE_MISMATCH"
@@ -64,9 +98,14 @@ pub(super) fn prove_same_findings(
         path: old.path.clone(),
         raw: read_candidate(&old.path, new_text)?,
     };
-    let before = serialized(&lint_loaded(config_dir, old)?.findings);
-    let after = serialized(&lint_loaded(config_dir, new)?.findings);
-    first_difference(&before, &after).map_or(Ok(()), Err)
+    let before = lint_loaded(config_dir, old)?.findings;
+    let after = lint_loaded(config_dir, new)?.findings;
+    let newly = newly_running_experimental(&before, &after);
+    let after = without_rules(after, &newly);
+    match first_difference(&serialized(&before), &serialized(&after)) {
+        Some(difference) => Err(difference),
+        None => Ok(newly),
+    }
 }
 
 #[cfg(test)]
