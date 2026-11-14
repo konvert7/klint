@@ -3,3 +3,5 @@ exact = true
 
 [test]
 include = ["tests/**/*.test.ts"]
+# 2026-11-14: tests that spawn git must not inherit a worktree hook's GIT_DIR, which set core.bare=true on the real repo
+preload = ["./tests/setup.ts"]

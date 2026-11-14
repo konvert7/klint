@@ -139,6 +139,7 @@ impl CommentPass {
             message: self.message.clone().unwrap_or(fallback),
             severity: self.severity.clone(),
             fix: None,
+            span: None,
         })
         .into_iter()
         .collect()

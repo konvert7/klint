@@ -131,9 +131,34 @@ klint install-skill [--agents <list>] [--symlink | --copy] [--force]
 | `--config <dir>` | Directory containing `klint.yaml` or `klint.config.json` (default: cwd) |
 | `--fix` | Apply auto-fixes for fixable violations in-place |
 | `--json` | Emit structured JSON to stdout for agents and CI |
-| `--hook` | Count this run as an agent hook run in `klint stats` |
+| `--hook` | Count this run as an agent hook run in `klint stats`, and keep the plain text format described below |
 | `migrate` | Rewrite a v1 config to the v2 rule groups in place, keeping comments and blank lines |
 | `migrate --check` | Exit 1 when the config is v1 and 0 when it is v2; never writes |
+
+### Text output
+
+Without `--json`, klint writes a report to stderr in the style of Biome:
+
+```text
+klint: 1 error(s)
+
+src/a.ts:1:11  [no-string-match] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Use RegExp.exec() instead of String.match() for non-global regexes — use /x/.exec(s) instead.
+
+  > 1 │ const m = s.match(/x/);
+      │           ^^^^^^^^^^^^
+
+klint: 1 violation(s) can be fixed automatically: run `klint --fix`.
+
+klint: finished in 8ms
+```
+
+- On a terminal, errors are red, warnings yellow, and file paths and hints dimmed.
+- When a rule knows where the offending code starts, the header ends in `line:column` and the source line is printed with the span underlined by carets. Rules that only know the line (the architecture rules, cognitive complexity, function length, blank lines and a few others) print the header and message alone.
+- Colour is off when `NO_COLOR` is set to a non-empty value or stderr is not a terminal (pipes, CI logs, redirected files). The column and carets stay.
+- `--hook` keeps the text format of klint 1.7 byte for byte: no colour, no column, no carets.
+- `--json` never includes the column; its output is unchanged.
 
 `klint install-skill` installs the bundled rule-authoring skill for agent environments:
 

@@ -36,6 +36,7 @@ pub(super) fn run_function_length(scan: RuleScan<'_>) -> Vec<Report> {
                 ),
                 fix: None,
                 level: Some(level),
+                bytes: None,
             })
         })
         .collect()

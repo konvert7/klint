@@ -9,12 +9,13 @@ mod sonar;
 mod thresholds;
 
 use std::collections::BTreeMap;
+use std::ops::Range;
 use std::path::{Path, PathBuf};
 
 use crate::config::RuleConfig;
 use crate::engine::{NodeIndex, Wants};
 use crate::files::relative_path;
-use crate::output::Violation;
+use crate::output::{Span, Violation};
 use crate::syntax::SourceLanguage;
 pub(crate) use docs::{RULE_DOCS, v1_options_schema};
 use scope::{FileScope, covering_scope};
@@ -111,6 +112,7 @@ pub(super) struct Report {
     pub message: String,
     pub fix: Option<serde_json::Value>,
     pub level: Option<Level>,
+    pub bytes: Option<Range<usize>>,
 }
 
 type RuleCheck = fn(RuleScan<'_>) -> Vec<Report>;
@@ -266,6 +268,9 @@ impl RulePass {
                     .level
                     .map_or_else(|| self.severity.clone(), |level| level.as_str().to_string()),
                 fix: report.fix,
+                span: report
+                    .bytes
+                    .and_then(|bytes| Span::within(scan.content, bytes)),
             })
             .collect()
     }

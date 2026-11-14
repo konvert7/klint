@@ -16,9 +16,12 @@ arch:
 
 const TS_ENGINE_STDERR_BEFORE_DURATION: &str = "klint: 2 warning(s)
 
-src/index.ts:1  [sonar/prefer-at] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+src/index.ts:1:11  [sonar/prefer-at] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   ⚠ Prefer arr.at(-1) over arr[arr.length - 1] for cleaner negative indexing.
+
+  > 1 │ const a = arr[arr.length - 1];
+      │           ^^^^^^^^^^^^^^^^^^^
 
 klint.yaml:1  [klint/config] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

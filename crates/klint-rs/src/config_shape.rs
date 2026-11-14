@@ -394,5 +394,6 @@ fn advisory(file: &str, line: usize, message: String) -> Violation {
         message,
         severity: "warn".to_string(),
         fix: None,
+        span: None,
     }
 }

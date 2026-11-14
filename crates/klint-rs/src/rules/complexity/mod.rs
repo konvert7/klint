@@ -32,6 +32,7 @@ pub(super) fn run_cognitive_complexity(scan: RuleScan<'_>) -> Vec<Report> {
                 ),
                 fix: None,
                 level: Some(level),
+                bytes: None,
             })
         })
         .collect()

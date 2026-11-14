@@ -64,6 +64,7 @@ fn legacy_advisory_for(root: &Path, dir: &str) -> Option<Violation> {
         ),
         severity: "warn".to_string(),
         fix: None,
+        span: None,
     })
 }
 
@@ -102,6 +103,7 @@ fn stale_advisory(dir: &str, installed_from: &str, installed: &str) -> Violation
         ),
         severity: "warn".to_string(),
         fix: None,
+        span: None,
     }
 }
 

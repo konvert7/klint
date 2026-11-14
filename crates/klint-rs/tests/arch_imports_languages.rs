@@ -47,6 +47,7 @@ arch:
             message: "UI must not import core directly".to_string(),
             severity: "error".to_string(),
             fix: None,
+            span: None,
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -139,6 +140,7 @@ arch:
             message: "Web must not import data directly".to_string(),
             severity: "error".to_string(),
             fix: None,
+            span: None,
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -192,6 +194,7 @@ arch:
             message: "Web may only import Web".to_string(),
             severity: "error".to_string(),
             fix: None,
+            span: None,
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -234,6 +237,7 @@ arch:
             message: "Use System.Text.Json instead of Newtonsoft".to_string(),
             severity: "error".to_string(),
             fix: None,
+            span: None,
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -285,6 +289,7 @@ arch:
             message: "Jobs must not import lib directly".to_string(),
             severity: "error".to_string(),
             fix: None,
+            span: None,
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -336,6 +341,7 @@ arch:
             message: "Jobs must not import lib directly".to_string(),
             severity: "error".to_string(),
             fix: None,
+            span: None,
         }]
     );
     let _ = fs::remove_dir_all(root);

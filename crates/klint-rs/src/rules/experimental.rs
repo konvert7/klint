@@ -23,6 +23,7 @@ pub(super) fn run_no_date_equality(scan: RuleScan<'_>) -> Vec<Report> {
             ),
             fix: None,
             level: None,
+            bytes: None,
         })
         .collect()
 }
@@ -43,6 +44,7 @@ pub(super) fn run_no_floating_promise(scan: RuleScan<'_>) -> Vec<Report> {
             message: FLOATING_PROMISE_MESSAGE.to_string(),
             fix: None,
             level: None,
+            bytes: None,
         })
         .collect()
 }

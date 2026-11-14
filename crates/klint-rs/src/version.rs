@@ -54,6 +54,7 @@ fn advisory_for(schema: &str, installed: &str, config_path: &Path) -> Option<Vio
         ),
         severity: "warn".to_string(),
         fix: None,
+        span: None,
     })
 }
 

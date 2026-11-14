@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use serde::Serialize;
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -8,6 +10,36 @@ pub struct Violation {
     pub message: String,
     pub severity: String,
     pub fix: Option<serde_json::Value>,
+    #[serde(skip)]
+    pub span: Option<Span>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Span {
+    pub source_line: String,
+    pub column: usize,
+    pub width: usize,
+}
+
+impl Span {
+    pub(crate) fn within(content: &str, bytes: Range<usize>) -> Option<Span> {
+        let start = bytes.start;
+        let line_start = content
+            .get(..start)?
+            .rfind('\n')
+            .map_or(0, |index| index + 1);
+        let line_end = content[start..]
+            .find('\n')
+            .map_or(content.len(), |index| start + index);
+        let end = bytes.end.clamp(start, line_end);
+        Some(Span {
+            source_line: content[line_start..line_end]
+                .trim_end_matches('\r')
+                .to_string(),
+            column: content.get(line_start..start)?.chars().count() + 1,
+            width: content.get(start..end)?.chars().count().max(1),
+        })
+    }
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -79,6 +111,7 @@ mod tests {
             message: "m".to_string(),
             severity: "error".to_string(),
             fix,
+            span: None,
         }
     }
 
