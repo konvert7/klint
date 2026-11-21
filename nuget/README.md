@@ -20,7 +20,7 @@ dotnet tool install Konvert7.Klint
 
 ```bash
 klint --help
-klint --json
+klint --reporter=json
 ```
 
 Configuration lives in `klint.yaml` at your project root — the same file the npm
