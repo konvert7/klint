@@ -418,6 +418,9 @@ properties:
       - sonar
       type: string
     type: array
+  respectGitignore:
+    description: 'Skip files git ignores: .gitignore files at every level, and .git/info/exclude, inside a git repository. A file git ignores is skipped even when include matches it. Defaults to true; set false to lint ignored files too.'
+    type: boolean
   root:
     description: Root directory used to resolve include paths and report relative file names. Defaults to the directory containing klint.config.json.
     type: string

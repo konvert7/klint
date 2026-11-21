@@ -116,7 +116,7 @@ pub(crate) fn lint_loaded(config_dir: &Path, loaded: LoadedConfig) -> Result<Lin
     let root = resolve_root(config_dir, raw.root.as_deref());
     let include = raw.include.clone().unwrap_or_else(|| vec![".".to_string()]);
 
-    let files = resolve_files(&root, &include)?;
+    let files = resolve_files(&root, &include, raw.respect_gitignore.unwrap_or(true))?;
     let contents = read_files(&files)?;
     let mut resolved = resolve_rules(&raw).map_err(|err| err.into_message(&config_path))?;
     let config_warnings = config_advisories(&resolved, &config_path);

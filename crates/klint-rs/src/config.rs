@@ -25,6 +25,11 @@ pub(crate) struct RawConfig {
         description = "Glob patterns selecting which TypeScript files to lint. Prefix with ! to exclude. Defaults to [\".\"] which lints all .ts files under root. Example: [\"src\", \"klint\", \"!**/node_modules/**\"]"
     )]
     pub(crate) include: Option<Vec<String>>,
+    #[serde(rename = "respectGitignore")]
+    #[schemars(
+        description = "Skip files git ignores: .gitignore files at every level, and .git/info/exclude, inside a git repository. A file git ignores is skipped even when include matches it. Defaults to true; set false to lint ignored files too."
+    )]
+    pub(crate) respect_gitignore: Option<bool>,
     #[schemars(
         with = "Option<Vec<PluginName>>",
         description = "Deprecated (v1): named rule bundles. plugins: [sonar] is replaced by rules.recommended: true — run `klint migrate` to upgrade the config in place. Available: \"sonar\"."

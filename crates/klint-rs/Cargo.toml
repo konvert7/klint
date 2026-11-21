@@ -13,6 +13,7 @@ categories = ["command-line-utilities", "development-tools"]
 include = ["/src", "/build.rs", "/skill/SKILL.md"]
 
 [dependencies]
+ignore = "=0.4.30"
 inquire = "0.9.4"
 jsonc-parser = { version = "0.34", features = ["serde"] }
 regex = "1"

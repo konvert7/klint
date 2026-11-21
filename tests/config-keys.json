@@ -3,6 +3,7 @@
     "$schema",
     "arch",
     "include",
+    "respectGitignore",
     "root",
     "rules",
     "rules.core",

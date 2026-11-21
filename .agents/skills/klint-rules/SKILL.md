@@ -83,6 +83,8 @@ Every run is recorded in `.klint/stats.json` next to the config. The folder igno
 
 Every violation a run reports counts as reported, repeats included; klint's own `klint/*` advisories do not. An error counts as prevented once, when a later run no longer reports it. Errors match by rule, file and message, so moving code to another line is not a fix. Warnings are not tracked.
 
+Inside a git repository klint skips every file git ignores (`.gitignore` at every level and `.git/info/exclude`), so never add `!**/node_modules/**`-style excludes for ignored folders. `respectGitignore: false` turns this off.
+
 ## Primitive reference
 
 ### Layers

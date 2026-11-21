@@ -50,7 +50,7 @@ Then create `klint.yaml` in your project root.
 
 ```yaml
 # klint.yaml
-include: ["src", "!**/node_modules/**"]
+include: ["src"]
 
 rules:
   core:
@@ -274,7 +274,7 @@ The npm package needs Node.js 18+ and no longer installs `typescript`, `zod`, `y
 ```yaml
 # yaml-language-server: $schema=./klint.schema.yaml
 
-include: ["src", "!**/node_modules/**"]
+include: ["src"]
 
 rules:
   recommended: true
@@ -299,6 +299,8 @@ arch:
 ```
 
 `include` selects source files to lint. Patterns support `**` globs and `!` negation.
+
+Inside a git repository, klint skips every file git ignores: `.gitignore` files at every level (including ones above the config, up to the repository root) and `.git/info/exclude`. `node_modules`, `dist` and build output therefore need no `!` patterns, provided they are in `.gitignore`. An ignored file stays skipped even when an `include` pattern names it. Outside a git repository, `.gitignore` files are not read, and klint lints whatever `include` selects. Set `respectGitignore: false` to lint ignored files too. Your global git excludes file (`core.excludesFile`) is not read, so a run gives the same result on every machine.
 
 `rules` has three parts. Each rule is `"error"`, `"warn"`, `"off"`, or an options object with `severity` and/or `include`.
 

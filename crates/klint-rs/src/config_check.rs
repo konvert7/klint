@@ -9,7 +9,15 @@ use crate::rules::{
 };
 
 const RULE: &str = "klint/config";
-const KNOWN_KEYS: &[&str] = &["$schema", "root", "include", "plugins", "rules", "arch"];
+const KNOWN_KEYS: &[&str] = &[
+    "$schema",
+    "root",
+    "include",
+    "respectGitignore",
+    "plugins",
+    "rules",
+    "arch",
+];
 const SEVERITIES: &[&str] = &["error", "warn", "off"];
 
 pub(crate) fn has_valid_severity(name: &str, config: &RuleConfig) -> bool {
