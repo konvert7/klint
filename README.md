@@ -81,10 +81,10 @@ npx klint
 For machines and hooks:
 
 ```sh
-npx klint --json
+npx klint --reporter=json
 ```
 
-`--json` emits structured violations and exits `2` when errors are present.
+`--reporter=json` emits structured violations and exits `2` when errors are present. `--json` is a short alias for it.
 
 ```json
 {
@@ -120,7 +120,7 @@ Rules give agents room to move quickly because the unsafe moves are blocked stru
 ## CLI
 
 ```sh
-klint [--config <dir>] [--fix] [--json] [--hook]
+klint [--config <dir>] [--fix] [--reporter <name>] [--hook]
 klint stats [--config <dir>]
 klint migrate [--config <dir>] [--check]
 klint install-skill [--agents <list>] [--symlink | --copy] [--force]
@@ -130,14 +130,14 @@ klint install-skill [--agents <list>] [--symlink | --copy] [--force]
 |------|-------------|
 | `--config <dir>` | Directory containing `klint.yaml` or `klint.config.json` (default: cwd) |
 | `--fix` | Apply auto-fixes for fixable violations in-place |
-| `--json` | Emit structured JSON to stdout for agents and CI |
+| `--reporter <name>` | Output format: `text` (default), `json` for agents and scripts, `github` for pull request annotations. `--reporter=json` works too |
 | `--hook` | Count this run as an agent hook run in `klint stats`, and keep the plain text format described below |
 | `migrate` | Rewrite a v1 config to the v2 rule groups in place, keeping comments and blank lines |
 | `migrate --check` | Exit 1 when the config is v1 and 0 when it is v2; never writes |
 
 ### Text output
 
-Without `--json`, klint writes a report to stderr in the style of Biome:
+With the default `text` reporter, klint writes a report to stderr in the style of Biome:
 
 ```text
 klint: 1 error(s)
@@ -158,7 +158,21 @@ klint: finished in 8ms
 - When a rule knows where the offending code starts, the header ends in `line:column` and the source line is printed with the span underlined by carets. Rules that only know the line (the architecture rules, cognitive complexity, function length, blank lines and a few others) print the header and message alone.
 - Colour is off when `NO_COLOR` is set to a non-empty value or stderr is not a terminal (pipes, CI logs, redirected files). The column and carets stay.
 - `--hook` keeps the text format of klint 1.7 byte for byte: no colour, no column, no carets.
-- `--json` never includes the column; its output is unchanged.
+- The JSON output never includes the column; its output is unchanged.
+
+### GitHub annotations
+
+`--reporter=github` prints one [workflow command](https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions) per violation, so GitHub Actions shows each one on the pull request diff:
+
+```yaml
+- run: npx klint --reporter=github
+```
+
+```text
+::error file=src/components/Profile.tsx,line=3,title=arch/imports::UI components must go through app services, not data modules
+```
+
+Errors become `::error`, warnings `::warning`. The exit code is the same as with the other reporters.
 
 `klint install-skill` installs the bundled rule-authoring skill for agent environments:
 
@@ -975,7 +989,7 @@ rules:
 
 - **Opt-in.** A rule runs only when it is listed under `rules.experimental` with `error`, `warn`, or `{severity, include}`. `recommended: true` never enables one.
 - **Wrong group.** An experimental rule listed under `rules.core` or `rules.sonar`, or a core or sonar rule listed under `rules.experimental`, gives one `klint/config` warning and is ignored.
-- **Plain ids.** Ids have no `experimental/` prefix in output, `--json`, `.klint/stats.json` and `klint stats`. Ids and suppressions stay the same when a rule is promoted to `core`.
+- **Plain ids.** Ids have no `experimental/` prefix in output, the JSON output, `.klint/stats.json` and `klint stats`. Ids and suppressions stay the same when a rule is promoted to `core`.
 - **Same-file checks.** These rules use no type information. They stay silent unless the file proves the case, and they have no autofix.
 
 ### `no-date-equality`
@@ -1032,13 +1046,13 @@ obj.f();
 
 ## Agent and CI Integration
 
-Agent hooks should run klint with `--json` so violations are machine-readable, and with `--hook` so [`klint stats`](#stats) can tell hook runs apart from direct ones.
+Agent hooks should run klint with `--reporter=json` so violations are machine-readable, and with `--hook` so [`klint stats`](#stats) can tell hook runs apart from direct ones.
 
 ```ts
 // .agents/hooks/klint.ts
 import { runHook } from "./run-hook";
 
-const exitCode = runHook(["npx", "klint", "--json", "--hook"]);
+const exitCode = runHook(["npx", "klint", "--reporter=json", "--hook"]);
 process.exit(exitCode);
 ```
 

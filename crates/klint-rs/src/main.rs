@@ -1,5 +1,7 @@
 mod command;
+mod github;
 mod prompt;
+mod reporter;
 mod text;
 
 use command::{Dispatch, Group, Leaf, OptionSpec, Values, dispatch};
@@ -61,13 +63,15 @@ fn config_dir_option() -> OptionSpec {
 fn lint_leaf() -> Leaf {
     Leaf {
         summary: "Lints the project",
-        options: vec![
-            config_dir_option(),
-            OptionSpec::flag("json", "Emit structured JSON to stdout"),
-            OptionSpec::flag("fix", "Apply autofixes, then report what is left"),
-            OptionSpec::flag("hook", "Count this run as an agent hook run in klint stats"),
-            OptionSpec::flag("version", "Print the installed klint version").short('V'),
-        ],
+        options: [config_dir_option()]
+            .into_iter()
+            .chain(reporter::options())
+            .chain([
+                OptionSpec::flag("fix", "Apply autofixes, then report what is left"),
+                OptionSpec::flag("hook", "Count this run as an agent hook run in klint stats"),
+                OptionSpec::flag("version", "Print the installed klint version").short('V'),
+            ])
+            .collect(),
         details: Vec::new(),
     }
 }
@@ -151,6 +155,14 @@ fn lint_command(values: &Values) -> i32 {
             return 1;
         }
     };
+    let reporter = match reporter::from_values(values) {
+        Ok(reporter) => reporter,
+        Err(err) => {
+            eprintln!("{err}");
+
+            return 1;
+        }
+    };
     let source = if values.flag("hook") {
         RunSource::Hook
     } else {
@@ -167,20 +179,12 @@ fn lint_command(values: &Values) -> i32 {
         Ok(output) => {
             record_run(&config_dir, &output.violations, source);
 
-            if values.flag("json") {
-                println!(
-                    "{}",
-                    serde_json::to_string(&output).expect("klint-rs output should be serializable")
-                );
-            } else {
-                let report = text::render(
-                    &output.violations,
-                    started_at.elapsed(),
-                    stderr_style(values),
-                );
-                print!("{}", report.stdout);
-                eprint!("{}", report.stderr);
-            }
+            reporter::print(
+                reporter,
+                &output,
+                started_at.elapsed(),
+                stderr_style(values),
+            );
 
             if output.summary.errors > 0 { 2 } else { 0 }
         }
