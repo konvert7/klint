@@ -92,6 +92,14 @@ jobs:
       - name: Test
         run: bun run test
 
+      - name: VS Code extension
+        working-directory: vscode
+        run: |
+          bun install --frozen-lockfile
+          bun run type-check
+          bun run test
+          bun run package
+
       - name: Rust format
         run: cargo fmt --check
 

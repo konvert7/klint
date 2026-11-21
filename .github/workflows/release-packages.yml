@@ -24,6 +24,11 @@ on:
         required: true
         default: false
         type: boolean
+      publish-vscode:
+        description: "Publish the VS Code extension to the Visual Studio Marketplace and Open VSX"
+        required: true
+        default: false
+        type: boolean
       python-repository:
         description: "Python package registry"
         required: true
@@ -46,6 +51,7 @@ jobs:
       publish-brew: ${{ steps.release.outputs.publish-brew }}
       publish-nuget: ${{ steps.release.outputs.publish-nuget }}
       publish-release: ${{ steps.release.outputs.publish-release }}
+      publish-vscode: ${{ steps.release.outputs.publish-vscode }}
       python-environment: ${{ steps.release.outputs.python-environment }}
       python-package: ${{ steps.release.outputs.python-package }}
       python-repository: ${{ steps.release.outputs.python-repository }}
@@ -62,6 +68,7 @@ jobs:
           INPUT_PUBLISH_BREW: ${{ inputs.publish-brew }}
           INPUT_PUBLISH_NUGET: ${{ inputs.publish-nuget }}
           INPUT_PUBLISH_RELEASE: ${{ inputs.publish-release }}
+          INPUT_PUBLISH_VSCODE: ${{ inputs.publish-vscode }}
           INPUT_PYTHON_REPOSITORY: ${{ inputs.python-repository }}
           INPUT_VERSION: ${{ inputs.version }}
         run: |
@@ -70,12 +77,14 @@ jobs:
             publish_brew="true"
             publish_nuget="true"
             publish_release="true"
+            publish_vscode="true"
             python_repository="pypi"
           else
             version="$INPUT_VERSION"
             publish_brew="$INPUT_PUBLISH_BREW"
             publish_nuget="$INPUT_PUBLISH_NUGET"
             publish_release="$INPUT_PUBLISH_RELEASE"
+            publish_vscode="$INPUT_PUBLISH_VSCODE"
             python_repository="$INPUT_PYTHON_REPOSITORY"
           fi
           version="${version#v}"
@@ -114,6 +123,7 @@ jobs:
             echo "publish-brew=$publish_brew"
             echo "publish-nuget=$publish_nuget"
             echo "publish-release=$publish_release"
+            echo "publish-vscode=$publish_vscode"
             echo "python-environment=$python_environment"
             echo "python-package=$python_package"
             echo "python-repository=$python_repository"
@@ -129,6 +139,7 @@ jobs:
             echo "- Publish release: \`$publish_release\`"
             echo "- Publish Brew: \`$publish_brew\`"
             echo "- Publish NuGet: \`$publish_nuget\`"
+            echo "- Publish VS Code extension: \`$publish_vscode\`"
             echo "- Python repository: \`$python_repository\` (\`$python_package\`)"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -488,6 +499,60 @@ jobs:
 
       - name: Publish to NuGet.org
         run: dotnet nuget push artifacts/*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+  vscode:
+    name: vscode extension package and publish
+    needs: metadata
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vscode
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.4"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Stamp release version
+        run: npm version --no-git-tag-version --allow-same-version "${{ needs.metadata.outputs.version }}"
+
+      - name: Package
+        run: bun run package --out "klint-${{ needs.metadata.outputs.version }}.vsix"
+
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: vscode-extension
+          path: vscode/klint-*.vsix
+
+      - name: Publish to the Visual Studio Marketplace
+        if: needs.metadata.outputs.publish-vscode == 'true'
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [[ -z "$VSCE_PAT" ]]; then
+            echo "::notice::VSCE_PAT is not set; skipping the Visual Studio Marketplace"
+            exit 0
+          fi
+          bunx vsce publish --packagePath klint-*.vsix --skip-duplicate
+
+      - name: Publish to Open VSX
+        if: needs.metadata.outputs.publish-vscode == 'true'
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [[ -z "$OVSX_PAT" ]]; then
+            echo "::notice::OVSX_PAT is not set; skipping Open VSX"
+            exit 0
+          fi
+          bunx ovsx publish klint-*.vsix --skip-duplicate
 
   python:
     name: python publish
