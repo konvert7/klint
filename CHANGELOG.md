@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/konvert7/klint/compare/v1.8.0...v1.9.0) (2026-11-21)
+
+
+### Features
+
+* **output:** add --reporter with text, json and github formats ([1c0d3dd](https://github.com/konvert7/klint/commit/1c0d3ddd52fcfab1a052159feae33d09f77edc86))
+
 # [1.8.0](https://github.com/konvert7/klint/compare/v1.7.1...v1.8.0) (2026-11-14)
 
 
