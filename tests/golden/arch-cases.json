@@ -37,7 +37,9 @@
           "rule": "arch/imports",
           "message": "Skills must be self-contained",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 21,
+          "endColumn": 45
         },
         {
           "file": "assets/skills/demo/index.ts",
@@ -45,7 +47,9 @@
           "rule": "arch/imports",
           "message": "Skills must be self-contained",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 17,
+          "endColumn": 43
         }
       ],
       "summary": {
@@ -93,7 +97,9 @@
           "rule": "arch/imports",
           "message": "Use runtime boundary",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 21,
+          "endColumn": 45
         }
       ],
       "summary": {
@@ -150,7 +156,9 @@
           "rule": "arch/imports",
           "message": "No repo source imports from skills",
           "severity": "warn",
-          "fix": null
+          "fix": null,
+          "column": 21,
+          "endColumn": 34
         }
       ],
       "summary": {
@@ -194,7 +202,9 @@
           "rule": "arch/imports",
           "message": "DAO may only import from dao or prisma",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 25,
+          "endColumn": 42
         }
       ],
       "summary": {
@@ -502,7 +512,9 @@
           "rule": "arch/imports",
           "message": "DAO must not read request state",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 25,
+          "endColumn": 39
         },
         {
           "file": "src/dao/users.ts",
@@ -510,7 +522,9 @@
           "rule": "arch/imports",
           "message": "DAO must not read request state",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 8,
+          "endColumn": 26
         },
         {
           "file": "src/dao/users.ts",
@@ -518,7 +532,9 @@
           "rule": "arch/imports",
           "message": "DAO must not read request state",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 27,
+          "endColumn": 39
         }
       ],
       "summary": {
@@ -567,7 +583,9 @@
           "rule": "arch/imports",
           "message": "Skills must be self-contained",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 21,
+          "endColumn": 45
         },
         {
           "file": "assets/skills/demo/index.ts",
@@ -575,7 +593,9 @@
           "rule": "arch/imports",
           "message": "Skills must be self-contained",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 15,
+          "endColumn": 41
         }
       ],
       "summary": {
@@ -619,7 +639,9 @@
           "rule": "arch/imports",
           "message": "Data access must not read request state",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 25,
+          "endColumn": 39
         }
       ],
       "summary": {

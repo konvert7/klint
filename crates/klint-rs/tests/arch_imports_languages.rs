@@ -1,9 +1,17 @@
 mod common;
 
 use common::temp_root;
-use klint_rs::{RunOptions, Violation, empty_output, run};
+use klint_rs::{RunOptions, Span, Violation, empty_output, run};
 use std::fs;
 use std::fs::{create_dir_all, write};
+
+fn span(source_line: &str, column: usize, width: usize) -> Option<Span> {
+    Some(Span {
+        source_line: source_line.to_string(),
+        column,
+        width,
+    })
+}
 
 #[test]
 fn imports_deny_mode_flags_swift_module_imports() {
@@ -47,7 +55,7 @@ arch:
             message: "UI must not import core directly".to_string(),
             severity: "error".to_string(),
             fix: None,
-            span: None,
+            span: span("import Core", 8, 4),
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -140,7 +148,7 @@ arch:
             message: "Web must not import data directly".to_string(),
             severity: "error".to_string(),
             fix: None,
-            span: None,
+            span: span("using App.Data;", 7, 8),
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -194,7 +202,7 @@ arch:
             message: "Web may only import Web".to_string(),
             severity: "error".to_string(),
             fix: None,
-            span: None,
+            span: span("using App.Shared;", 7, 10),
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -237,7 +245,7 @@ arch:
             message: "Use System.Text.Json instead of Newtonsoft".to_string(),
             severity: "error".to_string(),
             fix: None,
-            span: None,
+            span: span("using Newtonsoft.Json;", 7, 15),
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -289,7 +297,7 @@ arch:
             message: "Jobs must not import lib directly".to_string(),
             severity: "error".to_string(),
             fix: None,
-            span: None,
+            span: span("from ..lib.auth import load_key", 6, 10),
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -341,7 +349,7 @@ arch:
             message: "Jobs must not import lib directly".to_string(),
             severity: "error".to_string(),
             fix: None,
-            span: None,
+            span: span("from app.lib.auth import load_key", 6, 12),
         }]
     );
     let _ = fs::remove_dir_all(root);

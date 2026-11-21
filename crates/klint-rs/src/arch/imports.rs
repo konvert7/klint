@@ -5,8 +5,9 @@ use crate::files::{
     is_csharp_source, is_javascript_like_source, is_python_source, is_rust_source, is_swift_source,
     relative_path, supports_import_scan,
 };
-use crate::output::Violation;
+use crate::output::{Span, Violation};
 use crate::syntax::scan_imports_from_tree;
+use std::ops::Range;
 use std::path::{Path, PathBuf};
 use tree_sitter::Node;
 
@@ -72,7 +73,8 @@ impl ImportPass {
             .filter(|import| !(self.allow_type_only && import.is_type_only))
             .filter_map(|import| {
                 let message = self.import_message(file, root, &import.specifier, context)?;
-                Some(self.violation(file, root, import.line, message))
+                let span = span_on_line(source, import.bytes, import.line);
+                Some(self.violation(file, root, import.line, span, message))
             })
             .collect()
     }
@@ -100,7 +102,14 @@ impl ImportPass {
         (!in_prefixes(resolved, prefixes)).then_some("Import is not in the allowed list")
     }
 
-    fn violation(&self, file: &Path, root: &Path, line: usize, fallback: &str) -> Violation {
+    fn violation(
+        &self,
+        file: &Path,
+        root: &Path,
+        line: usize,
+        span: Option<Span>,
+        fallback: &str,
+    ) -> Violation {
         Violation {
             file: relative_path(root, file),
             line,
@@ -108,9 +117,21 @@ impl ImportPass {
             message: self.message.as_deref().unwrap_or(fallback).to_string(),
             severity: self.severity.clone(),
             fix: None,
-            span: None,
+            span,
         }
     }
+}
+
+/// The specifier's span, when it starts on the line the violation names; a
+/// multi-line `use` list reports its declaration line, so a later branch has
+/// no column there.
+fn span_on_line(source: &[u8], bytes: Range<usize>, line: usize) -> Option<Span> {
+    let content = std::str::from_utf8(source).ok()?;
+    let row = content.get(..bytes.start)?.matches('\n').count() + 1;
+
+    (row == line)
+        .then(|| Span::within(content, bytes))
+        .flatten()
 }
 
 fn denies_package(file: &Path, specifier: &str, entries: &[String]) -> bool {
@@ -140,8 +161,23 @@ fn matches_package(specifier: &str, entries: &[String], separator: &str) -> bool
 
 #[cfg(test)]
 mod tests {
-    use super::{matches_package, package_separator};
+    use super::{matches_package, package_separator, span_on_line};
     use std::path::Path;
+
+    #[test]
+    fn a_specifier_on_the_reported_line_gets_a_span() {
+        let source = b"use a::{\n    b,\n};\n";
+        let span = span_on_line(source, 6..7, 1).expect("span on line 1");
+
+        assert_eq!((span.column, span.width), (7, 1));
+    }
+
+    #[test]
+    fn a_specifier_below_the_reported_line_gets_none() {
+        let source = b"use a::{\n    b,\n};\n";
+
+        assert!(span_on_line(source, 13..14, 1).is_none());
+    }
 
     #[test]
     fn matches_npm_packages_by_slash_segment() {

@@ -43,6 +43,8 @@ describe("Swift architecture smoke fixture", () => {
         message: "UI must not import Core directly",
         severity: "error",
         fix: null,
+        column: 8,
+        endColumn: 12,
       },
       {
         file: "Sources/App/UI/ViewModel.swift",

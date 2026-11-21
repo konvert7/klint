@@ -196,13 +196,14 @@ pub(super) fn python_record(specifier: String, node: Node<'_>) -> ImportRecord {
         line: node.start_position().row + 1,
         is_type_only: false,
         is_dynamic: false,
+        bytes: node.byte_range(),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::syntax::ImportRecord;
-    use crate::syntax::scan_imports;
+    use crate::syntax::architecture::spanless_imports as scan_imports;
     use std::path::PathBuf;
 
     #[test]
@@ -221,18 +222,21 @@ mod tests {
                     line: 1,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
                 ImportRecord {
                     specifier: "../lib/auth".to_string(),
                     line: 2,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
                 ImportRecord {
                     specifier: "./local".to_string(),
                     line: 3,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
             ]
         );
@@ -254,24 +258,28 @@ mod tests {
                     line: 1,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
                 ImportRecord {
                     specifier: "sys".to_string(),
                     line: 1,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
                 ImportRecord {
                     specifier: "os.path".to_string(),
                     line: 2,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
                 ImportRecord {
                     specifier: "json".to_string(),
                     line: 2,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
             ]
         );
@@ -293,18 +301,21 @@ mod tests {
                     line: 1,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
                 ImportRecord {
                     specifier: "./second".to_string(),
                     line: 1,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
                 ImportRecord {
                     specifier: "../lib".to_string(),
                     line: 2,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
             ]
         );
@@ -325,6 +336,7 @@ mod tests {
                 line: 2,
                 is_type_only: false,
                 is_dynamic: false,
+                bytes: 0..0,
             }]
         );
     }

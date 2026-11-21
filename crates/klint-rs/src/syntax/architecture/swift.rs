@@ -27,6 +27,7 @@ fn swift_import_record(node: Node<'_>, source: &[u8]) -> Option<ImportRecord> {
         line: identifier.start_position().row + 1,
         is_type_only: false,
         is_dynamic: false,
+        bytes: identifier.byte_range(),
     })
 }
 
@@ -39,7 +40,7 @@ fn first_named_child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Nod
 #[cfg(test)]
 mod tests {
     use crate::syntax::ImportRecord;
-    use crate::syntax::scan_imports;
+    use crate::syntax::architecture::spanless_imports as scan_imports;
     use std::path::PathBuf;
 
     #[test]
@@ -58,18 +59,21 @@ mod tests {
                     line: 1,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
                 ImportRecord {
                     specifier: "Core".to_string(),
                     line: 2,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
                 ImportRecord {
                     specifier: "Models".to_string(),
                     line: 3,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
             ]
         );
@@ -90,6 +94,7 @@ mod tests {
                 line: 5,
                 is_type_only: false,
                 is_dynamic: false,
+                bytes: 0..0,
             }]
         );
     }

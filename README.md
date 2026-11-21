@@ -155,7 +155,7 @@ klint: finished in 8ms
 ```
 
 - On a terminal, errors are red, warnings yellow, and file paths and hints dimmed.
-- When a rule knows where the offending code starts, the header ends in `line:column` and the source line is printed with the span underlined by carets. Rules that only know the line (arch/imports, arch/max-lines, the comment budgets and the config, skill and version advisories) print the header and message alone. Function-length and cognitive-complexity point at the function's name, the blank-line rules at the statement's keyword or the token that closes the block, and arch/forbidden and arch/singleton at the match.
+- When a rule knows where the offending code starts, the header ends in `line:column` and the source line is printed with the span underlined by carets. Rules that only know the line (arch/max-lines, the comment budgets and the config, skill and version advisories) print the header and message alone. Function-length and cognitive-complexity point at the function's name, the blank-line rules at the statement's keyword or the token that closes the block, arch/forbidden and arch/singleton at the match, and arch/imports at the import path (a branch of a multi-line Rust `use` list below the reported line stays line-only).
 - Colour is off when `NO_COLOR` is set to a non-empty value or stderr is not a terminal (pipes, CI logs, redirected files). The column and carets stay.
 - `--hook` keeps the text format of klint 1.7 byte for byte: no colour, no column, no carets.
 - The JSON output carries the same position as `column` and `endColumn` (1-based, end exclusive, counted in UTF-16 code units the way editors count them). Violations from rules that only know the line have neither field.

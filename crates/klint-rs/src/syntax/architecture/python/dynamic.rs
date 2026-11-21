@@ -144,7 +144,7 @@ fn python_dynamic_specifier(raw: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::syntax::scan_imports;
+    use crate::syntax::architecture::spanless_imports as scan_imports;
     use std::path::PathBuf;
 
     #[test]

@@ -1,3 +1,4 @@
+use std::ops::Range;
 use tree_sitter::Node;
 
 use super::ImportRecord;
@@ -24,11 +25,12 @@ fn rust_use_records(node: Node<'_>, source: &[u8]) -> Vec<ImportRecord> {
     let line = node.start_position().row + 1;
     paths
         .into_iter()
-        .map(|specifier| ImportRecord {
+        .map(|(specifier, bytes)| ImportRecord {
             specifier,
             line,
             is_type_only: false,
             is_dynamic: false,
+            bytes,
         })
         .collect()
 }
@@ -38,7 +40,12 @@ fn rust_use_records(node: Node<'_>, source: &[u8]) -> Vec<ImportRecord> {
 /// yields `a::b::c`, `a::b::d`, and `a::e` — the same per-target treatment
 /// Python multi-target imports get. A bare `self` in a list names the prefix
 /// itself, and `as` aliases and `*` wildcards contribute their path only.
-fn collect_rust_use_paths(node: Node<'_>, source: &[u8], prefix: &str, paths: &mut Vec<String>) {
+fn collect_rust_use_paths(
+    node: Node<'_>,
+    source: &[u8],
+    prefix: &str,
+    paths: &mut Vec<(String, Range<usize>)>,
+) {
     match node.kind() {
         "scoped_use_list" => {
             let nested = match node.child_by_field_name("path") {
@@ -67,10 +74,10 @@ fn collect_rust_use_paths(node: Node<'_>, source: &[u8], prefix: &str, paths: &m
                 collect_rust_use_paths(path, source, prefix, paths);
             }
         }
-        "self" if !prefix.is_empty() => paths.push(prefix.to_string()),
+        "self" if !prefix.is_empty() => paths.push((prefix.to_string(), node.byte_range())),
         _ => {
             if let Some(text) = raw_node_text(node, source) {
-                paths.push(join_rust_path(prefix, &text));
+                paths.push((join_rust_path(prefix, &text), node.byte_range()));
             }
         }
     }
@@ -86,7 +93,7 @@ fn join_rust_path(prefix: &str, segment: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::syntax::scan_imports;
+    use crate::syntax::architecture::spanless_imports as scan_imports;
     use std::path::PathBuf;
 
     #[test]
