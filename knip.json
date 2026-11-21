@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": ["tools/*.ts", ".agents/hooks/*.ts"],
-  "project": ["**/*.ts"],
+  "project": ["**/*.ts", "!vscode/**"],
   "includeEntryExports": true,
   "tags": ["-lintignore"],
   "ignoreDependencies": [

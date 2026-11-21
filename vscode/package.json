@@ -1,0 +1,66 @@
+{
+  "name": "klint",
+  "displayName": "klint",
+  "description": "Architecture-as-Code linter: layer boundaries, import rules and forbidden patterns, shown inline in the editor",
+  "version": "0.0.0",
+  "publisher": "konvert7",
+  "icon": "icon.png",
+  "license": "MIT",
+  "homepage": "https://klint.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/konvert7/klint.git",
+    "directory": "vscode"
+  },
+  "bugs": "https://github.com/konvert7/klint/issues",
+  "categories": [
+    "Linters"
+  ],
+  "keywords": [
+    "lint",
+    "architecture",
+    "imports",
+    "layers"
+  ],
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "activationEvents": [
+    "workspaceContains:klint.yaml",
+    "workspaceContains:klint.config.json"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "klint.lint",
+        "title": "klint: Lint workspace"
+      }
+    ],
+    "configuration": {
+      "title": "klint",
+      "properties": {
+        "klint.path": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "description": "Path to the klint binary. When empty, the extension uses node_modules/.bin/klint, then .venv/bin/klint, then klint on PATH."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "bun build src/extension.ts --outfile dist/extension.js --target node --format cjs --external vscode",
+    "type-check": "tsc --noEmit -p tsconfig.json",
+    "test": "bun test tests",
+    "test:e2e": "sh e2e/run.sh",
+    "package": "bun run build && vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "25.8.0",
+    "@types/vscode": "1.100.0",
+    "@vscode/vsce": "4.1.0",
+    "ovsx": "1.3.0",
+    "typescript": "5.9.3"
+  }
+}

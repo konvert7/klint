@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=./klint.schema.json
 
-include: ["**/*.ts", "crates/**/*.rs", "!tests/complexity-sonarjs-corpus.ts", "!tests/function-length-biome-corpus.ts", "!node_modules/**", "!target/**"]
+include: ["**/*.ts", "crates/**/*.rs", "!tests/complexity-sonarjs-corpus.ts", "!tests/function-length-biome-corpus.ts", "!**/node_modules/**", "!target/**"]
 rules:
   recommended: true
   core:
