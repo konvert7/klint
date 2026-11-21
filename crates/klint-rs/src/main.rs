@@ -170,7 +170,13 @@ fn lint_command(values: &Values) -> i32 {
     };
 
     if values.flag("fix") {
-        return fix_command(config_dir, source, started_at, stderr_style(values));
+        return fix_command(
+            config_dir,
+            source,
+            started_at,
+            reporter,
+            stderr_style(values),
+        );
     }
 
     match run(RunOptions {
@@ -318,8 +324,15 @@ fn fix_command(
     config_dir: PathBuf,
     source: RunSource,
     started_at: Instant,
+    reporter: reporter::Reporter,
     style: text::TextStyle,
 ) -> i32 {
+    if let Err(err) = reporter::check_fix_support(reporter) {
+        eprintln!("{err}");
+
+        return 1;
+    }
+
     let refusal = migrate_before_fixing(&config_dir);
 
     match fix(RunOptions {
@@ -327,10 +340,13 @@ fn fix_command(
     }) {
         Ok(mut outcome) => {
             if let Some(warning) = refusal {
-                eprint!(
-                    "{}",
-                    text::warnings_section(std::slice::from_ref(&warning), style)
-                );
+                if reporter == reporter::Reporter::Text {
+                    eprint!(
+                        "{}",
+                        text::warnings_section(std::slice::from_ref(&warning), style)
+                    );
+                }
+
                 outcome.remaining.violations.push(warning);
                 outcome.remaining.summary.warnings += 1;
             }
@@ -341,6 +357,12 @@ fn fix_command(
                 eprintln!(
                     "klint: stopped after {MAX_FIX_PASSES} fix passes — some fixes keep producing new fixable violations."
                 );
+            }
+
+            if reporter == reporter::Reporter::Json {
+                reporter::print_fix_json(&outcome);
+
+                return 0;
             }
 
             println!(

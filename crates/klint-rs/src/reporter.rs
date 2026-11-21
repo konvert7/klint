@@ -1,6 +1,7 @@
 use std::time::Duration;
 
-use klint_rs::JsonOutput;
+use klint_rs::{FixOutcome, JsonOutput};
+use serde::Serialize;
 
 use crate::command::{OptionSpec, Values};
 use crate::{github, text};
@@ -62,4 +63,32 @@ pub fn print(reporter: Reporter, output: &JsonOutput, elapsed: Duration, style: 
             eprint!("{}", report.stderr);
         }
     }
+}
+
+pub fn check_fix_support(reporter: Reporter) -> Result<(), String> {
+    match reporter {
+        Reporter::Github => Err(
+            "klint: --fix does not support --reporter github; use --reporter text or json"
+                .to_string(),
+        ),
+        Reporter::Text | Reporter::Json => Ok(()),
+    }
+}
+
+#[derive(Serialize)]
+struct FixJson<'a> {
+    applied: usize,
+    #[serde(flatten)]
+    remaining: &'a JsonOutput,
+}
+
+pub fn print_fix_json(outcome: &FixOutcome) {
+    let report = FixJson {
+        applied: outcome.applied,
+        remaining: &outcome.remaining,
+    };
+    println!(
+        "{}",
+        serde_json::to_string(&report).expect("klint-rs fix output should be serializable")
+    );
 }

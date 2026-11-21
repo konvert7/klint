@@ -102,6 +102,12 @@ npx klint --reporter=json
 }
 ```
 
+`klint --fix --reporter=json` prints the same shape for the violations left after fixing, with the number of fixes applied in `applied`:
+
+```json
+{ "applied": 2, "violations": [], "summary": { "errors": 0, "warnings": 0 } }
+```
+
 ## What Klint Catches
 
 klint is for rules that are too project-specific or context-heavy for a formatter.
@@ -129,7 +135,7 @@ klint install-skill [--agents <list>] [--symlink | --copy] [--force]
 | Flag | Description |
 |------|-------------|
 | `--config <dir>` | Directory containing `klint.yaml` or `klint.config.json` (default: cwd) |
-| `--fix` | Apply auto-fixes for fixable violations in-place |
+| `--fix` | Apply auto-fixes for fixable violations in-place. Works with the `text` and `json` reporters; `--reporter=github` is refused with exit 1 |
 | `--reporter <name>` | Output format: `text` (default), `json` for agents and scripts, `github` for pull request annotations. `--reporter=json` works too |
 | `--hook` | Count this run as an agent hook run in `klint stats`, and keep the plain text format described below |
 | `migrate` | Rewrite a v1 config to the v2 rule groups in place, keeping comments and blank lines |
