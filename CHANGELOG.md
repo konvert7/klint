@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/konvert7/klint/compare/v1.10.0...v1.11.0) (2026-11-21)
+
+
+### Features
+
+* **output:** add column and endColumn to JSON violations that know them ([b405d42](https://github.com/konvert7/klint/commit/b405d42c4d3cb5af917fa10518f67d312665735c))
+
 # [1.10.0](https://github.com/konvert7/klint/compare/v1.9.0...v1.10.0) (2026-11-21)
 
 
