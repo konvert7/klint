@@ -78,6 +78,7 @@ Every run is recorded in `.klint/stats.json` next to the config. The folder igno
 |---|---|
 | `klint stats [--config <dir>]` | Print runs, violations reported and errors prevented, in total and per rule. Use it to answer "how much has klint caught?" |
 | `--hook` | Put it only in agent hook commands, e.g. `klint --reporter=json --hook`. Leave it off when you run klint yourself, so your runs count as direct. |
+| `--fix=safe [<path>...]` | In a stop hook, apply only layout fixes (blank lines) to the files you changed, e.g. `klint --fix=safe --hook src/a.ts`. Code rewrites stay for an explicit `klint --fix`. |
 | `KLINT_NO_STATS=1` | Turn recording off for a run, e.g. in a throwaway fixture. |
 
 Every violation a run reports counts as reported, repeats included; klint's own `klint/*` advisories do not. An error counts as prevented once, when a later run no longer reports it. Errors match by rule, file and message, so moving code to another line is not a fix. Warnings are not tracked.

@@ -281,6 +281,12 @@ pub(crate) fn is_supported_rule(name: &str) -> bool {
     CHECKS.iter().any(|spec| spec.name == name)
 }
 
+const LAYOUT_ONLY_FIXES: &[&str] = &["blank-line-before-control-flow", "blank-line-after-block"];
+
+pub(crate) fn has_safe_fix(name: &str) -> bool {
+    LAYOUT_ONLY_FIXES.contains(&name)
+}
+
 pub(crate) fn is_experimental_rule(name: &str) -> bool {
     EXPERIMENTAL_CHECKS.iter().any(|spec| spec.name == name)
 }

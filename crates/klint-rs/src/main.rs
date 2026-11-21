@@ -1,4 +1,5 @@
 mod command;
+mod fix_mode;
 mod github;
 mod prompt;
 mod reporter;
@@ -6,9 +7,9 @@ mod text;
 
 use command::{Dispatch, Group, Leaf, OptionSpec, Values, dispatch};
 use klint_rs::{
-    InstallRequest, MAX_FIX_PASSES, MigrateOptions, MigrateOutcome, NewlyRunning, RunOptions,
-    RunSource, Violation, fix, install_skill, known_agent_names, known_agents, migrate, record_run,
-    run, stats_report,
+    FixScope, InstallRequest, MAX_FIX_PASSES, MigrateOptions, MigrateOutcome, NewlyRunning,
+    RunOptions, RunSource, Violation, fix_within, install_skill, known_agent_names, known_agents,
+    migrate, record_run, run, stats_report,
 };
 use std::io::IsTerminal;
 use std::path::PathBuf;
@@ -67,11 +68,16 @@ fn lint_leaf() -> Leaf {
             .into_iter()
             .chain(reporter::options())
             .chain([
-                OptionSpec::flag("fix", "Apply autofixes, then report what is left"),
+                OptionSpec::flag(
+                    "fix",
+                    "Apply autofixes, then report what is left; =safe applies only layout fixes",
+                )
+                .optional_value("safe"),
                 OptionSpec::flag("hook", "Count this run as an agent hook run in klint stats"),
                 OptionSpec::flag("version", "Print the installed klint version").short('V'),
             ])
             .collect(),
+        positionals: Some("[<path>...]"),
         details: Vec::new(),
     }
 }
@@ -84,6 +90,7 @@ fn stats_leaf() -> Leaf {
             "<dir>",
             "Directory holding .klint/stats.json (default: cwd)",
         )],
+        positionals: None,
         details: vec!["Set KLINT_NO_STATS=1 to stop recording.".to_string()],
     }
 }
@@ -105,6 +112,7 @@ fn install_skill_leaf() -> Leaf {
             OptionSpec::flag("copy", "Give every agent directory its own copy"),
             OptionSpec::flag("force", "Replace a skill directory klint did not install"),
         ],
+        positionals: None,
         details: vec![
             "Asks which agents and how to store the skill when run on a terminal without"
                 .to_string(),
@@ -123,6 +131,7 @@ fn migrate_leaf() -> Leaf {
                 "Exit 1 when the config is v1, 0 when it is v2; never writes",
             ),
         ],
+        positionals: None,
         details: vec![
             "Comments, blank lines and key order are kept. The config is written only when the findings stay identical.".to_string(),
         ],
@@ -155,8 +164,8 @@ fn lint_command(values: &Values) -> i32 {
             return 1;
         }
     };
-    let reporter = match reporter::from_values(values) {
-        Ok(reporter) => reporter,
+    let (reporter, fix_scope) = match lint_request(values) {
+        Ok(request) => request,
         Err(err) => {
             eprintln!("{err}");
 
@@ -169,14 +178,10 @@ fn lint_command(values: &Values) -> i32 {
         RunSource::Direct
     };
 
-    if values.flag("fix") {
-        return fix_command(
-            config_dir,
-            source,
-            started_at,
-            reporter,
-            stderr_style(values),
-        );
+    if let Some(scope) = fix_scope {
+        let style = stderr_style(values);
+
+        return fix_command(config_dir, source, started_at, reporter, &scope, style);
     }
 
     match run(RunOptions {
@@ -199,6 +204,10 @@ fn lint_command(values: &Values) -> i32 {
             1
         }
     }
+}
+
+fn lint_request(values: &Values) -> Result<(reporter::Reporter, Option<FixScope>), String> {
+    Ok((reporter::from_values(values)?, fix_mode::fix_scope(values)?))
 }
 
 fn migrate_command(values: &Values) -> i32 {
@@ -325,6 +334,7 @@ fn fix_command(
     source: RunSource,
     started_at: Instant,
     reporter: reporter::Reporter,
+    scope: &FixScope,
     style: text::TextStyle,
 ) -> i32 {
     if let Err(err) = reporter::check_fix_support(reporter) {
@@ -333,11 +343,18 @@ fn fix_command(
         return 1;
     }
 
-    let refusal = migrate_before_fixing(&config_dir);
+    let refusal = if scope.safe_only {
+        None
+    } else {
+        migrate_before_fixing(&config_dir)
+    };
 
-    match fix(RunOptions {
-        config_dir: config_dir.clone(),
-    }) {
+    match fix_within(
+        RunOptions {
+            config_dir: config_dir.clone(),
+        },
+        scope,
+    ) {
         Ok(mut outcome) => {
             if let Some(warning) = refusal {
                 if reporter == reporter::Reporter::Text {

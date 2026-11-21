@@ -4,6 +4,7 @@ pub struct OptionSpec {
     pub name: &'static str,
     pub description: String,
     pub value: Option<&'static str>,
+    pub optional_value: Option<&'static str>,
     pub short: Option<char>,
     pub aliases: &'static [&'static str],
     pub hidden: bool,
@@ -15,6 +16,7 @@ impl OptionSpec {
             name,
             description: description.into(),
             value: None,
+            optional_value: None,
             short: None,
             aliases: &[],
             hidden: false,
@@ -25,6 +27,13 @@ impl OptionSpec {
         Self {
             value: Some(value),
             ..Self::flag(name, description)
+        }
+    }
+
+    pub fn optional_value(self, value: &'static str) -> Self {
+        Self {
+            optional_value: Some(value),
+            ..self
         }
     }
 
@@ -56,7 +65,11 @@ impl OptionSpec {
 
     fn label(&self) -> String {
         let short = self.short.map(|s| format!("-{s}, ")).unwrap_or_default();
-        let value = self.value.map(|v| format!(" {v}")).unwrap_or_default();
+        let value = match (self.value, self.optional_value) {
+            (Some(value), _) => format!(" {value}"),
+            (None, Some(optional)) => format!("[={optional}]"),
+            (None, None) => String::new(),
+        };
         format!("{short}--{}{value}", self.name)
     }
 }
@@ -64,6 +77,7 @@ impl OptionSpec {
 pub struct Leaf {
     pub summary: &'static str,
     pub options: Vec<OptionSpec>,
+    pub positionals: Option<&'static str>,
     pub details: Vec<String>,
 }
 
@@ -76,9 +90,13 @@ pub struct Group {
 }
 
 #[derive(Default)]
-pub struct Values(HashMap<&'static str, Option<String>>);
+pub struct Values(HashMap<&'static str, Option<String>>, Vec<String>);
 
 impl Values {
+    pub fn positionals(&self) -> &[String] {
+        &self.1
+    }
+
     pub fn flag(&self, name: &str) -> bool {
         self.0.contains_key(name)
     }
@@ -165,7 +183,7 @@ fn inline_value<'a>(
     let (name, value) = token.strip_prefix("--")?.split_once('=')?;
     options
         .iter()
-        .find(|spec| spec.value.is_some() && spec.name == name)
+        .find(|spec| (spec.value.is_some() || spec.optional_value.is_some()) && spec.name == name)
         .map(|spec| (spec, value))
 }
 
@@ -183,8 +201,16 @@ pub fn dispatch(group: &Group, args: &[String], path: &str) -> Dispatch {
         return show_help(&help);
     }
 
-    if let Some(resolved) = resolved {
-        let Some((command, leaf)) = group.commands.iter().find(|(n, _)| *n == resolved) else {
+    let command = resolved.and_then(|resolved| group.commands.iter().find(|(n, _)| *n == resolved));
+    let default_takes_paths = group
+        .default_command
+        .as_ref()
+        .is_some_and(|leaf| leaf.positionals.is_some());
+
+    let is_path = name.is_some_and(looks_like_path);
+
+    if resolved.is_some() && (command.is_some() || !default_takes_paths || !is_path) {
+        let Some((command, leaf)) = command else {
             return usage_failure(
                 &format!("unknown command '{}'", name.unwrap_or_default()),
                 &help,
@@ -204,6 +230,10 @@ pub fn dispatch(group: &Group, args: &[String], path: &str) -> Dispatch {
         Some(leaf) => dispatch_leaf(leaf, args, &help, None),
         None => show_help(&help),
     }
+}
+
+fn looks_like_path(token: &str) -> bool {
+    token.contains(['/', '\\', '.']) || std::path::Path::new(token).exists()
 }
 
 fn alias_target(group: &Group, name: &str) -> Option<&'static str> {
@@ -229,14 +259,15 @@ fn dispatch_leaf(
         return usage_failure(error, help);
     }
 
-    if let Some(extra) = parsed.positionals.first() {
+    if leaf.positionals.is_none()
+        && let Some(extra) = parsed.positionals.first()
+    {
         return usage_failure(&format!("unexpected argument '{extra}'"), help);
     }
 
-    Dispatch::Run {
-        command,
-        values: parsed.values,
-    }
+    let mut values = parsed.values;
+    values.1 = parsed.positionals;
+    Dispatch::Run { command, values }
 }
 
 fn show_help(help: &str) -> Dispatch {
@@ -263,7 +294,7 @@ fn option_rows(options: &[OptionSpec]) -> Vec<String> {
 
 fn leaf_help(leaf: &Leaf, path: &str) -> String {
     let mut lines = vec![
-        format!("Usage: {path} [options]"),
+        format!("Usage: {path} [options]{}", positionals_synopsis(leaf)),
         String::new(),
         format!("  {}", leaf.summary),
         String::new(),
@@ -276,10 +307,9 @@ fn leaf_help(leaf: &Leaf, path: &str) -> String {
 
 fn group_help(group: &Group, path: &str) -> String {
     let fallback = group.default_command.as_ref();
-    let synopsis = if fallback.is_some() {
-        "[<command>] [options]"
-    } else {
-        "<command>"
+    let synopsis = match fallback {
+        Some(leaf) => format!("[<command>] [options]{}", positionals_synopsis(leaf)),
+        None => "<command>".to_string(),
     };
     let mut lines = vec![
         format!("Usage: {path} {synopsis}"),
@@ -310,6 +340,12 @@ fn group_help(group: &Group, path: &str) -> String {
     lines.push(format!("Run '{path} <command> --help' for its options."));
     lines.extend(detail_lines(&group.details));
     lines.join("\n")
+}
+
+fn positionals_synopsis(leaf: &Leaf) -> String {
+    leaf.positionals
+        .map(|label| format!(" {label}"))
+        .unwrap_or_default()
 }
 
 fn detail_lines(details: &[String]) -> Vec<String> {

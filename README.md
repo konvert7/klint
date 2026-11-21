@@ -126,7 +126,7 @@ Rules give agents room to move quickly because the unsafe moves are blocked stru
 ## CLI
 
 ```sh
-klint [--config <dir>] [--fix] [--reporter <name>] [--hook]
+klint [--config <dir>] [--fix[=safe]] [--reporter <name>] [--hook] [<path>...]
 klint stats [--config <dir>]
 klint migrate [--config <dir>] [--check]
 klint install-skill [--agents <list>] [--symlink | --copy] [--force]
@@ -136,6 +136,8 @@ klint install-skill [--agents <list>] [--symlink | --copy] [--force]
 |------|-------------|
 | `--config <dir>` | Directory containing `klint.yaml` or `klint.config.json` (default: cwd) |
 | `--fix` | Apply auto-fixes for fixable violations in-place. Works with the `text` and `json` reporters; `--reporter=github` is refused with exit 1 |
+| `--fix=safe` | Apply only safe fixes, the ones that change layout and never behaviour (today: the blank-line rules). Code rewrites such as `no-string-match` and the `sonar/` fixes are unsafe and left for plain `--fix`. Skips the v1 config migration |
+| `<path>...` | With `--fix`, fix only these files, or the files under these directories. The report still covers the whole project. A path that does not exist is skipped with a note |
 | `--reporter <name>` | Output format: `text` (default), `json` for agents and scripts, `github` for pull request annotations. `--reporter=json` works too |
 | `--hook` | Count this run as an agent hook run in `klint stats`, and keep the plain text format described below |
 | `migrate` | Rewrite a v1 config to the v2 rule groups in place, keeping comments and blank lines |
