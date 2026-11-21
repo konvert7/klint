@@ -812,10 +812,12 @@ rules:
       severity: warn
       include: ["src/**"]
       statements: [if, for, while, switch, try, guard, loop, with]
+      guards: true
 ```
 
 - `statements` lists the statement kinds a rule targets. The default is every kind the rule supports. `statements: []` turns the rule off. `match` is an alias of `switch`. `return` is valid only for `blank-line-before-control-flow`. An unknown keyword, or `return` on the after rule, produces one `klint/config` warning, and the remaining keywords still apply.
 - `allowSetup` (before rule only, default `true`) turns the setup exception on or off, described below.
+- `guards` (after rule only, default `false`) treats a braceless guard as a block, described below.
 
 | keyword | TypeScript / JavaScript | Python | Swift | Rust | C# |
 |---|---|---|---|---|---|
@@ -833,9 +835,11 @@ rules:
 
 **Setup exception.** With `allowSetup: true`, the before rule skips an `if`, `guard` or `switch` whose condition uses a name assigned by the statement directly above it. For example, `x = f();` followed by `if (x) …` is not reported. Only the statement directly above counts (comment lines are skipped), only plain names count (`self.x = f()` does not), and only the condition is searched, not the body.
 
+**Guards.** With `guards: true`, the after rule also treats a braceless `if` as a block when every branch of it is a `return`, `throw`, `continue` or `break`, as in `if (!user) return null;`. The statement after the guard then gets a blank line. Consecutive guards stay together, and the line goes after the last one. A braceless `if` whose body does not exit (`if (x) doSomething();`) is left alone. This works on TypeScript/JavaScript and C#. Python and Rust have no braceless `if`, and a Swift `guard` always has braces, so it is already a block. The before rule is separate: unless the setup exception pairs them, it still asks for a blank line between two consecutive guards.
+
 **Autofix.** `klint --fix` inserts one empty line with the line ending of the line above it, and changes nothing else. A second run changes nothing.
 
-**Not checked.** A file with a syntax error gets no report and no fix. A braceless body (`if (a) return 1;`) is not a block for the after rule. `do…while` and `repeat…while` are never reported by the after rule. A statement that shares its line with the previous statement is not reported, because the fix would have to split that line. Expression forms are not statements: `let x = if …` and `let r = match …` in Rust, `let x = if …` in Swift, a C# switch expression, and control flow inside a call are never reported. A Python docstring is documentation, not a statement, so the statement after it counts as first in its block. A C# preprocessor line (`#region`, `#if`, `#pragma`, …) or a Swift `#if`/`#elseif`/`#else`/`#endif` line separates statements like a blank line, so neither rule inserts a line next to one.
+**Not checked.** A file with a syntax error gets no report and no fix. A braceless body (`if (a) return 1;`) is not a block for the after rule unless `guards: true`. `do…while` and `repeat…while` are never reported by the after rule. A statement that shares its line with the previous statement is not reported, because the fix would have to split that line. Expression forms are not statements: `let x = if …` and `let r = match …` in Rust, `let x = if …` in Swift, a C# switch expression, and control flow inside a call are never reported. A Python docstring is documentation, not a statement, so the statement after it counts as first in its block. A C# preprocessor line (`#region`, `#if`, `#pragma`, …) or a Swift `#if`/`#elseif`/`#else`/`#endif` line separates statements like a blank line, so neither rule inserts a line next to one.
 
 ### Cognitive complexity
 

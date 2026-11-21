@@ -108,6 +108,7 @@ pub(crate) const RULE_DOCS: &[RuleDoc] = &[
         examples: &[
             "blank-line-after-block: warn",
             "blank-line-after-block:\n  severity: warn\n  include: [\"src/**\"]\n  statements: [if, for, while, switch, try, guard, loop, with]",
+            "blank-line-after-block:\n  severity: error\n  guards: true",
         ],
         options_schema: Some(super::blank_lines::after_schema),
     },

@@ -280,6 +280,7 @@ rules:
       severity: warn
       include: ["src/**"]
       statements: [if, for, while, switch, try, guard, loop, with]
+      guards: true
 ```
 
 - `statements` narrows the kinds a rule targets. The default is every kind the rule supports, and
@@ -288,6 +289,9 @@ rules:
   `klint/config` warning and the other keywords still apply.
 - `allowSetup` (before rule only, default `true`) skips an `if`, `guard` or `switch` whose condition
   uses a plain name assigned by the statement directly above it, such as `x = f();` then `if (x) …`.
+- `guards` (after rule only, default `false`) treats a braceless `if` whose every branch is `return`,
+  `throw`, `continue` or `break` as a block, so the statement after the guard gets a blank line.
+  Consecutive guards stay together; the line goes after the last one. TypeScript/JavaScript and C#.
 
 `klint --fix` inserts the missing blank lines, one per gap, and changes nothing else. Files with a
 syntax error are skipped. Run `klint --fix` again to confirm it reports nothing left to fix.

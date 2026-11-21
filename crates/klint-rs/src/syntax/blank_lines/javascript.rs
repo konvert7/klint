@@ -1,6 +1,6 @@
 use super::grammar::{
-    Grammar, Role, Target, body_target, ends_with_braced_body, field_nodes, named_children,
-    node_text,
+    Grammar, Role, Target, body_target, ends_with_braced_body, field_nodes, is_braceless_exit,
+    named_children, node_text,
 };
 use super::keyword::Keyword;
 use tree_sitter::Node;
@@ -48,7 +48,18 @@ impl Grammar for JavaScript {
     fn is_condition_name(&self, node: Node<'_>) -> bool {
         matches!(node.kind(), "identifier" | "shorthand_property_identifier")
     }
+
+    fn is_exiting_guard(&self, member: Node<'_>) -> bool {
+        is_braceless_exit(unwrap_labels(member), EXITS, Some("else_clause"))
+    }
 }
+
+const EXITS: &[&str] = &[
+    "return_statement",
+    "throw_statement",
+    "continue_statement",
+    "break_statement",
+];
 
 fn unwrap_labels(node: Node<'_>) -> Node<'_> {
     match node.kind() {

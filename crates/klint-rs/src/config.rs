@@ -82,6 +82,8 @@ pub(crate) enum RuleConfig {
         #[schemars(skip)]
         allow_setup: Option<serde_json::Value>,
         #[schemars(skip)]
+        guards: Option<serde_json::Value>,
+        #[schemars(skip)]
         max: Option<serde_json::Value>,
         #[serde(rename = "skipBlankLines")]
         #[schemars(skip)]
@@ -113,6 +115,14 @@ impl RuleConfig {
             RuleConfig::Severity(_) => None,
             RuleConfig::List(_) => None,
             RuleConfig::Options { allow_setup, .. } => allow_setup.as_ref(),
+        }
+    }
+
+    pub(crate) fn guards(&self) -> Option<&serde_json::Value> {
+        match self {
+            RuleConfig::Severity(_) => None,
+            RuleConfig::List(_) => None,
+            RuleConfig::Options { guards, .. } => guards.as_ref(),
         }
     }
 
@@ -181,6 +191,7 @@ impl RuleConfig {
             include,
             statements,
             allow_setup,
+            guards,
             max,
             skip_blank_lines,
             warn,
@@ -196,6 +207,7 @@ impl RuleConfig {
             ("include", include.is_some()),
             ("statements", statements.is_some()),
             ("allowSetup", allow_setup.is_some()),
+            ("guards", guards.is_some()),
             ("max", max.is_some()),
             ("skipBlankLines", skip_blank_lines.is_some()),
             ("warn", warn.is_some()),

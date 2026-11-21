@@ -42,6 +42,7 @@ pub(super) fn run_blank_line_after_block(scan: RuleScan<'_>) -> Vec<Report> {
         scan.content,
         scan.language,
         options.statements,
+        options.guards,
     );
     reports(findings, scan.content, after_message)
 }
@@ -49,13 +50,13 @@ pub(super) fn run_blank_line_after_block(scan: RuleScan<'_>) -> Vec<Report> {
 fn reports(
     findings: Vec<BlankLineFinding>,
     content: &str,
-    message: fn(&str) -> String,
+    message: fn(&BlankLineFinding) -> String,
 ) -> Vec<Report> {
     findings
         .into_iter()
         .map(|finding| Report {
             line: finding.line,
-            message: message(finding.keyword),
+            message: message(&finding),
             fix: insert_blank_line_fix(content, finding.insertion_line),
             level: None,
             bytes: finding.bytes,
@@ -79,11 +80,20 @@ fn insert_blank_line_fix(content: &str, insertion_line: usize) -> Option<serde_j
     }))
 }
 
-fn before_message(keyword: &str) -> String {
+fn before_message(finding: &BlankLineFinding) -> String {
+    let keyword = finding.keyword;
     format!("Missing blank line before `{keyword}` — separate it from the statement above.")
 }
 
-fn after_message(keyword: &str) -> String {
+fn after_message(finding: &BlankLineFinding) -> String {
+    let keyword = finding.keyword;
+
+    if finding.guard {
+        return format!(
+            "Missing blank line after the `{keyword}` guard — separate it from the statement below."
+        );
+    }
+
     format!("Missing blank line after `{keyword}` block — separate it from the statement below.")
 }
 
@@ -126,10 +136,20 @@ mod tests {
         assert_eq!(insert_blank_line_fix("a\nb", 5), None);
     }
 
+    fn finding(guard: bool) -> BlankLineFinding {
+        BlankLineFinding {
+            line: 1,
+            insertion_line: 2,
+            keyword: "if",
+            guard,
+            bytes: None,
+        }
+    }
+
     #[test]
     fn before_message_names_the_keyword() {
         assert_eq!(
-            before_message("if"),
+            before_message(&finding(false)),
             "Missing blank line before `if` — separate it from the statement above."
         );
     }
@@ -137,8 +157,16 @@ mod tests {
     #[test]
     fn after_message_names_the_keyword() {
         assert_eq!(
-            after_message("if"),
+            after_message(&finding(false)),
             "Missing blank line after `if` block — separate it from the statement below."
+        );
+    }
+
+    #[test]
+    fn after_message_calls_a_guard_a_guard() {
+        assert_eq!(
+            after_message(&finding(true)),
+            "Missing blank line after the `if` guard — separate it from the statement below."
         );
     }
 }

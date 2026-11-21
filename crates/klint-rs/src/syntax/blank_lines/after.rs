@@ -1,7 +1,7 @@
 use super::BlankLineFinding;
 use super::grammar::Grammar;
 use super::items::{Item, ItemRole, closing_bytes};
-use super::keyword::KeywordSet;
+use super::keyword::{Keyword, KeywordSet};
 use super::lines::SourceLines;
 
 pub(super) fn after_findings(
@@ -9,7 +9,10 @@ pub(super) fn after_findings(
     lines: &SourceLines<'_>,
     grammar: &dyn Grammar,
     targets: KeywordSet,
+    guards: bool,
 ) -> Vec<BlankLineFinding> {
+    let is_guard = |item: &Item<'_>| guards && is_exiting_guard(item, grammar);
+
     items
         .iter()
         .enumerate()
@@ -18,13 +21,20 @@ pub(super) fn after_findings(
                 return None;
             };
             let next = next_statement(&items[index + 1..])?;
+            let guard = is_guard(item);
+            let closes_paragraph = target.ends_with_block || (guard && !is_guard(next));
             (targets.contains(target.keyword)
-                && target.ends_with_block
+                && closes_paragraph
                 && next.start_row > item.last_row
                 && !lines.separates(item.last_row + 1, grammar))
-            .then(|| finding(item, target.written))
+            .then(|| finding(item, target.written, guard))
         })
         .collect()
+}
+
+fn is_exiting_guard(item: &Item<'_>, grammar: &dyn Grammar) -> bool {
+    matches!(&item.role, ItemRole::Statement(Some(target)) if target.keyword == Keyword::If)
+        && grammar.is_exiting_guard(item.node)
 }
 
 fn next_statement<'i, 'a>(items: &'i [Item<'a>]) -> Option<&'i Item<'a>> {
@@ -33,11 +43,12 @@ fn next_statement<'i, 'a>(items: &'i [Item<'a>]) -> Option<&'i Item<'a>> {
         .find(|item| matches!(item.role, ItemRole::Statement(_)))
 }
 
-fn finding(item: &Item<'_>, written: &'static str) -> BlankLineFinding {
+fn finding(item: &Item<'_>, written: &'static str, guard: bool) -> BlankLineFinding {
     BlankLineFinding {
         line: item.last_row + 1,
         insertion_line: item.last_row + 2,
         keyword: written,
+        guard,
         bytes: closing_bytes(item),
     }
 }
@@ -59,7 +70,7 @@ mod tests {
         let lines = SourceLines::new(source);
         let grammar = grammar_for(source_language_for_path(path));
         let items = block_items(tree.root_node(), grammar, &lines);
-        after_findings(&items, &lines, grammar, KeywordSet::ALL_AFTER)
+        after_findings(&items, &lines, grammar, KeywordSet::ALL_AFTER, false)
     }
 
     fn after_findings_in(source: &str) -> Vec<BlankLineFinding> {
@@ -94,6 +105,7 @@ mod tests {
             line,
             insertion_line,
             keyword,
+            guard: false,
             bytes: None,
         }
     }

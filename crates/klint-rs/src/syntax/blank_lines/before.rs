@@ -53,6 +53,7 @@ fn finding(item: &Item<'_>, written: &'static str) -> BlankLineFinding {
         line: item.start_row + 1,
         insertion_line: item.head_row + 1,
         keyword: written,
+        guard: false,
         bytes: keyword_bytes(item),
     }
 }
@@ -120,6 +121,7 @@ mod tests {
             line,
             insertion_line,
             keyword,
+            guard: false,
             bytes: None,
         }
     }

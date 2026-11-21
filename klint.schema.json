@@ -619,6 +619,10 @@
                       "additionalProperties": false,
                       "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
                       "properties": {
+                        "guards": {
+                          "description": "Also treat a braceless `if` whose every branch is return, throw, continue or break as a block, so the statement after the guard gets a blank line. Consecutive guards stay together; the line goes after the last one. TypeScript/JavaScript and C#. Defaults to false.",
+                          "type": "boolean"
+                        },
                         "include": {
                           "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
                           "items": {
@@ -662,7 +666,8 @@
                   "description": "Requires a blank line below a block statement (if, for, while, switch/match, try, guard, loop, with) when another statement follows it in the same block, like C# IDE2003. Works on TypeScript/JavaScript, Python, Swift, Rust and C#; `klint --fix` inserts the line.",
                   "examples": [
                     "blank-line-after-block: warn",
-                    "blank-line-after-block:\n  severity: warn\n  include: [\"src/**\"]\n  statements: [if, for, while, switch, try, guard, loop, with]"
+                    "blank-line-after-block:\n  severity: warn\n  include: [\"src/**\"]\n  statements: [if, for, while, switch, try, guard, loop, with]",
+                    "blank-line-after-block:\n  severity: error\n  guards: true"
                   ]
                 },
                 "blank-line-before-control-flow": {
@@ -1684,6 +1689,10 @@
                   "additionalProperties": false,
                   "description": "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files.",
                   "properties": {
+                    "guards": {
+                      "description": "Also treat a braceless `if` whose every branch is return, throw, continue or break as a block, so the statement after the guard gets a blank line. Consecutive guards stay together; the line goes after the last one. TypeScript/JavaScript and C#. Defaults to false.",
+                      "type": "boolean"
+                    },
                     "include": {
                       "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
                       "items": {
@@ -1727,7 +1736,8 @@
               "description": "Requires a blank line below a block statement (if, for, while, switch/match, try, guard, loop, with) when another statement follows it in the same block, like C# IDE2003. Works on TypeScript/JavaScript, Python, Swift, Rust and C#; `klint --fix` inserts the line.",
               "examples": [
                 "blank-line-after-block: warn",
-                "blank-line-after-block:\n  severity: warn\n  include: [\"src/**\"]\n  statements: [if, for, while, switch, try, guard, loop, with]"
+                "blank-line-after-block:\n  severity: warn\n  include: [\"src/**\"]\n  statements: [if, for, while, switch, try, guard, loop, with]",
+                "blank-line-after-block:\n  severity: error\n  guards: true"
               ]
             },
             "blank-line-before-control-flow": {

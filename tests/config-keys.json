@@ -7,6 +7,7 @@
     "rules",
     "rules.core",
     "rules.core.blank-line-after-block",
+    "rules.core.blank-line-after-block.guards",
     "rules.core.blank-line-after-block.include",
     "rules.core.blank-line-after-block.severity",
     "rules.core.blank-line-after-block.statements",

@@ -29,6 +29,7 @@ pub(crate) struct BlankLineFinding {
     pub line: usize,
     pub insertion_line: usize,
     pub keyword: &'static str,
+    pub guard: bool,
     pub bytes: Option<Range<usize>>,
 }
 
@@ -79,6 +80,7 @@ pub(crate) fn missing_blank_after(
     content: &str,
     language: SourceLanguage,
     targets: KeywordSet,
+    guards: bool,
 ) -> Vec<BlankLineFinding> {
     if targets == KeywordSet::default() {
         return Vec::new();
@@ -94,6 +96,7 @@ pub(crate) fn missing_blank_after(
                 &lines,
                 grammar,
                 targets,
+                guards,
             )
         })
         .collect();
