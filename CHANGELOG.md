@@ -1,3 +1,11 @@
+# [1.10.0](https://github.com/konvert7/klint/compare/v1.9.0...v1.10.0) (2026-11-21)
+
+
+### Features
+
+* **vscode:** add a VS Code extension that shows klint diagnostics inline ([99c89a3](https://github.com/konvert7/klint/commit/99c89a338a89f7e4d9c43c1d053703900cff8478))
+* **vscode:** use the klint.dev apple icon as the extension icon ([37f974e](https://github.com/konvert7/klint/commit/37f974e3f495939f5dc9493827d5f8e621fda460))
+
 # [1.9.0](https://github.com/konvert7/klint/compare/v1.8.0...v1.9.0) (2026-11-21)
 
 
