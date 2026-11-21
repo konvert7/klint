@@ -4,6 +4,7 @@
   "description": "Architecture-as-Code linter: layer boundaries, import rules and forbidden patterns, shown inline in the editor",
   "version": "0.0.0",
   "publisher": "konvert7",
+  "icon": "icon.png",
   "license": "MIT",
   "homepage": "https://klint.dev",
   "repository": {
