@@ -10,6 +10,8 @@ const output = JSON.stringify({
       message: "UI must not import data",
       severity: "error",
       fix: null,
+      column: 11,
+      endColumn: 23,
     },
     {
       file: "src/a.ts",
@@ -47,6 +49,18 @@ describe("diagnosticsByFile", () => {
 
     expect(error?.severity).toBe("error");
     expect(warning?.severity).toBe("warning");
+  });
+
+  test("turns klint's 1-based, end-exclusive columns into 0-based characters", () => {
+    const [spanned] = diagnosticsByFile(output).get("src/a.ts") ?? [];
+
+    expect(spanned?.characters).toEqual({ start: 10, end: 22 });
+  });
+
+  test("a violation without columns covers the whole line", () => {
+    const [, lineOnly] = diagnosticsByFile(output).get("src/a.ts") ?? [];
+
+    expect(lineOnly?.characters).toBeUndefined();
   });
 
   test("links each diagnostic to its rule page", () => {

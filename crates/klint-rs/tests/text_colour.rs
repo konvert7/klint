@@ -7,9 +7,9 @@ use std::process::Command;
 const CONFIG: &str = "include: [\"src\"]\nrules:\n  core:\n    no-string-match: error\n    no-unguarded-json-parse: warn\n";
 const SOURCE: &str = "const m = s.match(/x/);\nconst v = JSON.parse(raw);\n";
 
-const JSON_BEFORE_COLOUR: &str = concat!(
-    r#"{"violations":[{"file":"src/a.ts","line":1,"rule":"no-string-match","message":"Use RegExp.exec() instead of String.match() for non-global regexes — use /x/.exec(s) instead.","severity":"error","fix":{"endLine":1,"replacement":"const m = /x/.exec(s);","startLine":1}},"#,
-    r#"{"file":"src/a.ts","line":2,"rule":"no-unguarded-json-parse","message":"JSON.parse() called without a surrounding try/catch — a malformed payload will throw an unhandled exception.","severity":"warn","fix":null}],"#,
+const JSON_WITH_COLUMNS: &str = concat!(
+    r#"{"violations":[{"file":"src/a.ts","line":1,"rule":"no-string-match","message":"Use RegExp.exec() instead of String.match() for non-global regexes — use /x/.exec(s) instead.","severity":"error","fix":{"endLine":1,"replacement":"const m = /x/.exec(s);","startLine":1},"column":11,"endColumn":23},"#,
+    r#"{"file":"src/a.ts","line":2,"rule":"no-unguarded-json-parse","message":"JSON.parse() called without a surrounding try/catch — a malformed payload will throw an unhandled exception.","severity":"warn","fix":null,"column":11,"endColumn":26}],"#,
     r#""summary":{"errors":1,"warnings":1,"fixable":1},"hint":"1 violation(s) can be fixed automatically: run `klint --fix`."}"#,
     "\n"
 );
@@ -86,9 +86,9 @@ fn piped_text_output_underlines_the_offending_call() {
 }
 
 #[test]
-fn json_output_is_unchanged_byte_for_byte() {
+fn json_output_only_adds_columns() {
     let (stdout, _) = klint("text-json", &["--json"]);
-    assert_eq!(stdout, JSON_BEFORE_COLOUR);
+    assert_eq!(stdout, JSON_WITH_COLUMNS);
 }
 
 #[test]

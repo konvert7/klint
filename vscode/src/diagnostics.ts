@@ -1,7 +1,13 @@
 export type Severity = "error" | "warning";
 
+export interface CharacterRange {
+  start: number;
+  end: number;
+}
+
 export interface FileDiagnostic {
   line: number;
+  characters: CharacterRange | undefined;
   message: string;
   rule: string;
   severity: Severity;
@@ -14,6 +20,8 @@ interface KlintViolation {
   rule: string;
   message: string;
   severity: string;
+  column?: unknown;
+  endColumn?: unknown;
 }
 
 export function ruleDocsUrl(rule: string): string {
@@ -51,9 +59,17 @@ function violationsIn(stdout: string): KlintViolation[] {
   return violations.filter(isViolation);
 }
 
+function charactersOf(violation: KlintViolation): CharacterRange | undefined {
+  const { column, endColumn } = violation;
+  if (typeof column !== "number" || typeof endColumn !== "number") return undefined;
+
+  return { start: column - 1, end: endColumn - 1 };
+}
+
 function toDiagnostic(violation: KlintViolation): FileDiagnostic {
   return {
     line: Math.max(violation.line - 1, 0),
+    characters: charactersOf(violation),
     message: violation.message,
     rule: violation.rule,
     severity: violation.severity === "warn" ? "warning" : "error",

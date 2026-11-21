@@ -1,6 +1,7 @@
 use std::ops::Range;
 
 use serde::Serialize;
+use serde::ser::{SerializeMap, Serializer};
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct Violation {
@@ -10,7 +11,7 @@ pub struct Violation {
     pub message: String,
     pub severity: String,
     pub fix: Option<serde_json::Value>,
-    #[serde(skip)]
+    #[serde(flatten)]
     pub span: Option<Span>,
 }
 
@@ -39,6 +40,30 @@ impl Span {
             column: content.get(line_start..start)?.chars().count() + 1,
             width: content.get(start..end)?.chars().count().max(1),
         })
+    }
+}
+
+impl Span {
+    fn utf16_columns(&self) -> (usize, usize) {
+        let mut chars = self.source_line.chars();
+        let before: usize = chars
+            .by_ref()
+            .take(self.column - 1)
+            .map(char::len_utf16)
+            .sum();
+        let inside: usize = chars.take(self.width).map(char::len_utf16).sum();
+
+        (before + 1, before + inside.max(1) + 1)
+    }
+}
+
+impl Serialize for Span {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let (column, end_column) = self.utf16_columns();
+        let mut map = serializer.serialize_map(Some(2))?;
+        map.serialize_entry("column", &column)?;
+        map.serialize_entry("endColumn", &end_column)?;
+        map.end()
     }
 }
 
@@ -113,6 +138,41 @@ mod tests {
             fix,
             span: None,
         }
+    }
+
+    fn spanned(line: &str, needle: &str) -> Violation {
+        let start = line.find(needle).expect("needle is in the line");
+        Violation {
+            span: Span::within(line, start..start + needle.len()),
+            ..violation(None)
+        }
+    }
+
+    #[test]
+    fn json_has_no_column_when_the_rule_knows_none() {
+        let json = serde_json::to_value(violation(None)).expect("serializes");
+        assert!(json.get("column").is_none());
+        assert!(json.get("endColumn").is_none());
+    }
+
+    #[test]
+    fn json_columns_are_one_based_and_end_exclusive() {
+        let json = serde_json::to_value(spanned("let x = JSON.parse(s);", "JSON.parse"))
+            .expect("serializes");
+        assert_eq!(
+            (json["column"].clone(), json["endColumn"].clone()),
+            (9.into(), 19.into())
+        );
+    }
+
+    #[test]
+    fn json_columns_count_utf16_units_like_editors_do() {
+        let json = serde_json::to_value(spanned("const s = \"😀é\"; JSON.parse(s);", "JSON.parse"))
+            .expect("serializes");
+        assert_eq!(
+            (json["column"].clone(), json["endColumn"].clone()),
+            (18.into(), 28.into())
+        );
     }
 
     #[test]
