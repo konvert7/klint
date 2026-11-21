@@ -42,6 +42,9 @@ Supported options:
 | Option | Description |
 | --- | --- |
 | `--config <dir>` | Directory containing `klint.yaml` or `klint.config.json`. Defaults to the current working directory. |
+| `--fix` | Apply auto-fixes in place, then report what is left. Works with the `text` and `json` reporters; `--reporter=github` is refused with exit 1. |
+| `--fix=safe` | Apply only safe fixes, the ones that change layout and never behaviour (today: the blank-line rules). |
+| `--fix[=safe] <path>...` | Fix only these files, or the files under these directories. Paths work only with `--fix`. |
 | `--reporter <name>` | Output format: `text` (default), `json` for CI and agentic lifecycle hooks, `github` for pull request annotations in GitHub Actions. `--json` is a short alias for `--reporter=json`. |
 | `--version`, `-V`, `version` | Print the klint version. |
 | `--help`, `-h`, `help`, `h` | Print CLI usage. |
@@ -66,8 +69,13 @@ arch:
 either a whole directory or individual files:
 
 ```yaml
-include: ["src", "!**/.venv/**", "!**/*_test.py", "!src/jobs/legacy.py"]
+include: ["src", "!**/*_test.py", "!src/jobs/legacy.py"]
 ```
+
+Inside a git repository, klint skips every file git ignores (`.gitignore` at every level
+and `.git/info/exclude`), so a `.venv` or build folder listed there needs no `!` pattern.
+An ignored file stays skipped even when `include` names it. Outside a git repository
+nothing is skipped. Set `respectGitignore: false` to lint ignored files too.
 
 Set `$schema` to a version-tagged URL to pin the schema your editor validates against:
 
@@ -83,8 +91,8 @@ warning, so the exit code stays `0`. Local paths carry no version and are never 
 architecture instead of repeating globs. `root` optionally sets the directory
 that `include` paths and reported file names resolve against.
 
-`rules` holds klint's top-level source rules, which are TypeScript/JavaScript
-only. For a Python project it stays empty — everything below lives under `arch`.
+`rules` holds klint's source rules. Most are TypeScript/JavaScript only; the ones
+that also check Python are listed under [Supported Python Rules](#supported-python-rules).
 
 Every `arch` rule accepts `severity`. Use `error` (exit code `2`) or `warn`
 (reported, exit code `0`). Arch rules cannot be `off`; remove the entry instead.
@@ -288,8 +296,23 @@ The Python package supports:
 These rules are intentionally configuration-driven. They are for enforcing your
 project's architecture, not for replacing formatters or style linters.
 
-klint's top-level source rules and its `sonar` plugin are
-TypeScript/JavaScript-only and do not apply to `.py` files.
+These opt-in source rules under `rules.core` also check `.py` files:
+
+- `blank-line-before-control-flow` and `blank-line-after-block` (fixed by `klint --fix`)
+- `cognitive-complexity`
+- `function-length`
+- `naming-convention`: snake_case functions and PascalCase classes; unittest hooks
+  such as `setUp` are skipped. There is no fix for Python.
+
+```yaml
+rules:
+  core:
+    function-length: error
+    naming-convention: error
+```
+
+The other source rules and the `sonar` plugin are TypeScript/JavaScript only and do
+not apply to `.py` files.
 
 ## CI
 
