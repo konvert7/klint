@@ -1,3 +1,4 @@
+use std::ops::Range;
 use std::path::Path;
 use tree_sitter::{Node, Parser};
 
@@ -7,6 +8,7 @@ use crate::syntax::{is_jsx_path, language_for_path, node_text};
 pub struct JsxElementRecord {
     pub tag_name: String,
     pub line: usize,
+    pub bytes: Range<usize>,
 }
 
 pub fn scan_jsx_elements(path: &Path, content: &str) -> Result<Vec<JsxElementRecord>, String> {
@@ -63,6 +65,7 @@ fn jsx_element_record(node: Node<'_>, source: &[u8]) -> Option<JsxElementRecord>
     Some(JsxElementRecord {
         tag_name: node_text(name, source)?,
         line: name.start_position().row + 1,
+        bytes: name.byte_range(),
     })
 }
 
@@ -92,14 +95,17 @@ mod tests {
                 JsxElementRecord {
                     tag_name: "main".to_string(),
                     line: 1,
+                    bytes: 21..25,
                 },
                 JsxElementRecord {
                     tag_name: "button".to_string(),
                     line: 2,
+                    bytes: 30..36,
                 },
                 JsxElementRecord {
                     tag_name: "input".to_string(),
                     line: 3,
+                    bytes: 55..60,
                 },
             ]
         );

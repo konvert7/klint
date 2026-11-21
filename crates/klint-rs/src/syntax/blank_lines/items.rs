@@ -1,10 +1,37 @@
 use super::grammar::{Grammar, Role, Target};
 use super::lines::{SourceLines, last_row};
+use std::ops::Range;
 use tree_sitter::Node;
 
 pub(super) enum ItemRole<'a> {
     Comment,
     Statement(Option<Target<'a>>),
+}
+
+/// The statement's first token, its keyword, when it starts the reported row.
+pub(super) fn keyword_bytes(item: &Item<'_>) -> Option<Range<usize>> {
+    let leaf = edge_leaf(item.node, |node| node.child(0));
+
+    (leaf.start_position().row == item.start_row).then(|| leaf.byte_range())
+}
+
+/// The token that closes the statement, such as its `}`, on its last row.
+pub(super) fn closing_bytes(item: &Item<'_>) -> Option<Range<usize>> {
+    let leaf = edge_leaf(item.node, |node| {
+        node.child(node.child_count().checked_sub(1)?)
+    });
+
+    (leaf.start_position().row == item.last_row).then(|| leaf.byte_range())
+}
+
+fn edge_leaf<'a>(node: Node<'a>, next: impl Fn(Node<'a>) -> Option<Node<'a>>) -> Node<'a> {
+    let mut leaf = node;
+
+    while let Some(child) = next(leaf) {
+        leaf = child;
+    }
+
+    leaf
 }
 
 pub(super) struct Item<'a> {

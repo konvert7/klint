@@ -9,7 +9,8 @@ pub(crate) use blank_lines::{
     missing_blank_before,
 };
 pub(crate) use complexity::{
-    FunctionScore, ScoringContext, function_name, is_scored_function, score_node, sort_by_position,
+    FunctionScore, ScoringContext, function_name, function_name_bytes, is_scored_function,
+    score_node, sort_by_position,
 };
 pub(crate) use function_length::{
     FunctionLength, LineTally, LineTotals, is_comment, is_token, measured_body,

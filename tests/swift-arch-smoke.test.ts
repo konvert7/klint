@@ -28,6 +28,8 @@ describe("Swift architecture smoke fixture", () => {
         message: string;
         severity: string;
         fix: unknown;
+        column?: number;
+        endColumn?: number;
       }>;
       summary: { errors: number; warnings: number };
     };
@@ -49,6 +51,8 @@ describe("Swift architecture smoke fixture", () => {
         message: "Use the networking client",
         severity: "error",
         fix: null,
+        column: 19,
+        endColumn: 36,
       },
       {
         file: "Sources/App/UI/ViewModel.swift",
@@ -57,6 +61,8 @@ describe("Swift architecture smoke fixture", () => {
         message: "Use AppConfig",
         severity: "error",
         fix: null,
+        column: 18,
+        endColumn: 64,
       },
     ]);
   });

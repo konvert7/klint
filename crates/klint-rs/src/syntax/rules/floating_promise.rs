@@ -14,6 +14,7 @@ pub(crate) fn floating_promise_record<'a>(
 
     is_provable_promise(expression, bindings, source).then_some(FloatingPromiseRecord {
         line: statement.start_position().row + 1,
+        bytes: statement.byte_range(),
     })
 }
 

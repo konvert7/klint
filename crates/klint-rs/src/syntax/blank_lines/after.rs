@@ -1,6 +1,6 @@
 use super::BlankLineFinding;
 use super::grammar::Grammar;
-use super::items::{Item, ItemRole};
+use super::items::{Item, ItemRole, closing_bytes};
 use super::keyword::KeywordSet;
 use super::lines::SourceLines;
 
@@ -38,26 +38,55 @@ fn finding(item: &Item<'_>, written: &'static str) -> BlankLineFinding {
         line: item.last_row + 1,
         insertion_line: item.last_row + 2,
         keyword: written,
+        bytes: closing_bytes(item),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::super::BlankLineFinding;
     use super::super::grammar::grammar_for;
     use super::super::items::block_items;
     use super::super::keyword::KeywordSet;
     use super::super::lines::SourceLines;
+    use super::super::{BlankLineFinding, without_bytes};
     use super::*;
-    use crate::syntax::{SourceLanguage, parse_source};
+    use crate::syntax::{parse_source, source_language_for_path};
     use std::path::Path;
 
-    fn after_findings_in(source: &str) -> Vec<BlankLineFinding> {
-        let tree = parse_source(Path::new("a.ts"), source).expect("source parses");
+    fn findings_with_bytes(path: &str, source: &str) -> Vec<BlankLineFinding> {
+        let path = Path::new(path);
+        let tree = parse_source(path, source).expect("source parses");
         let lines = SourceLines::new(source);
-        let grammar = grammar_for(SourceLanguage::JavaScriptLike);
+        let grammar = grammar_for(source_language_for_path(path));
         let items = block_items(tree.root_node(), grammar, &lines);
         after_findings(&items, &lines, grammar, KeywordSet::ALL_AFTER)
+    }
+
+    fn after_findings_in(source: &str) -> Vec<BlankLineFinding> {
+        without_bytes(findings_with_bytes("a.ts", source))
+    }
+
+    fn reported_text<'s>(path: &str, source: &'s str) -> Vec<Option<&'s str>> {
+        findings_with_bytes(path, source)
+            .into_iter()
+            .map(|finding| finding.bytes.map(|bytes| &source[bytes]))
+            .collect()
+    }
+
+    #[test]
+    fn the_report_points_at_the_token_that_closes_the_block() {
+        assert_eq!(
+            reported_text("a.ts", "if (a) {\n}\nfoo();\n"),
+            vec![Some("}")]
+        );
+    }
+
+    #[test]
+    fn a_python_block_points_at_its_last_token() {
+        assert_eq!(
+            reported_text("a.py", "if a:\n    b()\nc()\n"),
+            vec![Some(")")]
+        );
     }
 
     fn finding(line: usize, insertion_line: usize, keyword: &'static str) -> BlankLineFinding {
@@ -65,6 +94,7 @@ mod tests {
             line,
             insertion_line,
             keyword,
+            bytes: None,
         }
     }
 

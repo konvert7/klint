@@ -233,7 +233,9 @@
           "rule": "arch/forbidden",
           "message": "Use logger",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 3,
+          "endColumn": 15
         }
       ],
       "summary": {
@@ -273,7 +275,9 @@
           "rule": "arch/forbidden",
           "message": "Use Button primitive",
           "severity": "warn",
-          "fix": null
+          "fix": null,
+          "column": 42,
+          "endColumn": 48
         }
       ],
       "summary": {
@@ -314,7 +318,9 @@
           "rule": "arch/singleton",
           "message": "Use auth module",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 13,
+          "endColumn": 32
         }
       ],
       "summary": {
@@ -356,7 +362,9 @@
           "rule": "arch/singleton",
           "message": "Raw button belongs in the Button primitive",
           "severity": "warn",
-          "fix": null
+          "fix": null,
+          "column": 42,
+          "endColumn": 48
         }
       ],
       "summary": {
@@ -393,7 +401,9 @@
           "rule": "arch/forbidden",
           "message": "Use the spacing scale, not arbitrary values",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 27,
+          "endColumn": 30
         },
         {
           "file": "src/ui/card.tsx",
@@ -401,7 +411,9 @@
           "rule": "arch/forbidden",
           "message": "Use the spacing scale, not arbitrary values",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 27,
+          "endColumn": 32
         }
       ],
       "summary": {
@@ -715,7 +727,9 @@
           "rule": "arch/forbidden",
           "message": "Use logger",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 3,
+          "endColumn": 15
         }
       ],
       "summary": {

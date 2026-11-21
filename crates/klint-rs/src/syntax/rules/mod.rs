@@ -42,22 +42,27 @@ pub(crate) use string_match::string_match_record;
 pub(crate) use sync_in_async::{is_async_function_like, is_function_like, sync_call_name};
 pub(crate) use unguarded_json_parse::is_json_parse_call;
 
+use std::ops::Range;
+
 use super::{language_for_path, raw_node_text};
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct DateEqualityRecord {
     pub line: usize,
+    pub bytes: Range<usize>,
     pub operator: String,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct FloatingPromiseRecord {
     pub line: usize,
+    pub bytes: Range<usize>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct AsyncPredicateRecord {
     pub line: usize,
+    pub bytes: Range<usize>,
     pub method: String,
 }
 
@@ -75,11 +80,13 @@ pub struct StringMatchRecord {
 #[derive(Debug, PartialEq, Eq)]
 pub struct NestedTemplateLiteralRecord {
     pub line: usize,
+    pub bytes: Range<usize>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ConsecutiveArrayPushRecord {
     pub line: usize,
+    pub bytes: Range<usize>,
     pub count: usize,
     pub receiver: String,
 }

@@ -28,9 +28,12 @@ klint.yaml:1  [klint/config] ━━━━━━━━━━━━━━━━━
   ⚠ This config uses the v1 format — run `klint migrate` to upgrade it in place.
 klint: 1 error(s)
 
-src/index.ts:2  [arch/forbidden] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+src/index.ts:2:1  [arch/forbidden] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Use logger
+
+  > 2 │ console.log(a);
+      │ ^^^^^^^^^^^^
 
 klint: 1 violation(s) can be fixed automatically: run `klint --fix`.
 

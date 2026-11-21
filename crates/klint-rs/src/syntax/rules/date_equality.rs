@@ -25,6 +25,7 @@ pub(crate) fn date_equality_record<'a>(
 
     Some(DateEqualityRecord {
         line: binary.start_position().row + 1,
+        bytes: binary.byte_range(),
         operator: operator.to_string(),
     })
 }

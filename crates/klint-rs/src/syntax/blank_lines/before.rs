@@ -1,6 +1,6 @@
 use super::BlankLineFinding;
 use super::grammar::Grammar;
-use super::items::{Item, ItemRole};
+use super::items::{Item, ItemRole, keyword_bytes};
 use super::keyword::KeywordSet;
 use super::lines::SourceLines;
 use super::setup::setup_applies;
@@ -53,21 +53,30 @@ fn finding(item: &Item<'_>, written: &'static str) -> BlankLineFinding {
         line: item.start_row + 1,
         insertion_line: item.head_row + 1,
         keyword: written,
+        bytes: keyword_bytes(item),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::super::BlankLineFinding;
     use super::super::grammar::grammar_for;
     use super::super::items::block_items;
     use super::super::keyword::{Keyword, KeywordSet};
     use super::super::lines::SourceLines;
+    use super::super::{BlankLineFinding, without_bytes};
     use super::*;
     use crate::syntax::{SourceLanguage, parse_source};
     use std::path::Path;
 
     fn before_findings_in(
+        source: &str,
+        targets: KeywordSet,
+        allow_setup: bool,
+    ) -> Vec<BlankLineFinding> {
+        without_bytes(findings_with_bytes(source, targets, allow_setup))
+    }
+
+    fn findings_with_bytes(
         source: &str,
         targets: KeywordSet,
         allow_setup: bool,
@@ -86,11 +95,32 @@ mod tests {
         )
     }
 
+    fn reported_text(source: &str) -> Vec<Option<&str>> {
+        findings_with_bytes(source, KeywordSet::ALL_BEFORE, true)
+            .into_iter()
+            .map(|finding| finding.bytes.map(|bytes| &source[bytes]))
+            .collect()
+    }
+
+    #[test]
+    fn the_report_points_at_the_keyword() {
+        assert_eq!(reported_text("foo();\nreturn 1;\n"), vec![Some("return")]);
+    }
+
+    #[test]
+    fn a_comment_above_the_keyword_still_points_at_the_keyword() {
+        assert_eq!(
+            reported_text("foo();\n// c\nfor (;;) {}\n"),
+            vec![Some("for")]
+        );
+    }
+
     fn finding(line: usize, insertion_line: usize, keyword: &'static str) -> BlankLineFinding {
         BlankLineFinding {
             line,
             insertion_line,
             keyword,
+            bytes: None,
         }
     }
 

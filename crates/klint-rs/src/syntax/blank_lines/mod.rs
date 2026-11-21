@@ -11,6 +11,8 @@ mod rust;
 mod setup;
 mod swift;
 
+use std::ops::Range;
+
 use crate::syntax::SourceLanguage;
 use after::after_findings;
 use before::before_findings;
@@ -27,6 +29,18 @@ pub(crate) struct BlankLineFinding {
     pub line: usize,
     pub insertion_line: usize,
     pub keyword: &'static str,
+    pub bytes: Option<Range<usize>>,
+}
+
+#[cfg(test)]
+pub(super) fn without_bytes(findings: Vec<BlankLineFinding>) -> Vec<BlankLineFinding> {
+    findings
+        .into_iter()
+        .map(|finding| BlankLineFinding {
+            bytes: None,
+            ..finding
+        })
+        .collect()
 }
 
 pub(crate) fn missing_blank_before(

@@ -1,9 +1,17 @@
 mod common;
 
 use common::temp_root;
-use klint_rs::{RunOptions, Violation, run};
+use klint_rs::{RunOptions, Span, Violation, run};
 use std::fs;
 use std::fs::{create_dir_all, write};
+
+fn span(source_line: &str, column: usize, width: usize) -> Option<Span> {
+    Some(Span {
+        source_line: source_line.to_string(),
+        column,
+        width,
+    })
+}
 
 #[test]
 fn forbidden_pattern_reports_matching_line() {
@@ -46,7 +54,7 @@ arch:
             message: "Use logger".to_string(),
             severity: "error".to_string(),
             fix: None,
-            span: None,
+            span: span("  console.log(\"x\");", 3, 12),
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -125,7 +133,7 @@ arch:
             message: "Use logger".to_string(),
             severity: "error".to_string(),
             fix: None,
-            span: None,
+            span: span("    print('debug')", 5, 6),
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -168,7 +176,7 @@ arch:
             message: "Use networking client".to_string(),
             severity: "error".to_string(),
             fix: None,
-            span: None,
+            span: span("    let session = URLSession.shared", 19, 17),
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -218,7 +226,7 @@ arch:
             message: "Use auth module".to_string(),
             severity: "error".to_string(),
             fix: None,
-            span: None,
+            span: span("const key = process.env.API_KEY;", 13, 19),
         }]
     );
     assert_eq!(output.summary.errors, 1);
@@ -305,7 +313,7 @@ arch:
             message: "Use auth module".to_string(),
             severity: "error".to_string(),
             fix: None,
-            span: None,
+            span: span("KEY = os.environ[\"API_KEY\"]", 7, 21),
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -355,7 +363,11 @@ arch:
             message: "Use AppConfig".to_string(),
             severity: "error".to_string(),
             fix: None,
-            span: None,
+            span: span(
+                "let key = ProcessInfo.processInfo.environment[\"API_KEY\"]",
+                11,
+                46
+            ),
         }]
     );
     let _ = fs::remove_dir_all(root);
@@ -396,6 +408,13 @@ arch:
     assert_eq!(output.violations[0].line, 2);
     assert_eq!(output.violations[0].rule, "arch/forbidden");
     assert_eq!(output.violations[0].severity, "warn");
+    assert_eq!(
+        output.violations[0]
+            .span
+            .as_ref()
+            .map(|span| (span.column, span.width)),
+        Some((23, 6))
+    );
     let _ = fs::remove_dir_all(root);
 }
 
