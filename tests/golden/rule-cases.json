@@ -21,10 +21,12 @@
           "message": "Use RegExp.exec() instead of String.match() for non-global regexes — use /a/.exec(\"abc\") instead.",
           "severity": "error",
           "fix": {
-            "startLine": 1,
             "endLine": 1,
-            "replacement": "const hit = /a/.exec(\"abc\");"
-          }
+            "replacement": "const hit = /a/.exec(\"abc\");",
+            "startLine": 1
+          },
+          "column": 13,
+          "endColumn": 29
         },
         {
           "file": "klint.yaml",
@@ -97,10 +99,12 @@
           "message": "Use RegExp.exec() instead of String.match() for non-global regexes — use /a/i.exec(\"abc\") instead.",
           "severity": "warn",
           "fix": {
-            "startLine": 1,
             "endLine": 1,
-            "replacement": "const hit = /a/i.exec(\"abc\");"
-          }
+            "replacement": "const hit = /a/i.exec(\"abc\");",
+            "startLine": 1
+          },
+          "column": 13,
+          "endColumn": 30
         },
         {
           "file": "klint.yaml",
@@ -462,7 +466,9 @@
           "rule": "no-unguarded-json-parse",
           "message": "JSON.parse() called without a surrounding try/catch — a malformed payload will throw an unhandled exception.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 15,
+          "endColumn": 30
         },
         {
           "file": "klint.yaml",
@@ -502,7 +508,9 @@
           "rule": "no-unguarded-json-parse",
           "message": "JSON.parse() called without a surrounding try/catch — a malformed payload will throw an unhandled exception.",
           "severity": "warn",
-          "fix": null
+          "fix": null,
+          "column": 15,
+          "endColumn": 30
         },
         {
           "file": "klint.yaml",
@@ -600,7 +608,9 @@
           "rule": "no-sync-in-async",
           "message": "readFileSync() blocks the event loop inside an async function — use the async equivalent from node:fs/promises.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 3,
+          "endColumn": 21
         },
         {
           "file": "klint.yaml",
@@ -640,7 +650,9 @@
           "rule": "no-sync-in-async",
           "message": "writeFileSync() blocks the event loop inside an async function — use the async equivalent from node:fs/promises.",
           "severity": "warn",
-          "fix": null
+          "fix": null,
+          "column": 3,
+          "endColumn": 32
         },
         {
           "file": "klint.yaml",
@@ -714,7 +726,9 @@
           "rule": "no-sync-in-async",
           "message": "readFileSync() blocks the event loop inside an async function — use the async equivalent from node:fs/promises.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 3,
+          "endColumn": 21
         },
         {
           "file": "klint.yaml",
@@ -753,10 +767,12 @@
           "message": "Character class [b] contains a single element — remove the brackets.",
           "severity": "error",
           "fix": {
-            "startLine": 1,
             "endLine": 1,
-            "replacement": "const r = /abc/;"
-          }
+            "replacement": "const r = /abc/;",
+            "startLine": 1
+          },
+          "column": 11,
+          "endColumn": 18
         },
         {
           "file": "klint.yaml",
@@ -827,10 +843,12 @@
           "message": "Prefer arr.at(-1) over arr[arr.length - 1] for cleaner negative indexing.",
           "severity": "error",
           "fix": {
-            "startLine": 1,
             "endLine": 1,
-            "replacement": "const x = arr.at(-1);"
-          }
+            "replacement": "const x = arr.at(-1);",
+            "startLine": 1
+          },
+          "column": 11,
+          "endColumn": 30
         },
         {
           "file": "klint.yaml",
@@ -871,10 +889,12 @@
           "message": "Prefer obj.items.at(-5) over obj.items[obj.items.length - 5] for cleaner negative indexing.",
           "severity": "error",
           "fix": {
-            "startLine": 1,
             "endLine": 1,
-            "replacement": "const x = obj.items.at(-5);"
-          }
+            "replacement": "const x = obj.items.at(-5);",
+            "startLine": 1
+          },
+          "column": 11,
+          "endColumn": 42
         },
         {
           "file": "klint.yaml",
@@ -945,10 +965,12 @@
           "message": "Prefer `text.replaceAll(\"foo\", ...)` over `.replace(/foo/g, ...)` — replaceAll() with a string is clearer and avoids regex escaping pitfalls.",
           "severity": "error",
           "fix": {
-            "startLine": 1,
             "endLine": 1,
-            "replacement": "const r = text.replaceAll(\"foo\", repl);"
-          }
+            "replacement": "const r = text.replaceAll(\"foo\", repl);",
+            "startLine": 1
+          },
+          "column": 11,
+          "endColumn": 37
         },
         {
           "file": "klint.yaml",
@@ -989,10 +1011,12 @@
           "message": "Prefer `path.replaceAll(\"\\\\\", ...)` over `.replace(/\\\\/g, ...)` — replaceAll() with a string is clearer and avoids regex escaping pitfalls.",
           "severity": "error",
           "fix": {
-            "startLine": 1,
             "endLine": 1,
-            "replacement": "const r = path.replaceAll(\"\\\\\", \"/\");"
-          }
+            "replacement": "const r = path.replaceAll(\"\\\\\", \"/\");",
+            "startLine": 1
+          },
+          "column": 11,
+          "endColumn": 35
         },
         {
           "file": "klint.yaml",
@@ -1063,10 +1087,12 @@
           "message": "Use String.raw`...` for RegExp template argument to avoid double backslashes (Sonar S7780).",
           "severity": "error",
           "fix": {
-            "startLine": 1,
             "endLine": 1,
-            "replacement": "const r = new RegExp(String.raw`\\.foo`);"
-          }
+            "replacement": "const r = new RegExp(String.raw`\\.foo`);",
+            "startLine": 1
+          },
+          "column": 22,
+          "endColumn": 30
         },
         {
           "file": "klint.yaml",
@@ -1107,10 +1133,12 @@
           "message": "Use String.raw`...` for RegExp template argument to avoid double backslashes (Sonar S7780).",
           "severity": "error",
           "fix": {
-            "startLine": 2,
             "endLine": 2,
-            "replacement": "const r = new RegExp(String.raw`\\.(${n})`);"
-          }
+            "replacement": "const r = new RegExp(String.raw`\\.(${n})`);",
+            "startLine": 2
+          },
+          "column": 22,
+          "endColumn": 33
         },
         {
           "file": "klint.yaml",
@@ -1181,10 +1209,12 @@
           "message": "String literal with escaped backslashes — use String.raw`...` for clarity (Sonar S6535).",
           "severity": "error",
           "fix": {
-            "startLine": 1,
             "endLine": 1,
-            "replacement": "const p = String.raw`C:\\Users\\Documents\\file.txt`;"
-          }
+            "replacement": "const p = String.raw`C:\\Users\\Documents\\file.txt`;",
+            "startLine": 1
+          },
+          "column": 11,
+          "endColumn": 43
         },
         {
           "file": "klint.yaml",
@@ -1255,10 +1285,12 @@
           "message": "Prefer `x ??= {}` over explicit nullish guard assignment — ??= only assigns when null or undefined.",
           "severity": "error",
           "fix": {
-            "startLine": 2,
             "endLine": 2,
-            "replacement": "x ??= {};"
-          }
+            "replacement": "x ??= {};",
+            "startLine": 2
+          },
+          "column": 1,
+          "endColumn": 23
         },
         {
           "file": "klint.yaml",
@@ -1299,10 +1331,12 @@
           "message": "Prefer `x ??= fallback` over explicit nullish guard assignment — ??= only assigns when null or undefined.",
           "severity": "error",
           "fix": {
-            "startLine": 1,
             "endLine": 1,
-            "replacement": "x ??= fallback;"
-          }
+            "replacement": "x ??= fallback;",
+            "startLine": 1
+          },
+          "column": 1,
+          "endColumn": 53
         },
         {
           "file": "klint.yaml",
@@ -1820,10 +1854,12 @@
           "message": "Use RegExp.exec() instead of String.match() for non-global regexes — use /a/.exec(\"abc\") instead.",
           "severity": "error",
           "fix": {
-            "startLine": 1,
             "endLine": 1,
-            "replacement": "const hit = /a/.exec(\"abc\");"
-          }
+            "replacement": "const hit = /a/.exec(\"abc\");",
+            "startLine": 1
+          },
+          "column": 13,
+          "endColumn": 29
         },
         {
           "file": "src/b.cjs",
@@ -1832,10 +1868,12 @@
           "message": "Use RegExp.exec() instead of String.match() for non-global regexes — use /a/.exec(\"abc\") instead.",
           "severity": "error",
           "fix": {
-            "startLine": 1,
             "endLine": 1,
-            "replacement": "const hit = /a/.exec(\"abc\");"
-          }
+            "replacement": "const hit = /a/.exec(\"abc\");",
+            "startLine": 1
+          },
+          "column": 13,
+          "endColumn": 29
         },
         {
           "file": "src/a.mjs",

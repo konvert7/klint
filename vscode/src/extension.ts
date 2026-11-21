@@ -28,7 +28,8 @@ function binaryFor(folder: vscode.WorkspaceFolder): string {
 }
 
 function toVscodeDiagnostic(item: FileDiagnostic): vscode.Diagnostic {
-  const range = new vscode.Range(item.line, 0, item.line, Number.MAX_SAFE_INTEGER);
+  const { start, end } = item.characters ?? { start: 0, end: Number.MAX_SAFE_INTEGER };
+  const range = new vscode.Range(item.line, start, item.line, end);
   const severity =
     item.severity === "warning"
       ? vscode.DiagnosticSeverity.Warning

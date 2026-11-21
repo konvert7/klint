@@ -84,7 +84,7 @@ For machines and hooks:
 npx klint --reporter=json
 ```
 
-`--reporter=json` emits structured violations and exits `2` when errors are present. `--json` is a short alias for it.
+`--reporter=json` emits structured violations and exits `2` when errors are present. `--json` is a short alias for it. When a rule knows where the offending code starts, the violation also has `column` and `endColumn`; see [Text output](#text-output).
 
 ```json
 {
@@ -158,7 +158,7 @@ klint: finished in 8ms
 - When a rule knows where the offending code starts, the header ends in `line:column` and the source line is printed with the span underlined by carets. Rules that only know the line (the architecture rules, cognitive complexity, function length, blank lines and a few others) print the header and message alone.
 - Colour is off when `NO_COLOR` is set to a non-empty value or stderr is not a terminal (pipes, CI logs, redirected files). The column and carets stay.
 - `--hook` keeps the text format of klint 1.7 byte for byte: no colour, no column, no carets.
-- The JSON output never includes the column; its output is unchanged.
+- The JSON output carries the same position as `column` and `endColumn` (1-based, end exclusive, counted in UTF-16 code units the way editors count them). Violations from rules that only know the line have neither field.
 
 ### GitHub annotations
 

@@ -5,6 +5,8 @@ const { join } = require("node:path");
 function snapshot(uri) {
   return vscode.languages.getDiagnostics(uri).map((d) => ({
     line: d.range.start.line,
+    start: d.range.start.character,
+    end: d.range.end.character,
     severity: vscode.DiagnosticSeverity[d.severity],
     message: d.message,
     source: d.source,
