@@ -713,6 +713,38 @@ properties:
                 function-length:
                   - {error: 50}
                   - {warn: 60, error: 80, include: ["scripts/**"]}
+            naming-convention:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: 'Checks the names of functions and classes against each language''s convention. TypeScript/JavaScript follows Biome 2.6.5''s `useNamingConvention` defaults with strict case: functions are camelCase or PascalCase (top-level ones may also be UPPERCASE), classes PascalCase; a name starting with `_` is skipped. Python: snake_case functions and PascalCase classes (unittest hooks such as setUp are skipped). Rust: snake_case functions and PascalCase structs, enums, traits, unions and type aliases. C#: PascalCase methods and types. Swift: camelCase functions and PascalCase types. Acronyms such as HTTPServer are allowed outside TypeScript/JavaScript. The message suggests a name; `klint --fix` (unsafe, not `--fix=safe`) renames a non-exported TypeScript/JavaScript function or class and its references in the same file. Opt-in.'
+              examples:
+              - 'naming-convention: error'
+              - |-
+                naming-convention:
+                  severity: warn
+                  include: ["src/**"]
             no-async-predicate:
               anyOf:
               - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
@@ -1397,6 +1429,38 @@ properties:
             function-length:
               - {error: 50}
               - {warn: 60, error: 80, include: ["scripts/**"]}
+        naming-convention:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                - null
+                type: string
+            type: object
+          description: 'Checks the names of functions and classes against each language''s convention. TypeScript/JavaScript follows Biome 2.6.5''s `useNamingConvention` defaults with strict case: functions are camelCase or PascalCase (top-level ones may also be UPPERCASE), classes PascalCase; a name starting with `_` is skipped. Python: snake_case functions and PascalCase classes (unittest hooks such as setUp are skipped). Rust: snake_case functions and PascalCase structs, enums, traits, unions and type aliases. C#: PascalCase methods and types. Swift: camelCase functions and PascalCase types. Acronyms such as HTTPServer are allowed outside TypeScript/JavaScript. The message suggests a name; `klint --fix` (unsafe, not `--fix=safe`) renames a non-exported TypeScript/JavaScript function or class and its references in the same file. Opt-in.'
+          examples:
+          - 'naming-convention: error'
+          - |-
+            naming-convention:
+              severity: warn
+              include: ["src/**"]
         no-async-predicate:
           anyOf:
           - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.

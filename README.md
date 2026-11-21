@@ -796,6 +796,7 @@ doc-comments alongside `/** */`.
 | `blank-line-after-block` | Blank line below a block statement when another statement follows; autofix |
 | `cognitive-complexity` | Function whose cognitive complexity (SonarJS / SonarSource model) is above its `warn`/`error` limits, in all five languages; opt-in, no autofix |
 | `function-length` | Function whose body has more lines than its `warn`/`error` limits (counted like Biome's `noExcessiveLinesPerFunction`), in all five languages; opt-in, no autofix |
+| `naming-convention` | Function and class names that break their language's convention (TS/JS like Biome's `useNamingConvention`); opt-in, unsafe rename fix for local TS/JS names |
 
 Rules that needed TypeScript's type checker were removed in 1.0; see [Upgrading from klint 0.x](#upgrading-from-klint-0x).
 
@@ -975,6 +976,29 @@ rules:
 **What counts as a function.** The same list as `cognitive-complexity` (see above), but getters and setters are excluded in every language: TypeScript `get` and `set` methods, Swift computed getters and setters, and C# property and indexer accessors. `cognitive-complexity` does check those.
 
 **Not checked.** Bodyless declarations, and files with a syntax error.
+
+### Naming convention
+
+`naming-convention` checks the names of functions and classes. It is opt-in.
+
+```yaml
+rules:
+  core:
+    naming-convention: error
+```
+
+| Language | Functions | Classes and types |
+|---|---|---|
+| TypeScript/JavaScript | camelCase or PascalCase; top-level ones may also be UPPERCASE | PascalCase |
+| Python | snake_case | PascalCase |
+| Rust | snake_case | PascalCase (structs, enums, traits, unions, type aliases) |
+| C# | PascalCase (methods) | PascalCase (classes, structs, interfaces, records, enums) |
+| Swift | camelCase | PascalCase (classes, structs, enums, protocols) |
+
+- TypeScript/JavaScript follows Biome 2.6.5's `useNamingConvention` defaults with strict case, so `HTTPClient` and `getHTTP` are reported (`HttpClient`, `getHttp`). A name starting with `_` is skipped, `$` is ignored at either end, and names must be ASCII. Other languages allow acronyms such as `HTTPServer` and `IDisposable`.
+- Leading and trailing `_` are ignored everywhere, as are Rust's `r#`, C#'s `@` and Swift's backticks. Python's unittest hooks (`setUp`, `tearDown`, `setUpClass` and the rest) are skipped.
+- The message names the convention and a suggested name: ``Function name `get_user` should be camelCase, PascalCase or UPPERCASE — rename it to `getUser`.``
+- `klint --fix` renames a TypeScript/JavaScript function or class declaration and every reference to it in the same file; `{ get_user }` becomes `{ get_user: getUser }`. This fix is unsafe: `--fix=safe` skips it. There is no fix when the name is exported, when the new name is already used in the file, or when the name appears in a destructuring shorthand or an export list. Other languages get no fix.
 
 ## Sonar rules (`rules.sonar`)
 

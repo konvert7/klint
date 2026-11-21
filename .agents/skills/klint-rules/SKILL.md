@@ -403,6 +403,24 @@ rules:
   is also reported on its own. Getters and setters are not checked. Files with a syntax error are
   skipped.
 
+### Naming convention — function and class names
+
+Pick `naming-convention` to make function and class names follow each language's convention. It is
+opt-in.
+
+```yaml
+rules:
+  core:
+    naming-convention: error
+```
+
+- TypeScript/JavaScript: Biome 2.6.5 `useNamingConvention` defaults, strict case. Functions are
+  camelCase or PascalCase (top-level ones may be UPPERCASE), classes PascalCase; `_name` is skipped.
+- Python and Rust: snake_case functions, PascalCase classes and types. C#: PascalCase methods and
+  types. Swift: camelCase functions, PascalCase types. Python unittest hooks are skipped.
+- `klint --fix` (not `--fix=safe`) renames a non-exported TS/JS function or class and its references
+  in the same file. Exported names, export lists and name clashes get no fix.
+
 ## Pitfalls
 
 - `pattern` in `singleton` and `forbidden` is a **literal substring** by default — it will not catch `process.env["KEY"]` (bracket notation). Either grep for both forms, or use a `re:` regex prefix to match them in one rule. Caveat: a literal pattern that itself begins with `re:` cannot be expressed (it is always read as a regex), and regexes must stay in the common JS/RE2 subset (no lookaround or backreferences) so both engines agree.

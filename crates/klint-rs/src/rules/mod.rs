@@ -4,6 +4,7 @@ mod complexity;
 mod docs;
 mod experimental;
 mod function_length;
+mod naming;
 mod scope;
 mod sonar;
 mod thresholds;
@@ -208,6 +209,13 @@ const CHECKS: &[RuleSpec] = &[
         wants: |wants| wants.function_lengths = true,
         scope: FileScope::AnySource,
         options: function_length::function_length_options,
+    },
+    RuleSpec {
+        name: "naming-convention",
+        check: naming::run_naming_convention,
+        wants: |wants| wants.declarations = true,
+        scope: FileScope::AnySource,
+        options: no_options,
     },
 ];
 

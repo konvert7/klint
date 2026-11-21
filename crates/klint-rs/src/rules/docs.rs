@@ -133,6 +133,15 @@ pub(crate) const RULE_DOCS: &[RuleDoc] = &[
         options_schema: Some(super::function_length::function_length_schema),
     },
     RuleDoc {
+        name: "naming-convention",
+        description: "Checks the names of functions and classes against each language's convention. TypeScript/JavaScript follows Biome 2.6.5's `useNamingConvention` defaults with strict case: functions are camelCase or PascalCase (top-level ones may also be UPPERCASE), classes PascalCase; a name starting with `_` is skipped. Python: snake_case functions and PascalCase classes (unittest hooks such as setUp are skipped). Rust: snake_case functions and PascalCase structs, enums, traits, unions and type aliases. C#: PascalCase methods and types. Swift: camelCase functions and PascalCase types. Acronyms such as HTTPServer are allowed outside TypeScript/JavaScript. The message suggests a name; `klint --fix` (unsafe, not `--fix=safe`) renames a non-exported TypeScript/JavaScript function or class and its references in the same file. Opt-in.",
+        examples: &[
+            "naming-convention: error",
+            "naming-convention:\n  severity: warn\n  include: [\"src/**\"]",
+        ],
+        options_schema: None,
+    },
+    RuleDoc {
         name: "no-date-equality",
         description: "Experimental, opt-in: list it under rules.experimental. Flags ==, ===, != and !== between two values the same file proves are Date objects (a new Date(...) or a const initialised with one) — these compare identity, not time. Stays silent unless the file proves both sides are Dates; no autofix.",
         examples: &[

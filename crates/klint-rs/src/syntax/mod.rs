@@ -2,6 +2,7 @@ mod architecture;
 mod blank_lines;
 mod complexity;
 mod function_length;
+mod naming;
 mod rules;
 
 pub(crate) use blank_lines::{
@@ -16,6 +17,7 @@ pub(crate) use function_length::{
     FunctionLength, LineTally, LineTotals, is_comment, is_token, measured_body,
     starts_uncounted_region,
 };
+pub(crate) use naming::{NamingFinding, declares_checked_name, naming_finding};
 
 pub use architecture::{
     CommentRecord, ImportRecord, JsxElementRecord, scan_imports, scan_jsx_elements,
