@@ -505,7 +505,7 @@ jobs:
     needs: metadata
     runs-on: ubuntu-latest
     permissions:
-      id-token: write # OIDC token for Visual Studio Marketplace trusted publishing
+      id-token: write # OIDC token for Visual Studio Marketplace and Open VSX trusted publishing
       contents: read
     defaults:
       run:
@@ -549,13 +549,13 @@ jobs:
       - name: Publish to Open VSX
         if: needs.metadata.outputs.publish-vscode == 'true'
         env:
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          TRUSTED_PUBLISHING: ${{ vars.OVSX_TRUSTED_PUBLISHING }}
         run: |
-          if [[ -z "$OVSX_PAT" ]]; then
-            echo "::notice::OVSX_PAT is not set; skipping Open VSX"
+          if [[ "$TRUSTED_PUBLISHING" != "true" ]]; then
+            echo "::notice::OVSX_TRUSTED_PUBLISHING is not true; skipping Open VSX"
             exit 0
           fi
-          bunx ovsx publish --packagePath klint-*.vsix --skip-duplicate
+          bunx ovsx publish --packagePath klint-*.vsix --skip-duplicate --trusted-publishing
 
   python:
     name: python publish
