@@ -4,6 +4,7 @@ use common::temp_root;
 use klint_rs::{RunOptions, run};
 use std::fs::{create_dir_all, remove_dir_all, write};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 const OFFENDING: &str = "console.log(\"x\");\n";
 
@@ -146,4 +147,31 @@ fn respect_gitignore_false_lints_ignored_files() {
     as_repository(&project);
 
     assert_eq!(flagged_files(&project.0), vec!["dist/a.js", "src/a.ts"]);
+}
+
+#[test]
+fn a_relative_config_dir_still_finds_the_files() {
+    let project = project(
+        "gitignore-relative",
+        &config("").replace("include: [\".\"]", "include: [\".\", \"!src/gen/b.ts\"]"),
+        &[
+            (".gitignore", "dist/\n"),
+            ("src/a.ts", OFFENDING),
+            ("src/gen/b.ts", OFFENDING),
+            ("dist/a.js", OFFENDING),
+        ],
+    );
+    as_repository(&project);
+    let output = Command::new(env!("CARGO_BIN_EXE_klint-rs"))
+        .current_dir(&project.0)
+        .args(["--config", ".", "--json"])
+        .env("KLINT_NO_STATS", "1")
+        .output()
+        .expect("klint-rs runs");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert_eq!(output.status.code(), Some(2), "{stdout}");
+    assert!(stdout.contains("\"file\":\"src/a.ts\""), "{stdout}");
+    assert!(!stdout.contains("dist/a.js"), "{stdout}");
+    assert!(!stdout.contains("src/gen/b.ts"), "{stdout}");
 }

@@ -97,7 +97,7 @@ struct Walk<'a> {
 
 impl Walk<'_> {
     fn collect_into(&self, base: &Path, files: &mut Vec<PathBuf>) {
-        if !base.exists() {
+        if !walkable(base).exists() {
             return;
         }
 
@@ -117,7 +117,7 @@ impl Walk<'_> {
     fn builder(&self, base: &Path) -> WalkBuilder {
         let root = normalize_path(self.root);
         let start = if base.starts_with(&root) { &root } else { base };
-        let mut builder = WalkBuilder::new(start);
+        let mut builder = WalkBuilder::new(walkable(start));
         builder
             .standard_filters(false)
             .follow_links(true)
@@ -138,9 +138,17 @@ impl Walk<'_> {
     }
 
     fn selects(&self, path: &Path) -> bool {
-        let rel = relative_path(self.root, path);
+        let rel = relative_path(&normalize_path(self.root), &normalize_path(path));
 
         match_pattern(&rel, self.include_pattern) && !is_excluded(&rel, self.excludes)
+    }
+}
+
+fn walkable(path: &Path) -> &Path {
+    if path.as_os_str().is_empty() {
+        Path::new(".")
+    } else {
+        path
     }
 }
 
