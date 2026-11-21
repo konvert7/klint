@@ -6,6 +6,7 @@ pub struct OptionSpec {
     pub value: Option<&'static str>,
     pub short: Option<char>,
     pub aliases: &'static [&'static str],
+    pub hidden: bool,
 }
 
 impl OptionSpec {
@@ -16,6 +17,7 @@ impl OptionSpec {
             value: None,
             short: None,
             aliases: &[],
+            hidden: false,
         }
     }
 
@@ -35,6 +37,13 @@ impl OptionSpec {
 
     pub fn aliases(self, aliases: &'static [&'static str]) -> Self {
         Self { aliases, ..self }
+    }
+
+    pub fn hidden(self) -> Self {
+        Self {
+            hidden: true,
+            ..self
+        }
     }
 
     fn matches(&self, token: &str) -> bool {
@@ -112,6 +121,8 @@ fn parse_options(args: &[String], options: &[OptionSpec], stop_at_positional: bo
 
         if is_help_flag(token) {
             parsed.help = true;
+        } else if let Some((spec, value)) = inline_value(options, token) {
+            parsed.values.0.insert(spec.name, Some(value.to_string()));
         } else if let Some(spec) = matched.filter(|spec| spec.value.is_some()) {
             match args.get(i + 1) {
                 Some(value) => {
@@ -145,6 +156,17 @@ fn parse_options(args: &[String], options: &[OptionSpec], stop_at_positional: bo
     }
 
     parsed
+}
+
+fn inline_value<'a>(
+    options: &'a [OptionSpec],
+    token: &'a str,
+) -> Option<(&'a OptionSpec, &'a str)> {
+    let (name, value) = token.strip_prefix("--")?.split_once('=')?;
+    options
+        .iter()
+        .find(|spec| spec.value.is_some() && spec.name == name)
+        .map(|spec| (spec, value))
 }
 
 pub fn dispatch(group: &Group, args: &[String], path: &str) -> Dispatch {
@@ -232,6 +254,7 @@ fn option_rows(options: &[OptionSpec]) -> Vec<String> {
     table(
         options
             .iter()
+            .filter(|spec| !spec.hidden)
             .chain(std::iter::once(&help))
             .map(|spec| (spec.label(), spec.description.clone()))
             .collect(),

@@ -17,8 +17,8 @@ klint
 For machine-readable output:
 
 ```bash
-klint --json
-python -m klint --json
+klint --reporter=json
+python -m klint --reporter=json
 ```
 
 By default, `klint` looks for `klint.yaml` or `klint.config.json` in the current
@@ -42,7 +42,7 @@ Supported options:
 | Option | Description |
 | --- | --- |
 | `--config <dir>` | Directory containing `klint.yaml` or `klint.config.json`. Defaults to the current working directory. |
-| `--json` | Emit structured JSON to stdout. Useful in CI and agentic lifecycle hooks. |
+| `--reporter <name>` | Output format: `text` (default), `json` for CI and agentic lifecycle hooks, `github` for pull request annotations in GitHub Actions. `--json` is a short alias for `--reporter=json`. |
 | `--version`, `-V`, `version` | Print the klint version. |
 | `--help`, `-h`, `help`, `h` | Print CLI usage. |
 
@@ -297,7 +297,7 @@ Run klint in CI after installing your Python dependencies:
 
 ```bash
 pip install klint
-klint --json
+klint --reporter=json
 ```
 
 `klint` exits with:
