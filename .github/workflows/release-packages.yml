@@ -504,6 +504,9 @@ jobs:
     name: vscode extension package and publish
     needs: metadata
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write # OIDC token for Visual Studio Marketplace trusted publishing
+      contents: read
     defaults:
       run:
         working-directory: vscode
@@ -535,13 +538,13 @@ jobs:
       - name: Publish to the Visual Studio Marketplace
         if: needs.metadata.outputs.publish-vscode == 'true'
         env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          TRUSTED_PUBLISHING: ${{ vars.VSCE_TRUSTED_PUBLISHING }}
         run: |
-          if [[ -z "$VSCE_PAT" ]]; then
-            echo "::notice::VSCE_PAT is not set; skipping the Visual Studio Marketplace"
+          if [[ "$TRUSTED_PUBLISHING" != "true" ]]; then
+            echo "::notice::VSCE_TRUSTED_PUBLISHING is not true; skipping the Visual Studio Marketplace"
             exit 0
           fi
-          bunx vsce publish --packagePath klint-*.vsix --skip-duplicate
+          bunx vsce publish --oidc --packagePath klint-*.vsix --skip-duplicate
 
       - name: Publish to Open VSX
         if: needs.metadata.outputs.publish-vscode == 'true'
@@ -552,7 +555,7 @@ jobs:
             echo "::notice::OVSX_PAT is not set; skipping Open VSX"
             exit 0
           fi
-          bunx ovsx publish klint-*.vsix --skip-duplicate
+          bunx ovsx publish --packagePath klint-*.vsix --skip-duplicate
 
   python:
     name: python publish
