@@ -1,7 +1,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { fail, replaceRequired, valueAfter } from "./release-cli";
+import { fail } from "./exit-with";
+import { replaceRequired, valueAfter } from "./lib/release-cli";
 
 interface Options {
   name: string;

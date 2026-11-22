@@ -43,7 +43,7 @@ export async function publish(pluginConfig = {}, context) {
     ["publish", "-p", CRATE_NAME, "--locked", "--allow-dirty"],
     { cwd: cwdOf(context), encoding: "utf-8", stdio: "inherit" }
   );
-  if ((result.status ?? -1) !== 0) {
+  if (result.status !== 0) {
     throw new Error(`cargo publish failed with exit code ${result.status ?? -1}`);
   }
 
@@ -51,7 +51,7 @@ export async function publish(pluginConfig = {}, context) {
 }
 
 function stampVersion(manifest, version) {
-  return manifest.replace(/^version = ".*"$/m, `version = "${version}"`);
+  return manifest.replace(/^version = ".*"/m, `version = "${version}"`);
 }
 
 function refreshLockfile(cwd, spawn) {
@@ -60,7 +60,7 @@ function refreshLockfile(cwd, spawn) {
     encoding: "utf-8",
     stdio: ["ignore", "ignore", "pipe"],
   });
-  if ((result.status ?? -1) !== 0) {
+  if (result.status !== 0) {
     throw new Error(
       `cargo update failed with exit code ${result.status ?? -1}\n${result.stderr ?? ""}`
     );
@@ -74,7 +74,7 @@ function bundleSkill(cwd) {
 }
 
 function crateNameOf(manifest) {
-  return manifest.match(/^name = "(.*)"$/m)?.[1];
+  return manifest.match(/^name = "(.*)"/m)?.[1];
 }
 
 function readManifest(cwd) {
