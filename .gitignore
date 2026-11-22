@@ -17,3 +17,9 @@ crates/klint-rs/skill/
 .tmp/
 .alpine-cache/
 *.vsix
+
+# cargo-mutants reports
+mutants.out/
+mutants.out.old/
+.stryker-tmp/
+reports/

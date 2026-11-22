@@ -1,12 +1,22 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["tools/*.ts", ".agents/hooks/*.ts"],
-  "project": ["**/*.ts", "!vscode/**"],
+  "entry": [
+    "tools/*.ts",
+    ".agents/hooks/*.ts"
+  ],
+  "project": [
+    "**/*.ts",
+    "!vscode/**"
+  ],
   "includeEntryExports": true,
-  "tags": ["-lintignore"],
+  "tags": [
+    "-lintignore"
+  ],
   "ignoreDependencies": [
     "@secretlint/secretlint-rule-preset-recommend",
     "@semantic-release/github",
+    "@stryker-mutator/api",
+    "@stryker-mutator/bun-runner",
     "@typescript-eslint/parser",
     "eslint",
     "eslint-plugin-sonarjs"
