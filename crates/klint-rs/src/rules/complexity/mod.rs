@@ -6,7 +6,7 @@ pub(super) use options::{THRESHOLD_SPEC, cognitive_complexity_options};
 pub(super) use schema_shapes::{cognitive_complexity_schema, cognitive_complexity_v1_schema};
 
 use super::{Report, RuleOptions, RuleScan};
-use crate::syntax::{function_name, sort_by_position};
+use crate::syntax::{function_name, function_name_bytes, sort_by_position};
 
 pub(super) fn run_cognitive_complexity(scan: RuleScan<'_>) -> Vec<Report> {
     let RuleOptions::CognitiveComplexity(options) = scan.options else {
@@ -32,7 +32,7 @@ pub(super) fn run_cognitive_complexity(scan: RuleScan<'_>) -> Vec<Report> {
                 ),
                 fix: None,
                 level: Some(level),
-                bytes: None,
+                bytes: function_name_bytes(function.node),
             })
         })
         .collect()

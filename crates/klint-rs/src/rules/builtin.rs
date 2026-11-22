@@ -53,7 +53,7 @@ pub(super) fn run_no_nested_template_literals(scan: RuleScan<'_>) -> Vec<Report>
                     .to_string(),
             fix: None,
             level: None,
-            bytes: None,
+            bytes: Some(record.bytes),
         })
         .collect()
 }
@@ -75,7 +75,7 @@ pub(super) fn run_no_consecutive_array_push(scan: RuleScan<'_>) -> Vec<Report> {
             ),
             fix: None,
             level: None,
-            bytes: None,
+            bytes: Some(record.bytes),
         })
         .collect()
 }
@@ -128,7 +128,7 @@ pub(super) fn run_no_async_predicate(scan: RuleScan<'_>) -> Vec<Report> {
             ),
             fix: None,
             level: None,
-            bytes: None,
+            bytes: Some(record.bytes),
         })
         .collect()
 }

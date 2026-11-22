@@ -50,7 +50,7 @@ Then create `klint.yaml` in your project root.
 
 ```yaml
 # klint.yaml
-include: ["src", "!**/node_modules/**"]
+include: ["src"]
 
 rules:
   core:
@@ -102,6 +102,12 @@ npx klint --reporter=json
 }
 ```
 
+`klint --fix --reporter=json` prints the same shape for the violations left after fixing, with the number of fixes applied in `applied`:
+
+```json
+{ "applied": 2, "violations": [], "summary": { "errors": 0, "warnings": 0 } }
+```
+
 ## What Klint Catches
 
 klint is for rules that are too project-specific or context-heavy for a formatter.
@@ -120,7 +126,7 @@ Rules give agents room to move quickly because the unsafe moves are blocked stru
 ## CLI
 
 ```sh
-klint [--config <dir>] [--fix] [--reporter <name>] [--hook]
+klint [--config <dir>] [--fix[=safe]] [--reporter <name>] [--hook] [<path>...]
 klint stats [--config <dir>]
 klint migrate [--config <dir>] [--check]
 klint install-skill [--agents <list>] [--symlink | --copy] [--force]
@@ -129,7 +135,9 @@ klint install-skill [--agents <list>] [--symlink | --copy] [--force]
 | Flag | Description |
 |------|-------------|
 | `--config <dir>` | Directory containing `klint.yaml` or `klint.config.json` (default: cwd) |
-| `--fix` | Apply auto-fixes for fixable violations in-place |
+| `--fix` | Apply auto-fixes for fixable violations in-place. Works with the `text` and `json` reporters; `--reporter=github` is refused with exit 1 |
+| `--fix=safe` | Apply only safe fixes, the ones that change layout and never behaviour (today: the blank-line rules). Code rewrites such as `no-string-match` and the `sonar/` fixes are unsafe and left for plain `--fix`. Skips the v1 config migration |
+| `<path>...` | With `--fix`, fix only these files, or the files under these directories. The report still covers the whole project. A path that does not exist is skipped with a note |
 | `--reporter <name>` | Output format: `text` (default), `json` for agents and scripts, `github` for pull request annotations. `--reporter=json` works too |
 | `--hook` | Count this run as an agent hook run in `klint stats`, and keep the plain text format described below |
 | `migrate` | Rewrite a v1 config to the v2 rule groups in place, keeping comments and blank lines |
@@ -155,7 +163,7 @@ klint: finished in 8ms
 ```
 
 - On a terminal, errors are red, warnings yellow, and file paths and hints dimmed.
-- When a rule knows where the offending code starts, the header ends in `line:column` and the source line is printed with the span underlined by carets. Rules that only know the line (the architecture rules, cognitive complexity, function length, blank lines and a few others) print the header and message alone.
+- When a rule knows where the offending code starts, the header ends in `line:column` and the source line is printed with the span underlined by carets. Rules that only know the line (arch/max-lines, the comment budgets and the config, skill and version advisories) print the header and message alone. Function-length and cognitive-complexity point at the function's name, the blank-line rules at the statement's keyword or the token that closes the block, arch/forbidden and arch/singleton at the match, and arch/imports at the import path (a branch of a multi-line Rust `use` list below the reported line stays line-only).
 - Colour is off when `NO_COLOR` is set to a non-empty value or stderr is not a terminal (pipes, CI logs, redirected files). The column and carets stay.
 - `--hook` keeps the text format of klint 1.7 byte for byte: no colour, no column, no carets.
 - The JSON output carries the same position as `column` and `endColumn` (1-based, end exclusive, counted in UTF-16 code units the way editors count them). Violations from rules that only know the line have neither field.
@@ -266,7 +274,7 @@ The npm package needs Node.js 18+ and no longer installs `typescript`, `zod`, `y
 ```yaml
 # yaml-language-server: $schema=./klint.schema.yaml
 
-include: ["src", "!**/node_modules/**"]
+include: ["src"]
 
 rules:
   recommended: true
@@ -291,6 +299,8 @@ arch:
 ```
 
 `include` selects source files to lint. Patterns support `**` globs and `!` negation.
+
+Inside a git repository, klint skips every file git ignores: `.gitignore` files at every level (including ones above the config, up to the repository root) and `.git/info/exclude`. `node_modules`, `dist` and build output therefore need no `!` patterns, provided they are in `.gitignore`. An ignored file stays skipped even when an `include` pattern names it. Outside a git repository, `.gitignore` files are not read, and klint lints whatever `include` selects. Set `respectGitignore: false` to lint ignored files too. Your global git excludes file (`core.excludesFile`) is not read, so a run gives the same result on every machine.
 
 `rules` has three parts. Each rule is `"error"`, `"warn"`, `"off"`, or an options object with `severity` and/or `include`.
 
@@ -776,7 +786,7 @@ doc-comments alongside `/** */`.
 
 | Rule | Description |
 |------|-------------|
-| `no-unguarded-json-parse` | `JSON.parse()` called outside a try/catch |
+| `no-unguarded-json-parse` | `JSON.parse()` called outside a `try` block; one in `catch` or `finally` counts as unguarded |
 | `no-sync-in-async` | Sync filesystem calls inside async functions |
 | `no-async-predicate` | Inline `async` function passed to `filter`, `some`, `every`, `find` or `findIndex`; without types, any receiver counts |
 | `no-nested-template-literals` | Template literals nested inside template literals |
@@ -786,6 +796,7 @@ doc-comments alongside `/** */`.
 | `blank-line-after-block` | Blank line below a block statement when another statement follows; autofix |
 | `cognitive-complexity` | Function whose cognitive complexity (SonarJS / SonarSource model) is above its `warn`/`error` limits, in all five languages; opt-in, no autofix |
 | `function-length` | Function whose body has more lines than its `warn`/`error` limits (counted like Biome's `noExcessiveLinesPerFunction`), in all five languages; opt-in, no autofix |
+| `naming-convention` | Function and class names that break their language's convention (TS/JS like Biome's `useNamingConvention`); opt-in, unsafe rename fix for local TS/JS names |
 
 Rules that needed TypeScript's type checker were removed in 1.0; see [Upgrading from klint 0.x](#upgrading-from-klint-0x).
 
@@ -808,14 +819,17 @@ rules:
       include: ["src/**", "!src/generated/**"]
       statements: [if, for, while, switch, try, return, guard, loop, with]
       allowSetup: true
+      guards: true
     blank-line-after-block:
       severity: warn
       include: ["src/**"]
       statements: [if, for, while, switch, try, guard, loop, with]
+      guards: true
 ```
 
 - `statements` lists the statement kinds a rule targets. The default is every kind the rule supports. `statements: []` turns the rule off. `match` is an alias of `switch`. `return` is valid only for `blank-line-before-control-flow`. An unknown keyword, or `return` on the after rule, produces one `klint/config` warning, and the remaining keywords still apply.
 - `allowSetup` (before rule only, default `true`) turns the setup exception on or off, described below.
+- `guards` (both rules, default `false`) groups braceless guards, described below.
 
 | keyword | TypeScript / JavaScript | Python | Swift | Rust | C# |
 |---|---|---|---|---|---|
@@ -833,9 +847,22 @@ rules:
 
 **Setup exception.** With `allowSetup: true`, the before rule skips an `if`, `guard` or `switch` whose condition uses a name assigned by the statement directly above it. For example, `x = f();` followed by `if (x) …` is not reported. Only the statement directly above counts (comment lines are skipped), only plain names count (`self.x = f()` does not), and only the condition is searched, not the body.
 
+**Guards.** With `guards: true`, the after rule also treats a braceless `if` as a block when every branch of it is a `return`, `throw`, `continue` or `break`, as in `if (!user) return null;`. The statement after the guard then gets a blank line. Consecutive guards stay together, and the line goes after the last one. A braceless `if` whose body does not exit (`if (x) doSomething();`) is left alone. This works on TypeScript/JavaScript and C#. Python and Rust have no braceless `if`, and a Swift `guard` always has braces, so it is already a block. With `guards: true` on the before rule, a guard directly below another guard needs no blank line either. The first guard still gets one above it, and an `if` with a braced body after a guard is still separated. Set it on both rules to keep a run of guards as one paragraph:
+
+```ts
+const user = load(id);
+
+if (!user) return null;
+if (!user.active) return null;
+
+return user.name;
+```
+
+Without it, the before rule asks for a blank line between the two guards, unless the setup exception pairs them.
+
 **Autofix.** `klint --fix` inserts one empty line with the line ending of the line above it, and changes nothing else. A second run changes nothing.
 
-**Not checked.** A file with a syntax error gets no report and no fix. A braceless body (`if (a) return 1;`) is not a block for the after rule. `do…while` and `repeat…while` are never reported by the after rule. A statement that shares its line with the previous statement is not reported, because the fix would have to split that line. Expression forms are not statements: `let x = if …` and `let r = match …` in Rust, `let x = if …` in Swift, a C# switch expression, and control flow inside a call are never reported. A Python docstring is documentation, not a statement, so the statement after it counts as first in its block. A C# preprocessor line (`#region`, `#if`, `#pragma`, …) or a Swift `#if`/`#elseif`/`#else`/`#endif` line separates statements like a blank line, so neither rule inserts a line next to one.
+**Not checked.** A file with a syntax error gets no report and no fix. A braceless body (`if (a) return 1;`) is not a block for the after rule unless `guards: true`. `do…while` and `repeat…while` are never reported by the after rule. A statement that shares its line with the previous statement is not reported, because the fix would have to split that line. Expression forms are not statements: `let x = if …` and `let r = match …` in Rust, `let x = if …` in Swift, a C# switch expression, and control flow inside a call are never reported. A Python docstring is documentation, not a statement, so the statement after it counts as first in its block. A C# preprocessor line (`#region`, `#if`, `#pragma`, …) or a Swift `#if`/`#elseif`/`#else`/`#endif` line separates statements like a blank line, so neither rule inserts a line next to one.
 
 ### Cognitive complexity
 
@@ -961,6 +988,29 @@ rules:
 **What counts as a function.** The same list as `cognitive-complexity` (see above), but getters and setters are excluded in every language: TypeScript `get` and `set` methods, Swift computed getters and setters, and C# property and indexer accessors. `cognitive-complexity` does check those.
 
 **Not checked.** Bodyless declarations, and files with a syntax error.
+
+### Naming convention
+
+`naming-convention` checks the names of functions and classes. It is opt-in.
+
+```yaml
+rules:
+  core:
+    naming-convention: error
+```
+
+| Language | Functions | Classes and types |
+|---|---|---|
+| TypeScript/JavaScript | camelCase or PascalCase; top-level ones may also be UPPERCASE | PascalCase |
+| Python | snake_case | PascalCase |
+| Rust | snake_case | PascalCase (structs, enums, traits, unions, type aliases) |
+| C# | PascalCase (methods) | PascalCase (classes, structs, interfaces, records, enums) |
+| Swift | camelCase | PascalCase (classes, structs, enums, protocols) |
+
+- TypeScript/JavaScript follows Biome 2.6.5's `useNamingConvention` defaults with strict case, so `HTTPClient` and `getHTTP` are reported (`HttpClient`, `getHttp`). A name starting with `_` is skipped, `$` is ignored at either end, and names must be ASCII. Other languages allow acronyms such as `HTTPServer` and `IDisposable`.
+- Leading and trailing `_` are ignored everywhere, as are Rust's `r#`, C#'s `@` and Swift's backticks. Python's unittest hooks (`setUp`, `tearDown`, `setUpClass` and the rest) are skipped.
+- The message names the convention and a suggested name: ``Function name `get_user` should be camelCase, PascalCase or UPPERCASE — rename it to `getUser`.``
+- `klint --fix` renames a TypeScript/JavaScript function or class declaration and every reference to it in the same file; `{ get_user }` becomes `{ get_user: getUser }`. This fix is unsafe: `--fix=safe` skips it. There is no fix when the name is exported, when the new name is already used in the file, or when the name appears in a destructuring shorthand or an export list. Other languages get no fix.
 
 ## Sonar rules (`rules.sonar`)
 

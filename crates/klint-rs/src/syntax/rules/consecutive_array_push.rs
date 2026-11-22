@@ -63,6 +63,7 @@ pub(crate) fn scan_statement_run(
         {
             records.push(ConsecutiveArrayPushRecord {
                 line: start.start_position().row + 1,
+                bytes: start.byte_range(),
                 count: *run_count,
                 receiver: run_receiver.clone(),
             });
@@ -136,6 +137,7 @@ mod tests {
             records,
             vec![ConsecutiveArrayPushRecord {
                 line: 2,
+                bytes: 26..38,
                 count: 3,
                 receiver: "arr".to_string(),
             }]

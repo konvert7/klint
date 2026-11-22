@@ -1,6 +1,6 @@
 use super::grammar::{
     Grammar, Role, Target, block_target, body_target, descendants_of_kind, ends_with_braced_body,
-    field_nodes, is_field_of, named_children, node_text,
+    field_nodes, is_braceless_exit, is_field_of, named_children, node_text,
 };
 use super::keyword::Keyword;
 use tree_sitter::Node;
@@ -51,7 +51,18 @@ impl Grammar for CSharp {
     fn is_directive_line(&self, line: &str) -> bool {
         line.trim_start().starts_with('#')
     }
+
+    fn is_exiting_guard(&self, member: Node<'_>) -> bool {
+        is_braceless_exit(unwrap_wrappers(member), EXITS, None)
+    }
 }
+
+const EXITS: &[&str] = &[
+    "return_statement",
+    "throw_statement",
+    "continue_statement",
+    "break_statement",
+];
 
 fn is_section_body(child: Node<'_>) -> bool {
     matches!(child.kind(), "comment" | "block") || child.kind().ends_with("_statement")

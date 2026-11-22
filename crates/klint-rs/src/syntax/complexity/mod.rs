@@ -6,6 +6,8 @@ mod rust;
 mod swift;
 mod walker;
 
+use std::ops::Range;
+
 use crate::syntax::SourceLanguage;
 use grammar::complexity_grammar_for;
 use tree_sitter::Node;
@@ -54,6 +56,31 @@ pub(crate) fn function_name(function: Node<'_>, source: &[u8], language: SourceL
         .declared_name(function, source)
         .or_else(|| grammar.assigned_name(function, source))
         .unwrap_or_else(|| "<anonymous>".to_string())
+}
+
+/// Where the function's name is written, when it sits on the line the
+/// function starts on, so a report can point at the name.
+pub(crate) fn function_name_bytes(function: Node<'_>) -> Option<Range<usize>> {
+    let name = declared_name_node(function).or_else(|| assigned_name_node(function))?;
+
+    (name.start_position().row == function.start_position().row).then(|| name.byte_range())
+}
+
+fn declared_name_node(function: Node<'_>) -> Option<Node<'_>> {
+    function.child_by_field_name("name")
+}
+
+fn assigned_name_node(function: Node<'_>) -> Option<Node<'_>> {
+    let parent = function.parent()?;
+    let field = match parent.kind() {
+        "variable_declarator" | "public_field_definition" => "name",
+        "assignment_expression" | "assignment" => "left",
+        "let_declaration" => "pattern",
+        "pair" => "key",
+        _ => return None,
+    };
+
+    parent.child_by_field_name(field)
 }
 
 pub(crate) fn is_scored_function(language: SourceLanguage, kind: &str) -> bool {
@@ -115,5 +142,27 @@ mod tests {
             function_name(iife, source.as_bytes(), SourceLanguage::JavaScriptLike),
             "<anonymous>"
         );
+    }
+
+    #[test]
+    fn name_bytes_point_at_the_declared_or_assigned_name() {
+        let source = "function declared() {}\nconst assigned = () => {};\n(() => {})();";
+        let tree = parse("a.ts", source);
+        let declaration = all_of_kind(tree.root_node(), "function_declaration")[0];
+        let arrows = all_of_kind(tree.root_node(), "arrow_function");
+        let text = |bytes: Range<usize>| &source[bytes];
+
+        assert_eq!(function_name_bytes(declaration).map(text), Some("declared"));
+        assert_eq!(function_name_bytes(arrows[0]).map(text), Some("assigned"));
+        assert_eq!(function_name_bytes(arrows[1]), None);
+    }
+
+    #[test]
+    fn a_name_on_another_line_gives_no_bytes() {
+        let source = "const assigned =\n  () => {};";
+        let tree = parse("a.ts", source);
+        let arrow = all_of_kind(tree.root_node(), "arrow_function")[0];
+
+        assert_eq!(function_name_bytes(arrow), None);
     }
 }

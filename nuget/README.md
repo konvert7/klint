@@ -21,7 +21,13 @@ dotnet tool install Konvert7.Klint
 ```bash
 klint --help
 klint --reporter=json
+klint --fix                         # apply every fix, then report what is left
+klint --fix=safe src/Program.cs     # only layout fixes, only in this file
 ```
+
+Inside a git repository klint skips the files git ignores, so `bin/` and `obj/` need
+no exclude pattern when `.gitignore` lists them. Set `respectGitignore: false` to lint
+them anyway.
 
 Configuration lives in `klint.yaml` at your project root — the same file the npm
 and PyPI distributions read. See https://github.com/konvert7/klint for the full

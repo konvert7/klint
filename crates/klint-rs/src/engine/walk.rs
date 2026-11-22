@@ -2,8 +2,9 @@ use tree_sitter::Node;
 
 use crate::syntax::{
     FunctionLength, FunctionScore, LineTally, LineTotals, ScoringContext, SourceLanguage,
-    is_async_function_like, is_comment, is_function_like, is_scored_function,
-    is_statement_container, is_token, measured_body, score_node, starts_uncounted_region,
+    declares_checked_name, is_async_function_like, is_comment, is_function_like,
+    is_scored_function, is_statement_container, is_token, is_try_body, measured_body, score_node,
+    starts_uncounted_region,
 };
 
 fn is_scored_node(language: SourceLanguage, node: Node<'_>) -> bool {
@@ -12,7 +13,7 @@ fn is_scored_node(language: SourceLanguage, node: Node<'_>) -> bool {
 
 /// A `call_expression` plus the descent state its rules need. Both
 /// `no-unguarded-json-parse` and `no-sync-in-async` decide from an ancestor —
-/// a `try_statement` or the nearest function — so the state is captured while
+/// a `try` block (not its `catch` or `finally`) or the nearest function — so the state is captured while
 /// descending rather than by re-walking upwards.
 pub(crate) struct IndexedCall<'a> {
     pub node: Node<'a>,
@@ -41,6 +42,7 @@ pub(crate) struct Wants {
     pub binary_expressions: bool,
     pub expression_statements: bool,
     pub identifiers: bool,
+    pub declarations: bool,
 }
 
 impl Wants {
@@ -59,6 +61,7 @@ impl Wants {
             || self.binary_expressions
             || self.expression_statements
             || self.identifiers
+            || self.declarations
     }
 }
 
@@ -81,6 +84,7 @@ pub(crate) struct NodeIndex<'a> {
     pub binary_expressions: Vec<Node<'a>>,
     pub expression_statements: Vec<Node<'a>>,
     pub identifiers: Vec<Node<'a>>,
+    pub declarations: Vec<Node<'a>>,
     pub has_syntax_error: bool,
     tally: LineTally,
     pending_bodies: Vec<(usize, Node<'a>)>,
@@ -194,6 +198,16 @@ impl<'a> NodeIndex<'a> {
         }
     }
 
+    fn push_language_buckets(&mut self, node: Node<'a>, wants: Wants, language: SourceLanguage) {
+        if wants.statement_blocks && is_statement_container(language, node.kind()) {
+            self.statement_blocks.push(node);
+        }
+
+        if wants.declarations && declares_checked_name(node, language) {
+            self.declarations.push(node);
+        }
+    }
+
     fn visit(
         &mut self,
         node: Node<'a>,
@@ -215,9 +229,7 @@ impl<'a> NodeIndex<'a> {
             ..descent.enter(node, source, wants, language)
         };
 
-        if wants.statement_blocks && is_statement_container(language, node.kind()) {
-            self.statement_blocks.push(node);
-        }
+        self.push_language_buckets(node, wants, language);
 
         match node.kind() {
             "call_expression" if wants.calls => self.calls.push(IndexedCall {
@@ -256,7 +268,7 @@ impl Descent<'_> {
     fn enter(self, node: Node<'_>, source: &[u8], wants: Wants, language: SourceLanguage) -> Self {
         Self {
             scoring: self.scoring,
-            inside_try: wants.inside_try && (self.inside_try || node.kind() == "try_statement"),
+            inside_try: wants.inside_try && (self.inside_try || is_try_body(node)),
             in_async: wants.in_async
                 && if is_function_like(node) {
                     is_async_function_like(node, source)

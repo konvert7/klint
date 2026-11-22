@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::output::Violation;
+use crate::rules::has_safe_fix;
 
 #[derive(Debug, PartialEq, Eq)]
 struct LineFix {
@@ -93,20 +94,44 @@ impl Originals {
     }
 }
 
-pub(crate) fn has_fixes(violations: &[Violation]) -> bool {
+#[derive(Debug, Default)]
+pub struct FixScope {
+    pub safe_only: bool,
+    pub paths: Option<Vec<PathBuf>>,
+}
+
+impl FixScope {
+    fn selects(&self, violation: &Violation, root: &Path) -> bool {
+        (!self.safe_only || has_safe_fix(&violation.rule)) && self.covers(root, &violation.file)
+    }
+
+    fn covers(&self, root: &Path, file: &str) -> bool {
+        let Some(paths) = &self.paths else {
+            return true;
+        };
+        let Ok(target) = fs::canonicalize(root.join(file)) else {
+            return false;
+        };
+
+        paths.iter().any(|path| target.starts_with(path))
+    }
+}
+
+pub(crate) fn has_fixes(violations: &[Violation], root: &Path, scope: &FixScope) -> bool {
     violations
         .iter()
-        .any(|violation| line_fix(violation).is_some())
+        .any(|violation| scope.selects(violation, root) && line_fix(violation).is_some())
 }
 
 pub(crate) fn apply_fixes(
     violations: &[Violation],
     root: &Path,
+    scope: &FixScope,
     originals: &mut Originals,
 ) -> Result<usize, String> {
     let mut by_file: BTreeMap<&str, Vec<LineFix>> = BTreeMap::new();
 
-    for violation in violations {
+    for violation in violations.iter().filter(|v| scope.selects(v, root)) {
         if let Some(fix) = line_fix(violation) {
             by_file.entry(&violation.file).or_default().push(fix);
         }

@@ -1,8 +1,9 @@
 use super::layers::resolve_layer_mask;
 use super::*;
 use crate::files::{normalize_path, relative_path};
-use crate::output::Violation;
+use crate::output::{Span, Violation};
 use crate::syntax::{is_jsx_path, scan_jsx_elements_from_tree};
+use std::ops::Range;
 use std::path::{Path, PathBuf};
 use tree_sitter::Node;
 
@@ -127,7 +128,9 @@ impl PatternPass {
         content: &str,
     ) -> Vec<Violation> {
         match (&self.jsx_targets, &self.matcher) {
-            (Some(targets), _) => self.scan_elements(file, root, tree_root, source, targets),
+            (Some(targets), _) => {
+                self.scan_elements(file, root, tree_root, source, content, targets)
+            }
             (None, Some(matcher)) => self.scan_lines(file, root, content, matcher),
             (None, None) => Vec::new(),
         }
@@ -139,6 +142,7 @@ impl PatternPass {
         root: &Path,
         tree_root: Option<Node<'_>>,
         source: &[u8],
+        content: &str,
         targets: &[String],
     ) -> Vec<Violation> {
         let Some(tree_root) = tree_root else {
@@ -147,7 +151,10 @@ impl PatternPass {
         scan_jsx_elements_from_tree(tree_root, source)
             .into_iter()
             .filter(|element| targets.contains(&element.tag_name))
-            .map(|element| self.violation(file, root, element.line))
+            .map(|element| {
+                let span = Span::within(content, element.bytes);
+                self.violation(file, root, element.line, span)
+            })
             .collect()
     }
 
@@ -158,15 +165,17 @@ impl PatternPass {
         content: &str,
         matcher: &LineMatcher,
     ) -> Vec<Violation> {
-        content
-            .lines()
+        lines_with_offsets(content)
             .enumerate()
-            .filter(|(_, line)| matcher.is_match(line))
-            .map(|(index, _)| self.violation(file, root, index + 1))
+            .filter_map(|(index, (offset, line))| {
+                let found = matcher.find(line)?;
+                let span = Span::within(content, offset + found.start..offset + found.end);
+                Some(self.violation(file, root, index + 1, span))
+            })
             .collect()
     }
 
-    fn violation(&self, file: &Path, root: &Path, line: usize) -> Violation {
+    fn violation(&self, file: &Path, root: &Path, line: usize, span: Option<Span>) -> Violation {
         Violation {
             file: relative_path(root, file),
             line,
@@ -174,9 +183,19 @@ impl PatternPass {
             message: self.message.clone(),
             severity: self.severity.clone(),
             fix: None,
-            span: None,
+            span,
         }
     }
+}
+
+/// Each line as [`str::lines`] splits it, with the byte offset it starts at.
+fn lines_with_offsets(content: &str) -> impl Iterator<Item = (usize, &str)> {
+    content.split_inclusive('\n').scan(0, |offset, raw| {
+        let start = *offset;
+        *offset += raw.len();
+        let line = raw.strip_suffix('\n').unwrap_or(raw);
+        Some((start, line.strip_suffix('\r').unwrap_or(line)))
+    })
 }
 
 const REGEX_PREFIX: &str = "re:";
@@ -197,6 +216,15 @@ impl LineMatcher {
                 eprintln!("klint: invalid regex in arch pattern {pattern:?}: {error}");
                 Self::Regex(regex::Regex::new("[^\\s\\S]").expect("never-matching regex is valid"))
             }
+        }
+    }
+
+    fn find(&self, line: &str) -> Option<Range<usize>> {
+        match self {
+            Self::Literal(pattern) => line
+                .find(pattern.as_str())
+                .map(|start| start..start + pattern.len()),
+            Self::Regex(regex) => regex.find(line).map(|found| found.range()),
         }
     }
 

@@ -20,7 +20,7 @@ pub(crate) fn v1_options_schema(name: &str) -> Option<RuleSchema> {
 pub(crate) const RULE_DOCS: &[RuleDoc] = &[
     RuleDoc {
         name: "no-unguarded-json-parse",
-        description: "Flags `JSON.parse()` calls that aren't wrapped in try/catch — malformed input crashes the process.",
+        description: "Flags `JSON.parse()` calls outside a `try` block, including ones in `catch` or `finally` — malformed input crashes the process.",
         examples: &["no-unguarded-json-parse: error"],
         options_schema: None,
     },
@@ -99,6 +99,7 @@ pub(crate) const RULE_DOCS: &[RuleDoc] = &[
         examples: &[
             "blank-line-before-control-flow: error",
             "blank-line-before-control-flow:\n  severity: error\n  include: [\"src/**\", \"!src/generated/**\"]\n  statements: [if, for, while, switch, try, return, guard, loop, with]\n  allowSetup: true",
+            "blank-line-before-control-flow:\n  severity: error\n  guards: true",
         ],
         options_schema: Some(super::blank_lines::before_schema),
     },
@@ -108,6 +109,7 @@ pub(crate) const RULE_DOCS: &[RuleDoc] = &[
         examples: &[
             "blank-line-after-block: warn",
             "blank-line-after-block:\n  severity: warn\n  include: [\"src/**\"]\n  statements: [if, for, while, switch, try, guard, loop, with]",
+            "blank-line-after-block:\n  severity: error\n  guards: true",
         ],
         options_schema: Some(super::blank_lines::after_schema),
     },
@@ -130,6 +132,15 @@ pub(crate) const RULE_DOCS: &[RuleDoc] = &[
             "function-length:\n  - {error: 50}\n  - {warn: 60, error: 80, include: [\"scripts/**\"]}",
         ],
         options_schema: Some(super::function_length::function_length_schema),
+    },
+    RuleDoc {
+        name: "naming-convention",
+        description: "Checks the names of functions and classes against each language's convention. TypeScript/JavaScript follows Biome 2.6.5's `useNamingConvention` defaults with strict case: functions are camelCase or PascalCase (top-level ones may also be UPPERCASE), classes PascalCase; a name starting with `_` is skipped. Python: snake_case functions and PascalCase classes (unittest hooks such as setUp are skipped). Rust: snake_case functions and PascalCase structs, enums, traits, unions and type aliases. C#: PascalCase methods and types. Swift: camelCase functions and PascalCase types. Acronyms such as HTTPServer are allowed outside TypeScript/JavaScript. The message suggests a name; `klint --fix` (unsafe, not `--fix=safe`) renames a non-exported TypeScript/JavaScript function or class and its references in the same file. Opt-in.",
+        examples: &[
+            "naming-convention: error",
+            "naming-convention:\n  severity: warn\n  include: [\"src/**\"]",
+        ],
+        options_schema: None,
     },
     RuleDoc {
         name: "no-date-equality",

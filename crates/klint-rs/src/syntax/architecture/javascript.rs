@@ -32,6 +32,7 @@ fn module_source_record(
         line: source_node.start_position().row + 1,
         is_type_only: node_starts_with(node, source, type_only_prefix),
         is_dynamic: false,
+        bytes: source_node.byte_range(),
     })
 }
 
@@ -55,13 +56,14 @@ fn dynamic_import_record(node: Node<'_>, source: &[u8]) -> Option<ImportRecord> 
         line: specifier.start_position().row + 1,
         is_type_only: false,
         is_dynamic: true,
+        bytes: specifier.byte_range(),
     })
 }
 
 #[cfg(test)]
 mod tests {
     use crate::syntax::ImportRecord;
-    use crate::syntax::scan_imports;
+    use crate::syntax::architecture::spanless_imports as scan_imports;
     use std::path::PathBuf;
     fn imports(content: &str) -> Vec<ImportRecord> {
         scan_imports(&PathBuf::from("index.ts"), content).expect("source should parse")
@@ -77,12 +79,14 @@ mod tests {
                     line: 1,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
                 ImportRecord {
                     specifier: "../bar".to_string(),
                     line: 2,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
             ]
         );
@@ -97,6 +101,7 @@ mod tests {
                 line: 2,
                 is_type_only: false,
                 is_dynamic: true,
+                bytes: 0..0,
             }]
         );
     }
@@ -111,12 +116,14 @@ mod tests {
                     line: 1,
                     is_type_only: true,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
                 ImportRecord {
                     specifier: "./foo".to_string(),
                     line: 2,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
             ]
         );
@@ -137,6 +144,7 @@ mod tests {
                 line: 1,
                 is_type_only: false,
                 is_dynamic: false,
+                bytes: 0..0,
             }]
         );
     }

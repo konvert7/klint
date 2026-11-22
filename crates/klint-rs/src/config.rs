@@ -25,6 +25,11 @@ pub(crate) struct RawConfig {
         description = "Glob patterns selecting which TypeScript files to lint. Prefix with ! to exclude. Defaults to [\".\"] which lints all .ts files under root. Example: [\"src\", \"klint\", \"!**/node_modules/**\"]"
     )]
     pub(crate) include: Option<Vec<String>>,
+    #[serde(rename = "respectGitignore")]
+    #[schemars(
+        description = "Skip files git ignores: .gitignore files at every level, and .git/info/exclude, inside a git repository. A file git ignores is skipped even when include matches it. Defaults to true; set false to lint ignored files too."
+    )]
+    pub(crate) respect_gitignore: Option<bool>,
     #[schemars(
         with = "Option<Vec<PluginName>>",
         description = "Deprecated (v1): named rule bundles. plugins: [sonar] is replaced by rules.recommended: true — run `klint migrate` to upgrade the config in place. Available: \"sonar\"."
@@ -82,6 +87,8 @@ pub(crate) enum RuleConfig {
         #[schemars(skip)]
         allow_setup: Option<serde_json::Value>,
         #[schemars(skip)]
+        guards: Option<serde_json::Value>,
+        #[schemars(skip)]
         max: Option<serde_json::Value>,
         #[serde(rename = "skipBlankLines")]
         #[schemars(skip)]
@@ -113,6 +120,14 @@ impl RuleConfig {
             RuleConfig::Severity(_) => None,
             RuleConfig::List(_) => None,
             RuleConfig::Options { allow_setup, .. } => allow_setup.as_ref(),
+        }
+    }
+
+    pub(crate) fn guards(&self) -> Option<&serde_json::Value> {
+        match self {
+            RuleConfig::Severity(_) => None,
+            RuleConfig::List(_) => None,
+            RuleConfig::Options { guards, .. } => guards.as_ref(),
         }
     }
 
@@ -181,6 +196,7 @@ impl RuleConfig {
             include,
             statements,
             allow_setup,
+            guards,
             max,
             skip_blank_lines,
             warn,
@@ -196,6 +212,7 @@ impl RuleConfig {
             ("include", include.is_some()),
             ("statements", statements.is_some()),
             ("allowSetup", allow_setup.is_some()),
+            ("guards", guards.is_some()),
             ("max", max.is_some()),
             ("skipBlankLines", skip_blank_lines.is_some()),
             ("warn", warn.is_some()),

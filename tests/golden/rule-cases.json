@@ -174,7 +174,9 @@
           "rule": "no-nested-template-literals",
           "message": "Nested template literal — extract the inner template to a variable to improve readability.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 24,
+          "endColumn": 31
         },
         {
           "file": "klint.yaml",
@@ -212,7 +214,9 @@
           "rule": "no-nested-template-literals",
           "message": "Nested template literal — extract the inner template to a variable to improve readability.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 22,
+          "endColumn": 27
         },
         {
           "file": "src/subject.ts",
@@ -220,7 +224,9 @@
           "rule": "no-nested-template-literals",
           "message": "Nested template literal — extract the inner template to a variable to improve readability.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 30,
+          "endColumn": 34
         },
         {
           "file": "klint.yaml",
@@ -260,7 +266,9 @@
           "rule": "no-nested-template-literals",
           "message": "Nested template literal — extract the inner template to a variable to improve readability.",
           "severity": "warn",
-          "fix": null
+          "fix": null,
+          "column": 24,
+          "endColumn": 31
         },
         {
           "file": "klint.yaml",
@@ -328,7 +336,9 @@
           "rule": "no-consecutive-array-push",
           "message": "2 consecutive .push() calls on `arr` — combine into a single .push(a, b, …) call.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 13
         },
         {
           "file": "klint.yaml",
@@ -368,7 +378,9 @@
           "rule": "no-consecutive-array-push",
           "message": "3 consecutive .push() calls on `arr` — combine into a single .push(a, b, …) call.",
           "severity": "warn",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 15
         },
         {
           "file": "klint.yaml",
@@ -1410,7 +1422,9 @@
             "startLine": 2,
             "endLine": 2,
             "replacement": "\nif (a) {"
-          }
+          },
+          "column": 1,
+          "endColumn": 3
         },
         {
           "file": "klint.yaml",
@@ -1454,7 +1468,9 @@
             "startLine": 4,
             "endLine": 4,
             "replacement": "\nfoo();"
-          }
+          },
+          "column": 1,
+          "endColumn": 2
         },
         {
           "file": "klint.yaml",
@@ -1525,7 +1541,9 @@
           "rule": "cognitive-complexity",
           "message": "Function `big` has cognitive complexity 16 (max 15) — split it into smaller functions.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 10,
+          "endColumn": 13
         },
         {
           "file": "klint.yaml",
@@ -1566,7 +1584,9 @@
           "rule": "cognitive-complexity",
           "message": "Function `four` has cognitive complexity 4 (max 3) — split it into smaller functions.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 10,
+          "endColumn": 14
         },
         {
           "file": "klint.yaml",
@@ -1611,7 +1631,9 @@
           "rule": "cognitive-complexity",
           "message": "Function `big` has cognitive complexity 16 (max 15) — split it into smaller functions.",
           "severity": "warn",
-          "fix": null
+          "fix": null,
+          "column": 10,
+          "endColumn": 13
         },
         {
           "file": "klint.yaml",
@@ -1649,7 +1671,9 @@
           "rule": "function-length",
           "message": "Function `big` has 51 lines (max 50) — split it into smaller functions.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 10,
+          "endColumn": 13
         },
         {
           "file": "klint.yaml",
@@ -1690,7 +1714,9 @@
           "rule": "function-length",
           "message": "Function `four` has 4 lines (max 3) — split it into smaller functions.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 10,
+          "endColumn": 14
         },
         {
           "file": "klint.yaml",
@@ -1735,7 +1761,9 @@
           "rule": "function-length",
           "message": "Function `big` has 51 lines (max 50) — split it into smaller functions.",
           "severity": "warn",
-          "fix": null
+          "fix": null,
+          "column": 10,
+          "endColumn": 13
         },
         {
           "file": "klint.yaml",
@@ -1810,7 +1838,9 @@
           "rule": "function-length",
           "message": "Function `f` has 3 lines (max 2) — split it into smaller functions.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 10,
+          "endColumn": 11
         },
         {
           "file": "klint.yaml",
@@ -1881,7 +1911,9 @@
           "rule": "cognitive-complexity",
           "message": "Function `big` has cognitive complexity 3 (max 1) — split it into smaller functions.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 10,
+          "endColumn": 13
         },
         {
           "file": "src/b.cjs",
@@ -1889,7 +1921,9 @@
           "rule": "cognitive-complexity",
           "message": "Function `big` has cognitive complexity 3 (max 1) — split it into smaller functions.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 10,
+          "endColumn": 13
         },
         {
           "file": "klint.yaml",
@@ -1931,7 +1965,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 11,
+          "endColumn": 38
         }
       ],
       "summary": {
@@ -1985,7 +2021,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 11,
+          "endColumn": 38
         }
       ],
       "summary": {
@@ -2017,7 +2055,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `==` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "warn",
-          "fix": null
+          "fix": null,
+          "column": 11,
+          "endColumn": 37
         }
       ],
       "summary": {
@@ -2077,7 +2117,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `==` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 11,
+          "endColumn": 37
         }
       ],
       "summary": {
@@ -2139,7 +2181,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "warn",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 5
         }
       ],
       "summary": {
@@ -2171,7 +2215,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 23
         }
       ],
       "summary": {
@@ -2203,7 +2249,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `==` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 11,
+          "endColumn": 37
         }
       ],
       "summary": {
@@ -2235,7 +2283,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 11,
+          "endColumn": 38
         }
       ],
       "summary": {
@@ -2267,7 +2317,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `!=` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 11,
+          "endColumn": 37
         }
       ],
       "summary": {
@@ -2299,7 +2351,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `!==` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 11,
+          "endColumn": 38
         }
       ],
       "summary": {
@@ -2331,7 +2385,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 11,
+          "endColumn": 18
         }
       ],
       "summary": {
@@ -2363,7 +2419,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `!==` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 11,
+          "endColumn": 18
         }
       ],
       "summary": {
@@ -2395,7 +2453,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `==` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 11,
+          "endColumn": 27
         }
       ],
       "summary": {
@@ -2427,7 +2487,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 10,
+          "endColumn": 17
         }
       ],
       "summary": {
@@ -2459,7 +2521,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 10,
+          "endColumn": 27
         }
       ],
       "summary": {
@@ -2491,7 +2555,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 10,
+          "endColumn": 27
         }
       ],
       "summary": {
@@ -2799,7 +2865,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 5
         }
       ],
       "summary": {
@@ -2831,7 +2899,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 5
         }
       ],
       "summary": {
@@ -2863,7 +2933,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 5
         }
       ],
       "summary": {
@@ -2895,7 +2967,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 3,
+          "endColumn": 7
         }
       ],
       "summary": {
@@ -2927,7 +3001,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 3,
+          "endColumn": 7
         }
       ],
       "summary": {
@@ -2959,7 +3035,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 3,
+          "endColumn": 7
         }
       ],
       "summary": {
@@ -2991,7 +3069,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 38
         }
       ],
       "summary": {
@@ -3023,7 +3103,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 20
         }
       ],
       "summary": {
@@ -3055,7 +3137,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 19
         }
       ],
       "summary": {
@@ -3087,7 +3171,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 17
         }
       ],
       "summary": {
@@ -3119,7 +3205,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 24
         }
       ],
       "summary": {
@@ -3151,7 +3239,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 18
         }
       ],
       "summary": {
@@ -3183,7 +3273,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 17
         }
       ],
       "summary": {
@@ -3215,7 +3307,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 20
         }
       ],
       "summary": {
@@ -3247,7 +3341,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 23
         }
       ],
       "summary": {
@@ -3279,7 +3375,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 53
         }
       ],
       "summary": {
@@ -3311,7 +3409,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 41
         }
       ],
       "summary": {
@@ -3343,7 +3443,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 5
         },
         {
           "file": "src/subject.ts",
@@ -3351,7 +3453,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 5
         }
       ],
       "summary": {
@@ -3383,7 +3487,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "warn",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 5
         }
       ],
       "summary": {
@@ -3852,7 +3958,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 5
         }
       ],
       "summary": {
@@ -3884,7 +3992,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 8
         }
       ],
       "summary": {
@@ -3916,7 +4026,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 5
         }
       ],
       "summary": {
@@ -3948,7 +4060,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 5
         }
       ],
       "summary": {
@@ -3980,7 +4094,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 5
         }
       ],
       "summary": {
@@ -4012,7 +4128,9 @@
           "rule": "no-floating-promise",
           "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 1,
+          "endColumn": 5
         }
       ],
       "summary": {
@@ -4044,7 +4162,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `==` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 11,
+          "endColumn": 41
         }
       ],
       "summary": {
@@ -4076,7 +4196,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 11,
+          "endColumn": 18
         }
       ],
       "summary": {
@@ -4108,7 +4230,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 10,
+          "endColumn": 17
         }
       ],
       "summary": {
@@ -4140,7 +4264,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 11,
+          "endColumn": 18
         }
       ],
       "summary": {
@@ -4173,7 +4299,9 @@
           "rule": "no-date-equality",
           "message": "Comparing two Date objects with `===` compares identity, not time — compare `a.getTime()` values instead.",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 11,
+          "endColumn": 18
         }
       ],
       "summary": {

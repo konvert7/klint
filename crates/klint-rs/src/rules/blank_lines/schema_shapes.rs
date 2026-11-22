@@ -58,6 +58,10 @@ enum BlankLineBeforeConfig {
             description = "Skip an if, guard or switch statement whose condition uses a name assigned by the statement directly above it. Defaults to true."
         )]
         allow_setup: Option<bool>,
+        #[schemars(
+            description = "Keep consecutive braceless `if` guards (every branch is return, throw, continue or break) together: a guard directly below another guard needs no blank line. TypeScript/JavaScript and C#. Defaults to false."
+        )]
+        guards: Option<bool>,
     },
 }
 
@@ -80,6 +84,10 @@ enum BlankLineAfterConfig {
             description = "Block statement kinds this rule targets. Defaults to every kind: if, for, while, switch, try, guard, loop, with. match is an alias of switch. return is not a block statement. An empty list turns the rule off."
         )]
         statements: Option<Vec<AfterStatementKeyword>>,
+        #[schemars(
+            description = "Also treat a braceless `if` whose every branch is return, throw, continue or break as a block, so the statement after the guard gets a blank line. Consecutive guards stay together; the line goes after the last one. TypeScript/JavaScript and C#. Defaults to false."
+        )]
+        guards: Option<bool>,
     },
 }
 

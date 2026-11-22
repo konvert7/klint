@@ -6,7 +6,7 @@ pub(super) use options::{THRESHOLD_SPEC, function_length_options};
 pub(super) use schema_shapes::{function_length_schema, function_length_v1_schema};
 
 use super::{Report, RuleOptions, RuleScan};
-use crate::syntax::{FunctionLength, function_name};
+use crate::syntax::{FunctionLength, function_name, function_name_bytes};
 
 pub(super) fn run_function_length(scan: RuleScan<'_>) -> Vec<Report> {
     let RuleOptions::FunctionLength(options) = scan.options else {
@@ -36,7 +36,7 @@ pub(super) fn run_function_length(scan: RuleScan<'_>) -> Vec<Report> {
                 ),
                 fix: None,
                 level: Some(level),
-                bytes: None,
+                bytes: function_name_bytes(length.node),
             })
         })
         .collect()

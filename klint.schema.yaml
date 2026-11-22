@@ -418,6 +418,9 @@ properties:
       - sonar
       type: string
     type: array
+  respectGitignore:
+    description: 'Skip files git ignores: .gitignore files at every level, and .git/info/exclude, inside a git repository. A file git ignores is skipped even when include matches it. Defaults to true; set false to lint ignored files too.'
+    type: boolean
   root:
     description: Root directory used to resolve include paths and report relative file names. Defaults to the directory containing klint.config.json.
     type: string
@@ -465,6 +468,9 @@ properties:
               - additionalProperties: false
                 description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
                 properties:
+                  guards:
+                    description: Also treat a braceless `if` whose every branch is return, throw, continue or break as a block, so the statement after the guard gets a blank line. Consecutive guards stay together; the line goes after the last one. TypeScript/JavaScript and C#. Defaults to false.
+                    type: boolean
                   include:
                     description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
                     items:
@@ -503,6 +509,10 @@ properties:
                   severity: warn
                   include: ["src/**"]
                   statements: [if, for, while, switch, try, guard, loop, with]
+              - |-
+                blank-line-after-block:
+                  severity: error
+                  guards: true
             blank-line-before-control-flow:
               anyOf:
               - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
@@ -516,6 +526,9 @@ properties:
                 properties:
                   allowSetup:
                     description: Skip an if, guard or switch statement whose condition uses a name assigned by the statement directly above it. Defaults to true.
+                    type: boolean
+                  guards:
+                    description: 'Keep consecutive braceless `if` guards (every branch is return, throw, continue or break) together: a guard directly below another guard needs no blank line. TypeScript/JavaScript and C#. Defaults to false.'
                     type: boolean
                   include:
                     description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
@@ -557,6 +570,10 @@ properties:
                   include: ["src/**", "!src/generated/**"]
                   statements: [if, for, while, switch, try, return, guard, loop, with]
                   allowSetup: true
+              - |-
+                blank-line-before-control-flow:
+                  severity: error
+                  guards: true
             cognitive-complexity:
               anyOf:
               - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
@@ -703,6 +720,38 @@ properties:
                 function-length:
                   - {error: 50}
                   - {warn: 60, error: 80, include: ["scripts/**"]}
+            naming-convention:
+              anyOf:
+              - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                type: string
+              - additionalProperties: false
+                description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+                properties:
+                  include:
+                    description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                    items:
+                      type: string
+                    type: array
+                  severity:
+                    description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                    enum:
+                    - error
+                    - warn
+                    - off
+                    - null
+                    type: string
+                type: object
+              description: 'Checks the names of functions and classes against each language''s convention. TypeScript/JavaScript follows Biome 2.6.5''s `useNamingConvention` defaults with strict case: functions are camelCase or PascalCase (top-level ones may also be UPPERCASE), classes PascalCase; a name starting with `_` is skipped. Python: snake_case functions and PascalCase classes (unittest hooks such as setUp are skipped). Rust: snake_case functions and PascalCase structs, enums, traits, unions and type aliases. C#: PascalCase methods and types. Swift: camelCase functions and PascalCase types. Acronyms such as HTTPServer are allowed outside TypeScript/JavaScript. The message suggests a name; `klint --fix` (unsafe, not `--fix=safe`) renames a non-exported TypeScript/JavaScript function or class and its references in the same file. Opt-in.'
+              examples:
+              - 'naming-convention: error'
+              - |-
+                naming-convention:
+                  severity: warn
+                  include: ["src/**"]
             no-async-predicate:
               anyOf:
               - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
@@ -872,7 +921,7 @@ properties:
                     - null
                     type: string
                 type: object
-              description: Flags `JSON.parse()` calls that aren't wrapped in try/catch — malformed input crashes the process.
+              description: Flags `JSON.parse()` calls outside a `try` block, including ones in `catch` or `finally` — malformed input crashes the process.
               examples:
               - 'no-unguarded-json-parse: error'
           type: object
@@ -1206,6 +1255,9 @@ properties:
           - additionalProperties: false
             description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
             properties:
+              guards:
+                description: Also treat a braceless `if` whose every branch is return, throw, continue or break as a block, so the statement after the guard gets a blank line. Consecutive guards stay together; the line goes after the last one. TypeScript/JavaScript and C#. Defaults to false.
+                type: boolean
               include:
                 description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
                 items:
@@ -1244,6 +1296,10 @@ properties:
               severity: warn
               include: ["src/**"]
               statements: [if, for, while, switch, try, guard, loop, with]
+          - |-
+            blank-line-after-block:
+              severity: error
+              guards: true
         blank-line-before-control-flow:
           anyOf:
           - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
@@ -1257,6 +1313,9 @@ properties:
             properties:
               allowSetup:
                 description: Skip an if, guard or switch statement whose condition uses a name assigned by the statement directly above it. Defaults to true.
+                type: boolean
+              guards:
+                description: 'Keep consecutive braceless `if` guards (every branch is return, throw, continue or break) together: a guard directly below another guard needs no blank line. TypeScript/JavaScript and C#. Defaults to false.'
                 type: boolean
               include:
                 description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
@@ -1298,6 +1357,10 @@ properties:
               include: ["src/**", "!src/generated/**"]
               statements: [if, for, while, switch, try, return, guard, loop, with]
               allowSetup: true
+          - |-
+            blank-line-before-control-flow:
+              severity: error
+              guards: true
         cognitive-complexity:
           anyOf:
           - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
@@ -1380,6 +1443,38 @@ properties:
             function-length:
               - {error: 50}
               - {warn: 60, error: 80, include: ["scripts/**"]}
+        naming-convention:
+          anyOf:
+          - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+            enum:
+            - error
+            - warn
+            - off
+            type: string
+          - additionalProperties: false
+            description: Rule options object. Omit severity to default to "error". Add include to scope the rule to specific files.
+            properties:
+              include:
+                description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
+                items:
+                  type: string
+                type: array
+              severity:
+                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                enum:
+                - error
+                - warn
+                - off
+                - null
+                type: string
+            type: object
+          description: 'Checks the names of functions and classes against each language''s convention. TypeScript/JavaScript follows Biome 2.6.5''s `useNamingConvention` defaults with strict case: functions are camelCase or PascalCase (top-level ones may also be UPPERCASE), classes PascalCase; a name starting with `_` is skipped. Python: snake_case functions and PascalCase classes (unittest hooks such as setUp are skipped). Rust: snake_case functions and PascalCase structs, enums, traits, unions and type aliases. C#: PascalCase methods and types. Swift: camelCase functions and PascalCase types. Acronyms such as HTTPServer are allowed outside TypeScript/JavaScript. The message suggests a name; `klint --fix` (unsafe, not `--fix=safe`) renames a non-exported TypeScript/JavaScript function or class and its references in the same file. Opt-in.'
+          examples:
+          - 'naming-convention: error'
+          - |-
+            naming-convention:
+              severity: warn
+              include: ["src/**"]
         no-async-predicate:
           anyOf:
           - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
@@ -1549,7 +1644,7 @@ properties:
                 - null
                 type: string
             type: object
-          description: Flags `JSON.parse()` calls that aren't wrapped in try/catch — malformed input crashes the process.
+          description: Flags `JSON.parse()` calls outside a `try` block, including ones in `catch` or `finally` — malformed input crashes the process.
           examples:
           - 'no-unguarded-json-parse: error'
         sonar/no-single-char-class:

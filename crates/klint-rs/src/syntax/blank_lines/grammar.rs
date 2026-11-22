@@ -22,6 +22,10 @@ pub(super) trait Grammar: Sync {
     fn is_directive_line(&self, _line: &str) -> bool {
         false
     }
+
+    fn is_exiting_guard(&self, _member: Node<'_>) -> bool {
+        false
+    }
 }
 
 pub(super) enum Role<'a> {
@@ -142,6 +146,33 @@ fn ends_with_else_body(alternative: Node<'_>, block_kind: &str, else_kind: Optio
         Some(body) => body.kind() == block_kind,
         None => false,
     }
+}
+
+/// An `if` whose every branch is a braceless return, throw, continue or break.
+pub(super) fn is_braceless_exit(node: Node<'_>, exits: &[&str], else_kind: Option<&str>) -> bool {
+    if node.kind() != "if_statement" {
+        return false;
+    }
+
+    let exits_directly = node
+        .child_by_field_name("consequence")
+        .is_some_and(|consequence| exits.contains(&consequence.kind()));
+    let else_exits = node
+        .child_by_field_name("alternative")
+        .is_none_or(|alternative| else_body_exits(alternative, exits, else_kind));
+
+    exits_directly && else_exits
+}
+
+fn else_body_exits(alternative: Node<'_>, exits: &[&str], else_kind: Option<&str>) -> bool {
+    let body = match else_kind {
+        Some(kind) if alternative.kind() == kind => last_named_non_comment(alternative),
+        _ => Some(alternative),
+    };
+
+    body.is_some_and(|body| {
+        exits.contains(&body.kind()) || is_braceless_exit(body, exits, else_kind)
+    })
 }
 
 fn last_named_non_comment(node: Node<'_>) -> Option<Node<'_>> {

@@ -6,6 +6,7 @@ mod python;
 mod rust;
 mod swift;
 
+use std::ops::Range;
 use std::path::Path;
 use tree_sitter::{Node, Parser};
 
@@ -27,6 +28,22 @@ pub struct ImportRecord {
     pub line: usize,
     pub is_type_only: bool,
     pub is_dynamic: bool,
+    pub bytes: Range<usize>,
+}
+
+/// [`scan_imports`] with every span zeroed, for tests that check what was
+/// imported rather than where.
+#[cfg(test)]
+pub(crate) fn spanless_imports(path: &Path, content: &str) -> Result<Vec<ImportRecord>, String> {
+    let records = scan_imports(path, content)?;
+
+    Ok(records
+        .into_iter()
+        .map(|record| ImportRecord {
+            bytes: 0..0,
+            ..record
+        })
+        .collect())
 }
 
 pub fn scan_imports(path: &Path, content: &str) -> Result<Vec<ImportRecord>, String> {
@@ -88,4 +105,64 @@ fn first_string_child(node: Node<'_>) -> Option<Node<'_>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
         .find(|child| child.kind() == "string")
+}
+
+#[cfg(test)]
+mod span_tests {
+    use super::scan_imports;
+    use std::path::Path;
+
+    fn spanned(path: &str, content: &str) -> Vec<String> {
+        scan_imports(Path::new(path), content)
+            .expect("source parses")
+            .into_iter()
+            .map(|record| content[record.bytes].to_string())
+            .collect()
+    }
+
+    #[test]
+    fn javascript_points_at_the_quoted_specifier() {
+        assert_eq!(
+            spanned("a.ts", "import x from \"./x\";\nconst y = import('./y');\n"),
+            vec!["\"./x\"", "'./y'"]
+        );
+    }
+
+    #[test]
+    fn python_points_at_the_module_name() {
+        assert_eq!(
+            spanned("a.py", "import os, sys\nfrom ..lib.auth import key\n"),
+            vec!["os", "sys", "..lib.auth"]
+        );
+    }
+
+    #[test]
+    fn rust_points_at_each_imported_path() {
+        assert_eq!(
+            spanned(
+                "a.rs",
+                "use std::collections::{BTreeMap, BTreeSet};\nuse crate::a as b;\n"
+            ),
+            vec!["BTreeMap", "BTreeSet", "crate::a"]
+        );
+    }
+
+    #[test]
+    fn csharp_points_at_the_namespace() {
+        assert_eq!(
+            spanned(
+                "A.cs",
+                "using System.Linq;\nusing Json = Newtonsoft.Json;\n"
+            ),
+            vec!["System.Linq", "Newtonsoft.Json"]
+        );
+    }
+
+    #[test]
+    fn swift_points_at_the_module() {
+        assert_eq!(
+            spanned("A.swift", "import Foundation\n"),
+            vec!["Foundation"]
+        );
+    }
 }

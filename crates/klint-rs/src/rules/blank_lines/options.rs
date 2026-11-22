@@ -8,6 +8,7 @@ const AFTER_RULE: &str = "blank-line-after-block";
 pub(crate) struct BlankLineOptions {
     pub statements: KeywordSet,
     pub allow_setup: bool,
+    pub guards: bool,
 }
 
 pub(in crate::rules) fn blank_line_options(
@@ -26,11 +27,13 @@ pub(in crate::rules) fn blank_line_options(
             .allow_setup()
             .and_then(Value::as_bool)
             .unwrap_or(true);
+    let guards = config.guards().and_then(Value::as_bool).unwrap_or(false);
     ParsedOptions::single(
         config,
         RuleOptions::BlankLines(BlankLineOptions {
             statements,
             allow_setup,
+            guards,
         }),
         problems,
     )

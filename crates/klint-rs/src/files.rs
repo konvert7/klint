@@ -1,8 +1,13 @@
+use ignore::WalkBuilder;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
 
-pub(crate) fn resolve_files(root: &Path, include: &[String]) -> Result<Vec<PathBuf>, String> {
+pub(crate) fn resolve_files(
+    root: &Path,
+    include: &[String],
+    respect_gitignore: bool,
+) -> Result<Vec<PathBuf>, String> {
     let mut files = Vec::new();
     let excludes: Vec<&str> = include
         .iter()
@@ -11,7 +16,13 @@ pub(crate) fn resolve_files(root: &Path, include: &[String]) -> Result<Vec<PathB
 
     for pattern in include.iter().filter(|pattern| !pattern.starts_with('!')) {
         let base = include_base(root, pattern);
-        collect_source_files(&base, root, pattern, &excludes, &mut files)?;
+        let walk = Walk {
+            root,
+            include_pattern: pattern,
+            excludes: &excludes,
+            respect_gitignore,
+        };
+        walk.collect_into(&base, &mut files);
     }
 
     files.sort();
@@ -77,36 +88,74 @@ fn include_base(root: &Path, pattern: &str) -> PathBuf {
     normalize_path(&root.join(base))
 }
 
-fn collect_source_files(
-    dir: &Path,
-    root: &Path,
-    include_pattern: &str,
-    excludes: &[&str],
-    files: &mut Vec<PathBuf>,
-) -> Result<(), String> {
-    let Ok(entries) = fs::read_dir(dir) else {
-        return Ok(());
-    };
+struct Walk<'a> {
+    root: &'a Path,
+    include_pattern: &'a str,
+    excludes: &'a [&'a str],
+    respect_gitignore: bool,
+}
 
-    for entry in entries {
-        let entry = entry.map_err(|err| format!("klint: failed to read dir entry: {err}"))?;
-        let path = entry.path();
-        if path.is_dir() {
-            let rel = relative_path(root, &path);
-            if is_excluded(&rel, excludes) || is_excluded(&format!("{rel}/"), excludes) {
+impl Walk<'_> {
+    fn collect_into(&self, base: &Path, files: &mut Vec<PathBuf>) {
+        if !walkable(base).exists() {
+            return;
+        }
+
+        for entry in self.builder(base).build() {
+            let Ok(entry) = entry else {
                 continue;
-            }
+            };
+            let path = entry.path();
+            let is_file = entry.file_type().is_some_and(|kind| !kind.is_dir());
 
-            collect_source_files(&path, root, include_pattern, excludes, files)?;
-        } else if is_supported_source(&path) {
-            let rel = relative_path(root, &path);
-            if match_pattern(&rel, include_pattern) && !is_excluded(&rel, excludes) {
-                files.push(normalize_path(&path));
+            if is_file && is_supported_source(path) && self.selects(path) {
+                files.push(normalize_path(path));
             }
         }
     }
 
-    Ok(())
+    fn builder(&self, base: &Path) -> WalkBuilder {
+        let root = normalize_path(self.root);
+        let start = if base.starts_with(&root) { &root } else { base };
+        let mut builder = WalkBuilder::new(walkable(start));
+        builder
+            .standard_filters(false)
+            .follow_links(true)
+            .parents(self.respect_gitignore)
+            .git_ignore(self.respect_gitignore)
+            .git_exclude(self.respect_gitignore)
+            .require_git(true);
+        let base = base.to_path_buf();
+        let excludes: Vec<String> = self.excludes.iter().map(|e| (*e).to_string()).collect();
+        builder.filter_entry(move |entry| {
+            let path = normalize_path(entry.path());
+            let is_dir = entry.file_type().is_some_and(|kind| kind.is_dir());
+            let leads_to_base = base.starts_with(&path) || path.starts_with(&base);
+
+            leads_to_base && !(is_dir && is_excluded_dir(&relative_path(&root, &path), &excludes))
+        });
+        builder
+    }
+
+    fn selects(&self, path: &Path) -> bool {
+        let rel = relative_path(&normalize_path(self.root), &normalize_path(path));
+
+        match_pattern(&rel, self.include_pattern) && !is_excluded(&rel, self.excludes)
+    }
+}
+
+fn walkable(path: &Path) -> &Path {
+    if path.as_os_str().is_empty() {
+        Path::new(".")
+    } else {
+        path
+    }
+}
+
+fn is_excluded_dir(rel: &str, excludes: &[String]) -> bool {
+    excludes
+        .iter()
+        .any(|pattern| match_pattern(rel, pattern) || match_pattern(&format!("{rel}/"), pattern))
 }
 
 fn is_excluded(rel: &str, excludes: &[&str]) -> bool {
@@ -293,6 +342,7 @@ mod tests {
                 "assets".to_string(),
                 "!**/node_modules/**".to_string(),
             ],
+            true,
         )
         .expect("resolve files");
 
@@ -314,7 +364,7 @@ mod tests {
         write(root.join("src/app/main.ts"), "console.log('x');\n").expect("write ts source");
         write(root.join("src/app/readme.md"), "# ignored\n").expect("write markdown");
 
-        let files = resolve_files(&root, &["src".to_string()]).expect("resolve files");
+        let files = resolve_files(&root, &["src".to_string()], true).expect("resolve files");
 
         let rel_files = files
             .iter()
@@ -347,6 +397,7 @@ mod tests {
         let files = resolve_files(
             &root,
             &["./src/**/*.ts".to_string(), "!./src/gen".to_string()],
+            true,
         )
         .expect("resolve files");
 
@@ -368,7 +419,7 @@ mod tests {
         write(root.join("cli.ts"), "export const x = 1;\n").expect("write root source");
         write(root.join("src/app.ts"), "export const y = 2;\n").expect("write nested source");
 
-        let files = resolve_files(&root, &["**/*.ts".to_string()]).expect("resolve files");
+        let files = resolve_files(&root, &["**/*.ts".to_string()], true).expect("resolve files");
 
         let rel_files = files
             .iter()
@@ -389,7 +440,7 @@ mod tests {
         write(root.join("src/a.js"), "export const y = 2;\n").expect("write js");
         write(root.join("src/a.py"), "y = 2\n").expect("write py");
 
-        let files = resolve_files(&root, &["**/*.ts".to_string()]).expect("resolve files");
+        let files = resolve_files(&root, &["**/*.ts".to_string()], true).expect("resolve files");
 
         let rel_files = files
             .iter()
@@ -415,6 +466,7 @@ mod tests {
                 "!**/*.test.py".to_string(),
                 "!src/jobs/worker.py".to_string(),
             ],
+            true,
         )
         .expect("resolve files");
 

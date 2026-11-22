@@ -34,6 +34,7 @@ fn csharp_import_record(node: Node<'_>, source: &[u8]) -> Option<ImportRecord> {
         line: node.start_position().row + 1,
         is_type_only: false,
         is_dynamic: false,
+        bytes: target.byte_range(),
     })
 }
 
@@ -74,7 +75,7 @@ fn walk_namespaces_with_prefix(node: Node<'_>, source: &[u8], prefix: &str, out:
 #[cfg(test)]
 mod tests {
     use crate::syntax::ImportRecord;
-    use crate::syntax::scan_imports;
+    use crate::syntax::architecture::spanless_imports as scan_imports;
     use std::path::PathBuf;
 
     #[test]
@@ -93,30 +94,35 @@ mod tests {
                     line: 1,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
                 ImportRecord {
                     specifier: "System.Collections.Generic".to_string(),
                     line: 2,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
                 ImportRecord {
                     specifier: "System.Math".to_string(),
                     line: 3,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
                 ImportRecord {
                     specifier: "Newtonsoft.Json".to_string(),
                     line: 4,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
                 ImportRecord {
                     specifier: "System.Linq".to_string(),
                     line: 5,
                     is_type_only: false,
                     is_dynamic: false,
+                    bytes: 0..0,
                 },
             ]
         );
@@ -151,6 +157,7 @@ mod tests {
                 line: 3,
                 is_type_only: false,
                 is_dynamic: false,
+                bytes: 0..0,
             }]
         );
     }

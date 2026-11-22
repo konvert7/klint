@@ -54,6 +54,7 @@ pub(crate) fn find_nested_template_literals(
     if node.kind() == "template_string" {
         records.push(NestedTemplateLiteralRecord {
             line: node.start_position().row + 1,
+            bytes: node.byte_range(),
         });
 
         return;
@@ -92,8 +93,14 @@ mod tests {
         assert_eq!(
             records,
             vec![
-                NestedTemplateLiteralRecord { line: 2 },
-                NestedTemplateLiteralRecord { line: 2 },
+                NestedTemplateLiteralRecord {
+                    line: 2,
+                    bytes: 47..52,
+                },
+                NestedTemplateLiteralRecord {
+                    line: 2,
+                    bytes: 55..59,
+                },
             ]
         );
     }

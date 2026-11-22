@@ -25,6 +25,7 @@ pub(crate) fn async_predicate_record(
 
     Some(AsyncPredicateRecord {
         line: callback.start_position().row + 1,
+        bytes: callback.byte_range(),
         method,
     })
 }

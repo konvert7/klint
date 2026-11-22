@@ -11,6 +11,8 @@ mod rust;
 mod setup;
 mod swift;
 
+use std::ops::Range;
+
 use crate::syntax::SourceLanguage;
 use after::after_findings;
 use before::before_findings;
@@ -27,6 +29,19 @@ pub(crate) struct BlankLineFinding {
     pub line: usize,
     pub insertion_line: usize,
     pub keyword: &'static str,
+    pub guard: bool,
+    pub bytes: Option<Range<usize>>,
+}
+
+#[cfg(test)]
+pub(super) fn without_bytes(findings: Vec<BlankLineFinding>) -> Vec<BlankLineFinding> {
+    findings
+        .into_iter()
+        .map(|finding| BlankLineFinding {
+            bytes: None,
+            ..finding
+        })
+        .collect()
 }
 
 pub(crate) fn missing_blank_before(
@@ -35,6 +50,7 @@ pub(crate) fn missing_blank_before(
     language: SourceLanguage,
     targets: KeywordSet,
     allow_setup: bool,
+    guards: bool,
 ) -> Vec<BlankLineFinding> {
     if targets == KeywordSet::default() {
         return Vec::new();
@@ -53,6 +69,7 @@ pub(crate) fn missing_blank_before(
                 content.as_bytes(),
                 targets,
                 allow_setup,
+                guards,
             )
         })
         .collect();
@@ -65,6 +82,7 @@ pub(crate) fn missing_blank_after(
     content: &str,
     language: SourceLanguage,
     targets: KeywordSet,
+    guards: bool,
 ) -> Vec<BlankLineFinding> {
     if targets == KeywordSet::default() {
         return Vec::new();
@@ -80,6 +98,7 @@ pub(crate) fn missing_blank_after(
                 &lines,
                 grammar,
                 targets,
+                guards,
             )
         })
         .collect();

@@ -37,7 +37,9 @@
           "rule": "arch/imports",
           "message": "Skills must be self-contained",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 21,
+          "endColumn": 45
         },
         {
           "file": "assets/skills/demo/index.ts",
@@ -45,7 +47,9 @@
           "rule": "arch/imports",
           "message": "Skills must be self-contained",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 17,
+          "endColumn": 43
         }
       ],
       "summary": {
@@ -93,7 +97,9 @@
           "rule": "arch/imports",
           "message": "Use runtime boundary",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 21,
+          "endColumn": 45
         }
       ],
       "summary": {
@@ -150,7 +156,9 @@
           "rule": "arch/imports",
           "message": "No repo source imports from skills",
           "severity": "warn",
-          "fix": null
+          "fix": null,
+          "column": 21,
+          "endColumn": 34
         }
       ],
       "summary": {
@@ -194,7 +202,9 @@
           "rule": "arch/imports",
           "message": "DAO may only import from dao or prisma",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 25,
+          "endColumn": 42
         }
       ],
       "summary": {
@@ -233,7 +243,9 @@
           "rule": "arch/forbidden",
           "message": "Use logger",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 3,
+          "endColumn": 15
         }
       ],
       "summary": {
@@ -273,7 +285,9 @@
           "rule": "arch/forbidden",
           "message": "Use Button primitive",
           "severity": "warn",
-          "fix": null
+          "fix": null,
+          "column": 42,
+          "endColumn": 48
         }
       ],
       "summary": {
@@ -314,7 +328,9 @@
           "rule": "arch/singleton",
           "message": "Use auth module",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 13,
+          "endColumn": 32
         }
       ],
       "summary": {
@@ -356,7 +372,9 @@
           "rule": "arch/singleton",
           "message": "Raw button belongs in the Button primitive",
           "severity": "warn",
-          "fix": null
+          "fix": null,
+          "column": 42,
+          "endColumn": 48
         }
       ],
       "summary": {
@@ -393,7 +411,9 @@
           "rule": "arch/forbidden",
           "message": "Use the spacing scale, not arbitrary values",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 27,
+          "endColumn": 30
         },
         {
           "file": "src/ui/card.tsx",
@@ -401,7 +421,9 @@
           "rule": "arch/forbidden",
           "message": "Use the spacing scale, not arbitrary values",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 27,
+          "endColumn": 32
         }
       ],
       "summary": {
@@ -490,7 +512,9 @@
           "rule": "arch/imports",
           "message": "DAO must not read request state",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 25,
+          "endColumn": 39
         },
         {
           "file": "src/dao/users.ts",
@@ -498,7 +522,9 @@
           "rule": "arch/imports",
           "message": "DAO must not read request state",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 8,
+          "endColumn": 26
         },
         {
           "file": "src/dao/users.ts",
@@ -506,7 +532,9 @@
           "rule": "arch/imports",
           "message": "DAO must not read request state",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 27,
+          "endColumn": 39
         }
       ],
       "summary": {
@@ -555,7 +583,9 @@
           "rule": "arch/imports",
           "message": "Skills must be self-contained",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 21,
+          "endColumn": 45
         },
         {
           "file": "assets/skills/demo/index.ts",
@@ -563,7 +593,9 @@
           "rule": "arch/imports",
           "message": "Skills must be self-contained",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 15,
+          "endColumn": 41
         }
       ],
       "summary": {
@@ -607,7 +639,9 @@
           "rule": "arch/imports",
           "message": "Data access must not read request state",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 25,
+          "endColumn": 39
         }
       ],
       "summary": {
@@ -715,7 +749,9 @@
           "rule": "arch/forbidden",
           "message": "Use logger",
           "severity": "error",
-          "fix": null
+          "fix": null,
+          "column": 3,
+          "endColumn": 15
         }
       ],
       "summary": {

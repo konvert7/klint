@@ -4,6 +4,7 @@ mod complexity;
 mod docs;
 mod experimental;
 mod function_length;
+mod naming;
 mod scope;
 mod sonar;
 mod thresholds;
@@ -209,6 +210,13 @@ const CHECKS: &[RuleSpec] = &[
         scope: FileScope::AnySource,
         options: function_length::function_length_options,
     },
+    RuleSpec {
+        name: "naming-convention",
+        check: naming::run_naming_convention,
+        wants: |wants| wants.declarations = true,
+        scope: FileScope::AnySource,
+        options: no_options,
+    },
 ];
 
 /// Opt-in rules that run only when listed under `rules.experimental`.
@@ -279,6 +287,12 @@ impl RulePass {
 /// The configured rules in [`CHECKS`] order, each carrying the files it covers.
 pub(crate) fn is_supported_rule(name: &str) -> bool {
     CHECKS.iter().any(|spec| spec.name == name)
+}
+
+const LAYOUT_ONLY_FIXES: &[&str] = &["blank-line-before-control-flow", "blank-line-after-block"];
+
+pub(crate) fn has_safe_fix(name: &str) -> bool {
+    LAYOUT_ONLY_FIXES.contains(&name)
 }
 
 pub(crate) fn is_experimental_rule(name: &str) -> bool {

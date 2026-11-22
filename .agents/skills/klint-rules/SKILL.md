@@ -78,9 +78,12 @@ Every run is recorded in `.klint/stats.json` next to the config. The folder igno
 |---|---|
 | `klint stats [--config <dir>]` | Print runs, violations reported and errors prevented, in total and per rule. Use it to answer "how much has klint caught?" |
 | `--hook` | Put it only in agent hook commands, e.g. `klint --reporter=json --hook`. Leave it off when you run klint yourself, so your runs count as direct. |
+| `--fix=safe [<path>...]` | In a stop hook, apply only layout fixes (blank lines) to the files you changed, e.g. `klint --fix=safe --hook src/a.ts`. Code rewrites stay for an explicit `klint --fix`. |
 | `KLINT_NO_STATS=1` | Turn recording off for a run, e.g. in a throwaway fixture. |
 
 Every violation a run reports counts as reported, repeats included; klint's own `klint/*` advisories do not. An error counts as prevented once, when a later run no longer reports it. Errors match by rule, file and message, so moving code to another line is not a fix. Warnings are not tracked.
+
+Inside a git repository klint skips every file git ignores (`.gitignore` at every level and `.git/info/exclude`), so never add `!**/node_modules/**`-style excludes for ignored folders. `respectGitignore: false` turns this off.
 
 ## Primitive reference
 
@@ -276,10 +279,12 @@ rules:
       include: ["src/**", "!src/generated/**"]
       statements: [if, for, while, switch, try, return, guard, loop, with]
       allowSetup: true
+      guards: true
     blank-line-after-block:
       severity: warn
       include: ["src/**"]
       statements: [if, for, while, switch, try, guard, loop, with]
+      guards: true
 ```
 
 - `statements` narrows the kinds a rule targets. The default is every kind the rule supports, and
@@ -288,6 +293,11 @@ rules:
   `klint/config` warning and the other keywords still apply.
 - `allowSetup` (before rule only, default `true`) skips an `if`, `guard` or `switch` whose condition
   uses a plain name assigned by the statement directly above it, such as `x = f();` then `if (x) …`.
+- `guards` (default `false`) is about braceless `if`s whose every branch is `return`, `throw`,
+  `continue` or `break`. On the after rule, such a guard counts as a block, so the statement after it
+  gets a blank line; consecutive guards stay together and the line goes after the last one. On the
+  before rule, a guard directly below another guard needs no blank line. Set it on both rules to keep
+  a run of guards as one paragraph. TypeScript/JavaScript and C#.
 
 `klint --fix` inserts the missing blank lines, one per gap, and changes nothing else. Files with a
 syntax error are skipped. Run `klint --fix` again to confirm it reports nothing left to fix.
@@ -395,6 +405,24 @@ rules:
 - There is no `--fix`: split the function. A nested function's lines count toward its parent, and it
   is also reported on its own. Getters and setters are not checked. Files with a syntax error are
   skipped.
+
+### Naming convention — function and class names
+
+Pick `naming-convention` to make function and class names follow each language's convention. It is
+opt-in.
+
+```yaml
+rules:
+  core:
+    naming-convention: error
+```
+
+- TypeScript/JavaScript: Biome 2.6.5 `useNamingConvention` defaults, strict case. Functions are
+  camelCase or PascalCase (top-level ones may be UPPERCASE), classes PascalCase; `_name` is skipped.
+- Python and Rust: snake_case functions, PascalCase classes and types. C#: PascalCase methods and
+  types. Swift: camelCase functions, PascalCase types. Python unittest hooks are skipped.
+- `klint --fix` (not `--fix=safe`) renames a non-exported TS/JS function or class and its references
+  in the same file. Exported names, export lists and name clashes get no fix.
 
 ## Pitfalls
 
