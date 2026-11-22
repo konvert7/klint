@@ -158,6 +158,23 @@ fn fix_renames_a_local_function_and_its_references() {
 }
 
 #[test]
+fn fix_leaves_a_property_with_the_same_name_alone() {
+    let project = project(
+        "naming-fix-property",
+        &[(
+            "a.ts",
+            "function get_user() {}\nget_user();\nconsole.log(api.get_user);\n",
+        )],
+    );
+    klint(&project.0, &["--fix"]);
+
+    assert_eq!(
+        source(&project.0, "a.ts"),
+        "function getUser() {}\ngetUser();\nconsole.log(api.get_user);\n"
+    );
+}
+
+#[test]
 fn exported_names_and_name_clashes_get_no_fix() {
     let exported = "export function get_user() {}\n";
     let clash = "function get_user() {}\nconst getUser = 1;\nconsole.log(get_user, getUser);\n";

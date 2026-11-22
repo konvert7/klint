@@ -102,3 +102,15 @@ fn advisory(file: &str, line: usize, message: String) -> Violation {
         span: None,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::is_type_checker_rule;
+
+    #[test]
+    fn names_only_the_rules_that_need_a_type_checker() {
+        assert!(is_type_checker_rule("no-floating-promise"));
+        assert!(is_type_checker_rule("no-optional-chain-on-non-nullable"));
+        assert!(!is_type_checker_rule("no-string-match"));
+    }
+}

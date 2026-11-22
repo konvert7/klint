@@ -108,3 +108,17 @@ fn node_text(node: Node<'_>, source: &[u8]) -> Option<String> {
 fn raw_node_text(node: Node<'_>, source: &[u8]) -> Option<String> {
     Some(node.utf8_text(source).ok()?.to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::is_jsx_path;
+    use std::path::Path;
+
+    #[test]
+    fn only_tsx_and_jsx_files_are_jsx() {
+        assert!(is_jsx_path(Path::new("src/a.tsx")));
+        assert!(is_jsx_path(Path::new("src/a.jsx")));
+        assert!(!is_jsx_path(Path::new("src/a.ts")));
+        assert!(!is_jsx_path(Path::new("src/tsx")));
+    }
+}

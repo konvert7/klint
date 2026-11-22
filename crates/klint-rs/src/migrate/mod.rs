@@ -166,3 +166,19 @@ pub fn migrate(options: &MigrateOptions) -> Result<MigrateOutcome, String> {
         )),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::reason_line;
+
+    #[test]
+    fn a_refusal_points_at_the_line_its_reason_names() {
+        assert_eq!(reason_line("line 7: anchors are not supported"), 7);
+    }
+
+    #[test]
+    fn a_refusal_without_a_line_points_at_the_first() {
+        assert_eq!(reason_line("anchors are not supported"), 1);
+        assert_eq!(reason_line("line x: not a number"), 1);
+    }
+}
