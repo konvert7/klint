@@ -1,3 +1,10 @@
+## [1.13.1](https://github.com/konvert7/klint/compare/v1.13.0...v1.13.1) (2026-11-22)
+
+
+### Bug Fixes
+
+* **config:** skip patchedDependencies in the exact-version check ([41029ca](https://github.com/konvert7/klint/commit/41029ca2958e5ab6ad62fa27c66bb5eac50a688c))
+
 # [1.13.0](https://github.com/konvert7/klint/compare/v1.12.0...v1.13.0) (2026-11-22)
 
 
