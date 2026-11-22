@@ -40,14 +40,17 @@ export default {
   testRunner: "bun",
   coverageAnalysis: "perTest",
   // The ring is the release and repo tooling the suite imports. The Rust engine has its
-  // own run (bun run test:mutate:rust). Left out: entrypoints that run their CLI on
-  // import (the runner's preload imports every mutated module, so one would exit the
-  // dry run with its usage line) and the benchmark, which no test imports. Their logic
-  // lives in tools/release-cli.ts, which is measured.
+  // own run (bun run test:mutate:rust). Left out are the entrypoints, which only parse
+  // argv, print and exit; their decisions live in tools/lib/, which is measured. The
+  // runner's preload imports every mutated module, so an entrypoint would also run.
   mutate: [
     "tools/**/*.ts",
     "tools/**/*.js",
+    "!tools/check-lf.ts",
+    "!tools/check-lock.ts",
     "!tools/complexity-bench.ts",
+    "!tools/exit-with.ts",
+    "!tools/generate-homebrew-formula.ts",
     "!tools/prepare-native-release.ts",
     "!tools/prepare-nuget-release.ts",
     "!tools/prepare-python-release.ts",

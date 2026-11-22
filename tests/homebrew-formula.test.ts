@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { homebrewFormula } from "../tools/generate-homebrew-formula";
+import { formulaFromArgs, homebrewFormula } from "../tools/lib/generate-homebrew-formula";
 
 describe("Homebrew formula generation", () => {
   test("renders Darwin and Linux release asset URLs and checksums", () => {
@@ -52,6 +52,60 @@ describe("Homebrew formula generation", () => {
     expect(formula).toContain('bin.install binary => "klint"');
     expect(formula).toContain(
       'assert_match version.to_s, shell_output("#{bin}/klint --version")'
+    );
+  });
+
+  test("strips only a leading v from the version", () => {
+    const formula = homebrewFormula({
+      version: "1.0.0-rev1",
+      darwinArm64Sha: "a",
+      darwinX64Sha: "b",
+      linuxArm64Sha: "c",
+      linuxX64Sha: "d",
+    });
+
+    expect(formula).toContain('version "1.0.0-rev1"');
+  });
+});
+
+describe("formulaFromArgs", () => {
+  const args = [
+    "--output",
+    "out/klint.rb",
+    "--linux-x64-sha",
+    "d",
+    "--version",
+    "v1.2.3",
+    "--darwin-x64-sha",
+    "b",
+    "--linux-arm64-sha",
+    "c",
+    "--darwin-arm64-sha",
+    "a",
+  ];
+
+  test("reads every flag, in any order", () => {
+    expect(formulaFromArgs(args)).toEqual({
+      output: "out/klint.rb",
+      formula: homebrewFormula({
+        version: "v1.2.3",
+        darwinArm64Sha: "a",
+        darwinX64Sha: "b",
+        linuxArm64Sha: "c",
+        linuxX64Sha: "d",
+      }),
+    });
+  });
+
+  test("names a flag that is missing", () => {
+    expect(() => formulaFromArgs(args.slice(0, -2))).toThrow(
+      new Error("--darwin-arm64-sha is required")
+    );
+  });
+
+  test("names a flag given without a value", () => {
+    expect(() => formulaFromArgs(args.slice(0, -1))).toThrow(
+      new Error("--darwin-arm64-sha is required")
     );
   });
 });
