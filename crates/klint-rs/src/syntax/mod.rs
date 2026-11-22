@@ -38,9 +38,9 @@ pub use rules::{
 pub(crate) use rules::{
     SameFileBindings, async_predicate_record, date_equality_record, find_nested_template_literals,
     floating_promise_record, is_async_function_like, is_function_like, is_json_parse_call,
-    prefer_at_record, prefer_nullish_coalescing_assign_record, prefer_string_raw_record,
-    prefer_string_raw_regexp_record, prefer_string_replaceall_record, scan_statement_run,
-    single_char_class_record, string_match_record, sync_call_name,
+    is_try_body, prefer_at_record, prefer_nullish_coalescing_assign_record,
+    prefer_string_raw_record, prefer_string_raw_regexp_record, prefer_string_replaceall_record,
+    scan_statement_run, single_char_class_record, string_match_record, sync_call_name,
 };
 
 use std::path::Path;

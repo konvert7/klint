@@ -1248,7 +1248,7 @@
                       "type": "object"
                     }
                   ],
-                  "description": "Flags `JSON.parse()` calls that aren't wrapped in try/catch — malformed input crashes the process.",
+                  "description": "Flags `JSON.parse()` calls outside a `try` block, including ones in `catch` or `finally` — malformed input crashes the process.",
                   "examples": [
                     "no-unguarded-json-parse: error"
                   ]
@@ -2241,7 +2241,7 @@
                   "type": "object"
                 }
               ],
-              "description": "Flags `JSON.parse()` calls that aren't wrapped in try/catch — malformed input crashes the process.",
+              "description": "Flags `JSON.parse()` calls outside a `try` block, including ones in `catch` or `finally` — malformed input crashes the process.",
               "examples": [
                 "no-unguarded-json-parse: error"
               ]

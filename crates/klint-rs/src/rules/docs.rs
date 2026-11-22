@@ -20,7 +20,7 @@ pub(crate) fn v1_options_schema(name: &str) -> Option<RuleSchema> {
 pub(crate) const RULE_DOCS: &[RuleDoc] = &[
     RuleDoc {
         name: "no-unguarded-json-parse",
-        description: "Flags `JSON.parse()` calls that aren't wrapped in try/catch — malformed input crashes the process.",
+        description: "Flags `JSON.parse()` calls outside a `try` block, including ones in `catch` or `finally` — malformed input crashes the process.",
         examples: &["no-unguarded-json-parse: error"],
         options_schema: None,
     },

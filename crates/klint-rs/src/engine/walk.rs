@@ -3,7 +3,7 @@ use tree_sitter::Node;
 use crate::syntax::{
     FunctionLength, FunctionScore, LineTally, LineTotals, ScoringContext, SourceLanguage,
     declares_checked_name, is_async_function_like, is_comment, is_function_like,
-    is_scored_function, is_statement_container, is_token, measured_body, score_node,
+    is_scored_function, is_statement_container, is_token, is_try_body, measured_body, score_node,
     starts_uncounted_region,
 };
 
@@ -13,7 +13,7 @@ fn is_scored_node(language: SourceLanguage, node: Node<'_>) -> bool {
 
 /// A `call_expression` plus the descent state its rules need. Both
 /// `no-unguarded-json-parse` and `no-sync-in-async` decide from an ancestor —
-/// a `try_statement` or the nearest function — so the state is captured while
+/// a `try` block (not its `catch` or `finally`) or the nearest function — so the state is captured while
 /// descending rather than by re-walking upwards.
 pub(crate) struct IndexedCall<'a> {
     pub node: Node<'a>,
@@ -268,7 +268,7 @@ impl Descent<'_> {
     fn enter(self, node: Node<'_>, source: &[u8], wants: Wants, language: SourceLanguage) -> Self {
         Self {
             scoring: self.scoring,
-            inside_try: wants.inside_try && (self.inside_try || node.kind() == "try_statement"),
+            inside_try: wants.inside_try && (self.inside_try || is_try_body(node)),
             in_async: wants.in_async
                 && if is_function_like(node) {
                     is_async_function_like(node, source)

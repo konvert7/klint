@@ -67,3 +67,21 @@ fn json_parse_in_a_try_block_of_a_nested_arrow_is_not_flagged() {
 
     assert!(flagged_lines("json-arrow-try", "no-unguarded-json-parse", source).is_empty());
 }
+
+#[test]
+fn json_parse_in_catch_or_finally_is_flagged() {
+    let source = "try {\n  load();\n} catch {\n  JSON.parse(fallback);\n} finally {\n  JSON.parse(raw);\n}\n";
+
+    assert_eq!(
+        flagged_lines("json-catch", "no-unguarded-json-parse", source),
+        vec![4, 6]
+    );
+}
+
+#[test]
+fn json_parse_in_a_catch_inside_an_outer_try_block_is_not_flagged() {
+    let source =
+        "try {\n  try {\n    load();\n  } catch {\n    JSON.parse(fallback);\n  }\n} catch {}\n";
+
+    assert!(flagged_lines("json-outer-try", "no-unguarded-json-parse", source).is_empty());
+}

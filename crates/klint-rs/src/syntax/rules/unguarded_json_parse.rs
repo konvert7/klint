@@ -35,7 +35,7 @@ fn walk_json_parse_calls(
     source: &[u8],
     records: &mut Vec<UnguardedJsonParseRecord>,
 ) {
-    let next_inside_try = inside_try || node.kind() == "try_statement";
+    let next_inside_try = inside_try || is_try_body(node);
     if !next_inside_try && is_json_parse_call(node, source) {
         records.push(UnguardedJsonParseRecord {
             line: node.start_position().row + 1,
@@ -47,6 +47,13 @@ fn walk_json_parse_calls(
     for child in node.children(&mut cursor) {
         walk_json_parse_calls(child, next_inside_try, source, records);
     }
+}
+
+pub(crate) fn is_try_body(node: Node<'_>) -> bool {
+    node.parent()
+        .filter(|parent| parent.kind() == "try_statement")
+        .and_then(|parent| parent.child_by_field_name("body"))
+        == Some(node)
 }
 
 pub(crate) fn is_json_parse_call(node: Node<'_>, source: &[u8]) -> bool {

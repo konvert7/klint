@@ -40,7 +40,7 @@ pub(crate) use same_file_bindings::{SameFileBindings, strip_parentheses};
 pub(crate) use single_char_class::single_char_class_record;
 pub(crate) use string_match::string_match_record;
 pub(crate) use sync_in_async::{is_async_function_like, is_function_like, sync_call_name};
-pub(crate) use unguarded_json_parse::is_json_parse_call;
+pub(crate) use unguarded_json_parse::{is_json_parse_call, is_try_body};
 
 use std::ops::Range;
 

@@ -786,7 +786,7 @@ doc-comments alongside `/** */`.
 
 | Rule | Description |
 |------|-------------|
-| `no-unguarded-json-parse` | `JSON.parse()` called outside a try/catch |
+| `no-unguarded-json-parse` | `JSON.parse()` called outside a `try` block; one in `catch` or `finally` counts as unguarded |
 | `no-sync-in-async` | Sync filesystem calls inside async functions |
 | `no-async-predicate` | Inline `async` function passed to `filter`, `some`, `every`, `find` or `findIndex`; without types, any receiver counts |
 | `no-nested-template-literals` | Template literals nested inside template literals |
