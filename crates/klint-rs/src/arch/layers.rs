@@ -24,10 +24,10 @@ pub(super) fn resolve_layer_mask(
     all_files: &[PathBuf],
 ) -> Vec<bool> {
     let globs = resolve_globs(scope, layers);
-    let include_prefixes: Vec<PathBuf> = globs
+    let include_globs: Vec<&str> = globs
         .iter()
+        .map(String::as_str)
         .filter(|glob| !glob.starts_with('!'))
-        .map(|glob| glob_to_prefix(glob, root))
         .collect();
     let exclude_globs: Vec<&str> = globs
         .iter()
@@ -37,10 +37,10 @@ pub(super) fn resolve_layer_mask(
     all_files
         .iter()
         .map(|file| {
-            include_prefixes
-                .iter()
-                .any(|prefix| path_in_prefix(file, prefix))
-                && !matches_any_glob(&relative_path(root, file), &exclude_globs)
+            let rel_path = relative_path(root, file);
+
+            matches_any_glob(&rel_path, &include_globs)
+                && !matches_any_glob(&rel_path, &exclude_globs)
         })
         .collect()
 }
