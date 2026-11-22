@@ -109,3 +109,20 @@ fn refusal_on_a_two_digit_line_names_the_whole_line() {
     let config = format!("{filler}include: [\"src\"]\nplugins: [other]\n");
     assert_refused(&config, 13);
 }
+
+#[test]
+fn a_refused_migration_during_fix_counts_as_a_warning_in_the_summary() {
+    let config =
+        "include: [\"src\"]\nplugins: [sonar]\nrules:\n  sonar/prefer-string-raw: &sev off\n";
+    let p = yaml(config);
+    let ran = klint(&p.root, &["--fix", "--json"]);
+    let json: serde_json::Value = serde_json::from_str(&ran.stdout)
+        .unwrap_or_else(|err| panic!("json: {err}: {}", ran.all()));
+    let warnings = violations(&json)
+        .iter()
+        .filter(|violation| violation["severity"] == "warn")
+        .count();
+
+    assert!(warnings > 0, "{json}");
+    assert_eq!(json["summary"]["warnings"], warnings, "{json}");
+}
