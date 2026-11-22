@@ -1,3 +1,23 @@
+# [1.12.0](https://github.com/konvert7/klint/compare/v1.11.0...v1.12.0) (2026-11-22)
+
+
+### Bug Fixes
+
+* **cli:** make --fix honour the selected reporter ([4f38914](https://github.com/konvert7/klint/commit/4f3891420ff27b1d34d1ef316803136ec94f2915))
+* **files:** lint the project when --config is a relative "." ([8fcf712](https://github.com/konvert7/klint/commit/8fcf712751f15b4c74095aa9c077183d817698f0))
+* **no-unguarded-json-parse:** report parses in catch and finally ([77a390a](https://github.com/konvert7/klint/commit/77a390a7a42fb6c16e28fb8457e54656b8e37eb3))
+
+
+### Features
+
+* **arch/imports:** report the column of the offending import path ([3365b2b](https://github.com/konvert7/klint/commit/3365b2bb240f6b3cce61c5017e096e95b815a86b))
+* **blank-line-after-block:** add guards option for braceless exiting ifs ([42105e0](https://github.com/konvert7/klint/commit/42105e081079471787aa95ead17f9153a5f566af))
+* **blank-line-before-control-flow:** add guards option to keep guard runs together ([cbcda51](https://github.com/konvert7/klint/commit/cbcda515ca6a6160af56ceae9b15d81cd2fdcb63))
+* **cli:** add --fix=safe and file paths to limit what --fix changes ([ada90c4](https://github.com/konvert7/klint/commit/ada90c48a46e1fbed84bf9317d678e0424589f71))
+* **files:** skip files git ignores, on by default ([0a2d4b2](https://github.com/konvert7/klint/commit/0a2d4b29fc75ac82feda6d32f90cffb021384e95))
+* **naming-convention:** check function and class names per language ([58eb9f1](https://github.com/konvert7/klint/commit/58eb9f193b56c9a393670cc7ee32a4e821944cf0))
+* **output:** report columns for nine more rules and arch patterns ([46ce397](https://github.com/konvert7/klint/commit/46ce397dec56b6917784a44fd01987eaff1d5fc9))
+
 # [1.11.0](https://github.com/konvert7/klint/compare/v1.10.0...v1.11.0) (2026-11-21)
 
 
