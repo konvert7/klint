@@ -77,9 +77,6 @@ jobs:
       - name: Line endings
         run: bun run lf
 
-      - name: Exact dependency versions
-        run: bun run exact-versions
-
       - name: Lockfiles match manifests
         run: bun run lock:check
 

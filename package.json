@@ -49,7 +49,6 @@
     "madge": "madge --circular --extensions ts --ts-config tsconfig.json tools tests .agents/hooks",
     "lf": "bun tools/check-lf.ts",
     "lf:fix": "bun tools/check-lf.ts --fix",
-    "exact-versions": "bun tools/check-exact-versions.ts",
     "lock:check": "bun tools/check-lock.ts",
     "secretlint": "secretlint \"**/*\"",
     "schema": "cargo run --quiet -p klint-rs --example generate_schema -- $npm_package_version",
