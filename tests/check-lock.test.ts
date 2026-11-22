@@ -1,11 +1,12 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   bunLockDirs,
   cargoLockError,
+  checkLock,
   driftedBunLocks,
   isLockInput,
   lockInputsChanged,
@@ -93,6 +94,8 @@ describe("isLockInput", () => {
       "bunfig.toml",
       ".npmrc",
       "a/b/package.json",
+      "patches/@scope%2Fname@1.0.0.patch",
+      "a/patches/x.patch",
     ];
 
     for (const path of [...inputs, "Cargo.toml", "Cargo.lock", "crates/x/Cargo.toml"]) {
@@ -106,6 +109,9 @@ describe("isLockInput", () => {
       "package.json.bak",
       "bun.lockb",
       "Cargo.toml.orig",
+      "mypatches/x.patch",
+      "patches/x.patch.orig",
+      "patches/sub/x.patch",
     ]) {
       expect(isLockInput(path)).toBe(false);
     }
@@ -151,6 +157,28 @@ describe("driftedBunLocks", () => {
     expect(driftedBunLocks(root)).toEqual(["."]);
   });
 
+  test("skips a tracked input deleted from the working tree", () => {
+    const root = bunRepo();
+    writeFileSync(join(root, ".npmrc"), "");
+    commitAll(root);
+    rmSync(join(root, ".npmrc"));
+    expect(driftedBunLocks(root)).toEqual([]);
+  });
+
+  test("names the project when bun install fails", () => {
+    const root = bunRepo();
+    writeFileSync(join(root, "nested", "package.json"), "{");
+    expect(() => driftedBunLocks(root)).toThrow(/^bun install in .*nested failed:\n./);
+  });
+
+  test("removes its scratch copy", () => {
+    const scratchCopies = () =>
+      readdirSync(tmpdir()).filter((name) => name.startsWith("lock-check-")).length;
+    const before = scratchCopies();
+    driftedBunLocks(bunRepo());
+    expect(scratchCopies()).toBe(before);
+  });
+
   test("leaves the checkout's lock untouched", () => {
     const root = bunRepo();
     writeBunManifest(root, DRIFTED);
@@ -172,7 +200,9 @@ describe("cargoLockError", () => {
   test("reports a Cargo.toml change that Cargo.lock does not reflect", () => {
     const root = cargoRepo();
     writeCrate(root, "2.0.0");
-    expect(cargoLockError(root)).toContain("--locked");
+    const error = cargoLockError(root);
+    expect(error).toContain("because --locked was passed");
+    expect(error).toBe(error?.trim() ?? null);
   });
 
   test("passes a folder without a Cargo.lock", () => {
@@ -191,9 +221,84 @@ describe("lockInputsChanged", () => {
     expect(lockInputsChanged(root)).toBe(false);
   });
 
+  test("sees a lock input among other changes", () => {
+    const root = bunRepo();
+    writeFileSync(join(root, "index.ts"), "export {};\n");
+    writeBunManifest(root, DRIFTED);
+    expect(lockInputsChanged(root)).toBe(true);
+  });
+
   test("sees an edited Cargo.toml", () => {
     const root = cargoRepo();
     writeCrate(root, "2.0.0");
     expect(lockInputsChanged(root)).toBe(true);
+  });
+});
+
+describe("checkLock", () => {
+  test("passes a checkout whose locks match", () => {
+    expect(checkLock(bunRepo(), false)).toEqual({
+      exitCode: 0,
+      stdout: "Every lockfile matches its manifests.\n",
+      stderr: "",
+    });
+  });
+
+  test("with changedOnly, skips a checkout whose lock inputs are unchanged", () => {
+    const root = bunRepo();
+    writeBunManifest(join(root, "nested"), DRIFTED);
+    run(root, "git", [
+      "-c",
+      "user.name=t",
+      "-c",
+      "user.email=t@t",
+      "commit",
+      "-qam",
+      "drift",
+    ]);
+
+    expect(checkLock(root, true)).toEqual({
+      exitCode: 0,
+      stdout: "skipped: no package manifest or lockfile changed\n",
+      stderr: "",
+    });
+  });
+
+  test("checks the whole checkout from a subfolder and names each drifted lock", () => {
+    const root = bunRepo();
+    writeBunManifest(join(root, "nested"), DRIFTED);
+
+    expect(checkLock(join(root, "nested"), true)).toEqual({
+      exitCode: 1,
+      stdout: "",
+      stderr:
+        "nested/bun.lock is out of date: run `bun install` in nested.\n" +
+        "Commit the updated lockfile.\n",
+    });
+  });
+
+  test("lists a drifted bun.lock before a drifted Cargo.lock", () => {
+    const root = cargoRepo();
+    writeBunManifest(root, LOCKED);
+    run(root, process.execPath, ["install", "--lockfile-only"]);
+    commitAll(root);
+    writeBunManifest(root, DRIFTED);
+    writeCrate(root, "2.0.0");
+
+    const result = checkLock(root, false);
+    const [bun, cargo] = result.stderr.split("\n");
+
+    expect(result.exitCode).toBe(1);
+    expect(bun).toBe("bun.lock is out of date: run `bun install` in ..");
+    expect(cargo).toBe(
+      "Cargo.lock does not match Cargo.toml: run `cargo build` to update it."
+    );
+    expect(result.stderr).toContain(
+      `${cargoLockError(root)}\nCommit the updated lockfile.\n`
+    );
+  });
+
+  test("fails with git's own message outside a git checkout", () => {
+    expect(() => checkLock(newFixtureDir(), false)).toThrow(/not a git repository/);
   });
 });

@@ -64,7 +64,9 @@ function regenerateBunLock(projectDir: string): void {
   const r = spawnSync(
     process.execPath,
     ["install", "--lockfile-only", "--ignore-scripts"],
-    { cwd: projectDir, encoding: "utf8" }
+    {
+      cwd: projectDir,
+    }
   );
   if (r.status !== 0)
     throw new Error(`bun install in ${projectDir} failed:\n${r.stderr}`);
