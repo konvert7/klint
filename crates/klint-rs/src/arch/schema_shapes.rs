@@ -6,6 +6,10 @@ pub(super) const COUNT_DOC_COMMENTS: &str = "Count doc-comments toward the limit
 
 pub(super) const COMMENT_IGNORE: &str = "Comment lines matching these patterns are structural, not prose — marker comments a build or codegen step reads, for example — and count toward neither limit. A literal substring by default; prefix with `re:` for a regex. Ignored lines still count in the density denominator (they are physical lines) and still hold a comment block together, so a marker cannot be used to split an over-tall block.";
 
+pub(super) const KEY_PATH: &str = "Dotted key path in a JSON, YAML or TOML file, e.g. `compilerOptions.strict` or `dependencies.*`. `*` matches any one key or list index; list items are numbered from 0.";
+
+pub(super) const VALUE_PATTERN: &str = "Value the key must have. A literal must equal the value's text exactly (`true`, `2021`); prefix with `re:` to search with a regular expression instead (`re:^\\d`). Quotes around strings are not part of the value.";
+
 const FORBIDDEN_SCOPE: &str = "Layer name(s) or glob(s) the pattern is forbidden in. Files outside the scope are not checked.";
 
 #[derive(JsonSchema)]
@@ -63,6 +67,25 @@ pub(super) enum ForbiddenRule {
         in_scope: StringOrVec,
         #[schemars(
             description = "Required error message explaining why the raw element is forbidden. Typically points at the design-system replacement (e.g. `Use <Button /> from @/components/ui/button`)."
+        )]
+        message: String,
+        severity: Option<ArchSeverity>,
+    },
+    #[schemars(extend("additionalProperties" = false))]
+    Key {
+        #[schemars(description = KEY_PATH)]
+        key: String,
+        #[schemars(
+            description = "Forbid only values that match. A literal must equal the value's text exactly; prefix with `re:` for a regular expression. Without it, the key itself is forbidden."
+        )]
+        pattern: Option<String>,
+        #[serde(rename = "in")]
+        #[schemars(
+            description = "Layer name(s) or glob(s) naming the JSON, YAML or TOML files to check, e.g. `**/package.json`."
+        )]
+        in_scope: StringOrVec,
+        #[schemars(
+            description = "Required error message explaining why the key or value is forbidden."
         )]
         message: String,
         severity: Option<ArchSeverity>,

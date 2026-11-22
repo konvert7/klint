@@ -1,5 +1,6 @@
 mod comments;
 mod imports;
+mod keys;
 mod layers;
 mod patterns;
 mod resolve;
@@ -7,8 +8,10 @@ mod schema_shapes;
 
 use crate::files::relative_path;
 use crate::output::Violation;
-use crate::syntax::CommentRecord;
-use schema_shapes::{ArchSeverity, COMMENT_IGNORE, COUNT_DOC_COMMENTS, TypeOnly};
+use crate::syntax::{CommentRecord, config_entries};
+use schema_shapes::{
+    ArchSeverity, COMMENT_IGNORE, COUNT_DOC_COMMENTS, KEY_PATH, TypeOnly, VALUE_PATTERN,
+};
 use schemars::JsonSchema;
 use serde::Deserialize;
 use std::collections::BTreeMap;
@@ -17,6 +20,7 @@ use tree_sitter::Node;
 
 use comments::{CommentLines, CommentPass, plan_block_passes, plan_density_passes};
 use imports::{ImportPass, plan_import_passes};
+use keys::{KeyPass, plan_key_passes};
 use layers::{file_naming_globs, resolve_text_mask};
 use patterns::{PatternPass, plan_forbidden_passes, plan_singleton_passes};
 use resolve::ResolveContext;
@@ -42,6 +46,10 @@ pub(crate) struct ArchConfig {
         description = "Singleton-location rules. Pin a pattern to one file; every other touch is a violation."
     )]
     singleton: Option<Vec<ArchSingletonRule>>,
+    #[schemars(
+        description = "Required-key rules for JSON, YAML and TOML files: a key that must exist, optionally with a value pattern."
+    )]
+    required: Option<Vec<ArchRequiredRule>>,
     #[serde(rename = "maxLines")]
     #[schemars(
         description = "Per-file line-count limits. Cap how long files in a layer may grow, with different ceilings per scope."
@@ -109,9 +117,36 @@ struct ArchForbiddenRule {
     pattern: Option<String>,
     #[serde(rename = "jsx-element")]
     jsx_element: Option<StringOrVec>,
+    key: Option<String>,
     #[serde(rename = "in")]
     in_scope: StringOrVec,
     message: String,
+    severity: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[schemars(
+    deny_unknown_fields,
+    description = "A required-key rule. Every JSON, YAML or TOML file in scope must have the key, and with `pattern` its value must match.",
+    extend("examples" = [
+        "arch:\n  required:\n    - key: compilerOptions.strict\n      pattern: \"true\"\n      in: tsconfig.json\n      message: \"Keep strict mode on\""
+    ])
+)]
+struct ArchRequiredRule {
+    #[schemars(description = KEY_PATH)]
+    key: String,
+    #[schemars(description = VALUE_PATTERN)]
+    pattern: Option<String>,
+    #[serde(rename = "in")]
+    #[schemars(
+        description = "Layer name(s) or glob(s) naming the JSON, YAML or TOML files that must have the key."
+    )]
+    in_scope: StringOrVec,
+    #[schemars(
+        description = "Error message shown when the key is missing or its value does not match."
+    )]
+    message: String,
+    #[schemars(with = "Option<ArchSeverity>")]
     severity: Option<String>,
 }
 
@@ -260,6 +295,7 @@ pub(crate) struct ArchPlan {
     max_lines: Vec<MaxLinesPass>,
     density: Vec<CommentPass>,
     block: Vec<CommentPass>,
+    keys: Vec<KeyPass>,
     resolve: ResolveContext,
 }
 
@@ -272,10 +308,12 @@ impl ArchConfig {
             .flatten()
             .filter_map(|rule| rule.in_scope.as_ref());
         let max_lines = self.max_lines.iter().flatten().map(|rule| &rule.in_scope);
+        let required = self.required.iter().flatten().map(|rule| &rule.in_scope);
 
         forbidden
             .chain(singleton)
             .chain(max_lines)
+            .chain(required)
             .flat_map(|scope| file_naming_globs(scope, self.layers.as_ref(), root))
             .collect()
     }
@@ -290,6 +328,7 @@ impl ArchPlan {
             max_lines: plan_max_lines_passes(arch, files, root),
             density: plan_density_passes(arch, files, root),
             block: plan_block_passes(arch, files, root),
+            keys: plan_key_passes(arch, files, root),
             resolve: ResolveContext::build(root, files),
         }
     }
@@ -301,6 +340,7 @@ impl ArchPlan {
             + self.max_lines.len()
             + self.density.len()
             + self.block.len()
+            + self.keys.len()
     }
 
     /// Whether any arch pass covering this file needs its AST.
@@ -366,6 +406,33 @@ impl ArchPlan {
         for pass in self.density.iter().chain(&self.block) {
             out.push(match (&comment_lines, pass.covers(file_index)) {
                 (Some(lines), true) => pass.scan(file, root, content, lines),
+                _ => Vec::new(),
+            });
+        }
+
+        self.scan_keys(file_index, file, root, content, out);
+    }
+
+    fn scan_keys(
+        &self,
+        file_index: usize,
+        file: &Path,
+        root: &Path,
+        content: &str,
+        out: &mut Vec<Vec<Violation>>,
+    ) {
+        let entries = self
+            .keys
+            .iter()
+            .any(|pass| pass.covers(file_index, file))
+            .then(|| config_entries(file, content))
+            .flatten();
+
+        for pass in &self.keys {
+            out.push(match &entries {
+                Some(entries) if pass.covers(file_index, file) => {
+                    pass.scan(file, root, content, entries)
+                }
                 _ => Vec::new(),
             });
         }

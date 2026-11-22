@@ -551,6 +551,38 @@ arch:
 - These files are read as plain text, line by line. `jsx-element`, `arch.imports`, the comment budgets and the source rules never run on them.
 - A file a glob names must be UTF-8 text; a binary file stops the run with a read error.
 
+### Config Keys
+
+For JSON (comments allowed), YAML and TOML files, `forbidden` and `required` can check a key and its value instead of a line:
+
+```yaml
+arch:
+  forbidden:
+    - key: "dependencies.*"
+      pattern: "re:^[\\^~]"
+      in: "**/package.json"
+      message: "Pin exact versions"
+    - key: "services.*.image"
+      pattern: "re::latest$"
+      in: "compose.yaml"
+      message: "Pin image tags"
+  required:
+    - key: compilerOptions.strict
+      pattern: "true"
+      in: tsconfig.json
+      message: "Keep strict mode on"
+    - key: package.rust-version
+      in: Cargo.toml
+      message: "Set rust-version"
+```
+
+- `key` is a dotted path. `*` matches any one key or list index, and list items are numbered from 0 (`jobs.*.steps.0.uses`). TOML tables, dotted keys and `[[array]]` tables give the same paths as the nested form.
+- `pattern` is the value to match. A literal must equal the value's text exactly (`true`, `2024`); `re:` searches with a regular expression. Quotes around strings are not part of the value.
+- `forbidden` with `key` reports each key whose value matches `pattern`. Without `pattern`, it reports the key itself.
+- `required` reports a missing key on line 1 of the file, and each key whose value does not match `pattern`. A parent counts as present when it has children, so `dependencies` is found through `[dependencies.serde]`.
+- The report points at the key's line and column. A file that does not parse is skipped.
+- The file type comes from the extension: `.json`, `.jsonc`, `.yaml`, `.yml`, `.toml`. The `in:` glob must name the files, as for any config file (see above).
+
 ### Comment Budgets
 
 Push intent into names and code rather than prose — and keep token cost down — by capping how much of a file may be comments. Two independent limits, both counting only ordinary `//`, `/* */`, and `#` comments; doc-comments (`/** */` JSDoc and Python docstrings) are exempt by default so documentation stays free.

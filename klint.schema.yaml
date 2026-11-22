@@ -72,6 +72,36 @@ properties:
             - in
             - message
             type: object
+          - additionalProperties: false
+            properties:
+              in:
+                anyOf:
+                - type: string
+                - items:
+                    type: string
+                  type: array
+                description: Layer name(s) or glob(s) naming the JSON, YAML or TOML files to check, e.g. `**/package.json`.
+              key:
+                description: Dotted key path in a JSON, YAML or TOML file, e.g. `compilerOptions.strict` or `dependencies.*`. `*` matches any one key or list index; list items are numbered from 0.
+                type: string
+              message:
+                description: Required error message explaining why the key or value is forbidden.
+                type: string
+              pattern:
+                description: Forbid only values that match. A literal must equal the value's text exactly; prefix with `re:` for a regular expression. Without it, the key itself is forbidden.
+                type: string
+              severity:
+                description: Severity for the arch rule. "error" exits with code 2; "warn" reports but exits 0. (arch rules cannot be "off" — remove the entry instead.)
+                enum:
+                - error
+                - warn
+                - null
+                type: string
+            required:
+            - key
+            - in
+            - message
+            type: object
           description: A forbidden-pattern rule. Blocks either a literal substring (`pattern:`) or a JSX element (`jsx-element:`) inside specific layers.
           examples:
           - |-
@@ -321,6 +351,49 @@ properties:
           required:
           - limit
           - in
+          type: object
+        type: array
+      required:
+        description: 'Required-key rules for JSON, YAML and TOML files: a key that must exist, optionally with a value pattern.'
+        items:
+          additionalProperties: false
+          description: A required-key rule. Every JSON, YAML or TOML file in scope must have the key, and with `pattern` its value must match.
+          examples:
+          - |-
+            arch:
+              required:
+                - key: compilerOptions.strict
+                  pattern: "true"
+                  in: tsconfig.json
+                  message: "Keep strict mode on"
+          properties:
+            in:
+              anyOf:
+              - type: string
+              - items:
+                  type: string
+                type: array
+              description: Layer name(s) or glob(s) naming the JSON, YAML or TOML files that must have the key.
+            key:
+              description: Dotted key path in a JSON, YAML or TOML file, e.g. `compilerOptions.strict` or `dependencies.*`. `*` matches any one key or list index; list items are numbered from 0.
+              type: string
+            message:
+              description: Error message shown when the key is missing or its value does not match.
+              type: string
+            pattern:
+              description: Value the key must have. A literal must equal the value's text exactly (`true`, `2021`); prefix with `re:` to search with a regular expression instead (`re:^\d`). Quotes around strings are not part of the value.
+              type: string
+            severity:
+              description: Severity for the arch rule. "error" exits with code 2; "warn" reports but exits 0. (arch rules cannot be "off" — remove the entry instead.)
+              enum:
+              - error
+              - warn
+              - null
+              type: string
+          required:
+          - key
+          - in
+          - message
           type: object
         type: array
       singleton:

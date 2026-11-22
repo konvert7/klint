@@ -31,6 +31,7 @@ pub(super) fn plan_forbidden_passes(
 
     rules
         .iter()
+        .filter(|rule| rule.key.is_none())
         .filter_map(|rule| {
             let scope = resolve_text_mask(&rule.in_scope, arch.layers.as_ref(), root, files);
             build_pass(
@@ -226,6 +227,13 @@ impl LineMatcher {
                 .find(pattern.as_str())
                 .map(|start| start..start + pattern.len()),
             Self::Regex(regex) => regex.find(line).map(|found| found.range()),
+        }
+    }
+
+    pub(super) fn matches_value(&self, value: &str) -> bool {
+        match self {
+            Self::Literal(pattern) => value == pattern,
+            Self::Regex(regex) => regex.is_match(value),
         }
     }
 

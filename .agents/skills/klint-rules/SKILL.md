@@ -209,6 +209,22 @@ path. `**` and `src/**` still mean source files only. `include` and `.gitignore`
 the file's folder to `include`. These files are plain text: no `jsx-element`, imports or comment
 budgets.
 
+### Config keys — JSON, YAML, TOML values
+
+For `.json`/`.jsonc`/`.yaml`/`.yml`/`.toml` files, check a key instead of a line. `key` is a dotted
+path (`*` = any one key or list index). A literal `pattern` must equal the value; `re:` searches.
+
+```yaml
+arch:
+  forbidden:
+    - {key: "dependencies.*", pattern: "re:^[\\^~]", in: "**/package.json", message: "Pin exact versions"}
+  required:
+    - {key: compilerOptions.strict, pattern: "true", in: tsconfig.json, message: "Keep strict mode on"}
+```
+
+`forbidden` reports matching values (or the key itself without `pattern`); `required` reports a
+missing key on line 1 and wrong values at their key. A file that does not parse is skipped.
+
 ### Comment budget — cap explanatory prose
 
 Two ceilings on how much of a file may be comments. Use them to push intent into names and small
