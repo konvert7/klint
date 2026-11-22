@@ -21,3 +21,5 @@ crates/klint-rs/skill/
 # cargo-mutants reports
 mutants.out/
 mutants.out.old/
+.stryker-tmp/
+reports/

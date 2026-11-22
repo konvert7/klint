@@ -12,11 +12,16 @@ import { basename, dirname, join } from "node:path";
 
 const BUN_LOCK_INPUTS = new Set(["package.json", "bun.lock", "bunfig.toml", ".npmrc"]);
 const CARGO_LOCK_INPUTS = new Set(["Cargo.toml", "Cargo.lock"]);
+const PATCHED_DEPENDENCY = /(^|\/)patches\/[^/]+\.patch$/;
+
+function isBunLockInput(path: string): boolean {
+  return BUN_LOCK_INPUTS.has(basename(path)) || PATCHED_DEPENDENCY.test(path);
+}
 
 export function isLockInput(path: string): boolean {
   const name = basename(path);
 
-  return BUN_LOCK_INPUTS.has(name) || CARGO_LOCK_INPUTS.has(name);
+  return isBunLockInput(path) || CARGO_LOCK_INPUTS.has(name);
 }
 
 function git(root: string, args: string[]): string {
@@ -73,9 +78,7 @@ function bunLockChangedOnRegenerate(projectDir: string): boolean {
 }
 
 export function driftedBunLocks(root: string): string[] {
-  const inputs = filesInCheckout(root).filter((path) =>
-    BUN_LOCK_INPUTS.has(basename(path))
-  );
+  const inputs = filesInCheckout(root).filter(isBunLockInput);
   const scratch = mkdtempSync(join(tmpdir(), "lock-check-"));
 
   try {
