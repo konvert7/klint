@@ -1,5 +1,6 @@
-use super::layers::resolve_layer_mask;
+use super::layers::resolve_text_mask;
 use super::*;
+use crate::files::is_supported_source;
 use crate::files::{normalize_path, relative_path};
 use crate::output::{Span, Violation};
 use crate::syntax::{is_jsx_path, scan_jsx_elements_from_tree};
@@ -30,8 +31,9 @@ pub(super) fn plan_forbidden_passes(
 
     rules
         .iter()
+        .filter(|rule| rule.key.is_none())
         .filter_map(|rule| {
-            let scope = resolve_layer_mask(&rule.in_scope, arch.layers.as_ref(), root, files);
+            let scope = resolve_text_mask(&rule.in_scope, arch.layers.as_ref(), root, files);
             build_pass(
                 "arch/forbidden",
                 scope,
@@ -58,8 +60,8 @@ pub(super) fn plan_singleton_passes(
         .filter_map(|rule| {
             let only_file = normalize_path(&root.join(&rule.only));
             let mut scope = match &rule.in_scope {
-                Some(in_scope) => resolve_layer_mask(in_scope, arch.layers.as_ref(), root, files),
-                None => vec![true; files.len()],
+                Some(in_scope) => resolve_text_mask(in_scope, arch.layers.as_ref(), root, files),
+                None => files.iter().map(|file| is_supported_source(file)).collect(),
             };
 
             for (index, file) in files.iter().enumerate() {
@@ -225,6 +227,13 @@ impl LineMatcher {
                 .find(pattern.as_str())
                 .map(|start| start..start + pattern.len()),
             Self::Regex(regex) => regex.find(line).map(|found| found.range()),
+        }
+    }
+
+    pub(super) fn matches_value(&self, value: &str) -> bool {
+        match self {
+            Self::Literal(pattern) => value == pattern,
+            Self::Regex(regex) => regex.is_match(value),
         }
     }
 

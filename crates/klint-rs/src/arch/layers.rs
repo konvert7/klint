@@ -1,5 +1,5 @@
 use super::*;
-use crate::files::{match_pattern, normalize_path, relative_path};
+use crate::files::{is_supported_source, match_pattern, normalize_path, relative_path};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -24,10 +24,10 @@ pub(super) fn resolve_layer_mask(
     all_files: &[PathBuf],
 ) -> Vec<bool> {
     let globs = resolve_globs(scope, layers);
-    let include_prefixes: Vec<PathBuf> = globs
+    let include_globs: Vec<&str> = globs
         .iter()
+        .map(String::as_str)
         .filter(|glob| !glob.starts_with('!'))
-        .map(|glob| glob_to_prefix(glob, root))
         .collect();
     let exclude_globs: Vec<&str> = globs
         .iter()
@@ -37,12 +37,53 @@ pub(super) fn resolve_layer_mask(
     all_files
         .iter()
         .map(|file| {
-            include_prefixes
-                .iter()
-                .any(|prefix| path_in_prefix(file, prefix))
-                && !matches_any_glob(&relative_path(root, file), &exclude_globs)
+            let rel_path = relative_path(root, file);
+
+            matches_any_glob(&rel_path, &include_globs)
+                && !matches_any_glob(&rel_path, &exclude_globs)
         })
         .collect()
+}
+
+pub(super) fn resolve_text_mask(
+    scope: &StringOrVec,
+    layers: Option<&BTreeMap<String, Vec<String>>>,
+    root: &Path,
+    all_files: &[PathBuf],
+) -> Vec<bool> {
+    let naming = file_naming_globs(scope, layers, root);
+    let naming: Vec<&str> = naming.iter().map(String::as_str).collect();
+
+    resolve_layer_mask(scope, layers, root, all_files)
+        .into_iter()
+        .zip(all_files)
+        .map(|(inside, file)| {
+            inside
+                && (is_supported_source(file)
+                    || matches_any_glob(&relative_path(root, file), &naming))
+        })
+        .collect()
+}
+
+pub(super) fn file_naming_globs(
+    scope: &StringOrVec,
+    layers: Option<&BTreeMap<String, Vec<String>>>,
+    root: &Path,
+) -> Vec<String> {
+    resolve_globs(scope, layers)
+        .into_iter()
+        .filter(|glob| !glob.starts_with('!') && names_files(glob, root))
+        .collect()
+}
+
+fn names_files(glob: &str, root: &Path) -> bool {
+    if !glob.contains('*') {
+        return root.join(glob).is_file();
+    }
+
+    glob.rsplit('/')
+        .next()
+        .is_some_and(|last| last.chars().any(|ch| ch != '*'))
 }
 
 fn matches_any_glob(rel_path: &str, globs: &[&str]) -> bool {

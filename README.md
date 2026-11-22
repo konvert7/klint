@@ -530,6 +530,68 @@ arch:
 
 `maxLines` applies to every language klint scans, with no formatter dependency.
 
+### Config and Other Text Files
+
+`forbidden`, `singleton` and `maxLines` also check files that are not source code, such as `package.json`, YAML, TOML, `.prisma` schemas, `.env.example` or a `Dockerfile`, when an `in:` glob names them:
+
+```yaml
+include: ["."]
+arch:
+  forbidden:
+    - pattern: "\"^"
+      in: "**/package.json"
+      message: "Pin exact versions"
+  maxLines:
+    - limit: 400
+      in: "prisma/*.prisma"
+```
+
+- A glob names files when its last part has a literal in it (`**/package.json`, `*.yaml`, `prisma/*.prisma`), or when it is the path of an existing file. `**` and `src/**` keep meaning the source files, so an existing rule never starts reading READMEs or lockfiles.
+- `include` and `.gitignore` still apply: with `include: ["src"]`, a `package.json` at the root is not read.
+- These files are read as plain text, line by line. `jsx-element`, `arch.imports`, the comment budgets and the source rules never run on them.
+- A file a glob names must be UTF-8 text; a binary file stops the run with a read error.
+
+### Config Keys
+
+For JSON (comments allowed), YAML and TOML files, `forbidden` and `required` can check a key and its value instead of a line:
+
+```yaml
+arch:
+  forbidden:
+    - key: "dependencies.*"
+      pattern: "re:^[\\^~]"
+      in: "**/package.json"
+      message: "Pin exact versions"
+    - key: "services.*.image"
+      pattern: "re::latest$"
+      in: "compose.yaml"
+      message: "Pin image tags"
+  required:
+    - key: compilerOptions.strict
+      pattern: "true"
+      in: tsconfig.json
+      message: "Keep strict mode on"
+    - key: package.rust-version
+      in: Cargo.toml
+      message: "Set rust-version"
+```
+
+- `key` is a dotted path, or a list of them. Within a segment `*` matches any text (`*Dependencies`), `**` matches one or more segments (`overrides.**`), and list items are numbered from 0 (`jobs.*.steps.0.uses`). In a list, an entry starting with `!` excludes the keys it matches. A key name that itself contains a dot cannot be written. TOML tables, dotted keys and `[[array]]` tables give the same paths as the nested form.
+- `pattern` is the value to match. A literal must equal the value's text exactly (`true`, `2024`); `re:` searches with a regular expression. Quotes around strings are not part of the value.
+- `forbidden` with `key` reports each key whose value matches `pattern`. Without `pattern`, it reports the key itself.
+- `required` without a wildcard reports a missing key on line 1 of the file, and the key if its value does not match `pattern`. A parent counts as present when it has children, so `dependencies` is found through `[dependencies.serde]`.
+- `required` with a wildcard means "every match": each matching key that has a value must match `pattern`, and a file with no match is fine. This pins every dependency in every `package.json` to an exact version, except packages stamped at release:
+
+  ```yaml
+  required:
+    - key: ["*Dependencies.*", "overrides.**", "!optionalDependencies.@acme/native-*"]
+      pattern: "re:^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$"
+      in: "**/package.json"
+      message: "Pin exact versions"
+  ```
+- The report points at the key's line and column. A file that does not parse is skipped.
+- The file type comes from the extension: `.json`, `.jsonc`, `.yaml`, `.yml`, `.toml`. The `in:` glob must name the files, as for any config file (see above).
+
 ### Comment Budgets
 
 Push intent into names and code rather than prose — and keep token cost down — by capping how much of a file may be comments. Two independent limits, both counting only ordinary `//`, `/* */`, and `#` comments; doc-comments (`/** */` JSDoc and Python docstrings) are exempt by default so documentation stays free.

@@ -201,6 +201,33 @@ arch:
 
 Required: `limit` + `in`. The count is **total physical lines** — blanks and comments included, not code lines — and a file over the limit is flagged at line `limit + 1`. Enforced identically in the TS and Rust engines, across every language klint scans.
 
+### Config and text files — package.json, YAML, TOML, Prisma
+
+`forbidden`, `singleton` and `maxLines` also read non-source files when an `in:` glob names them: its
+last part has a literal (`**/package.json`, `*.yaml`, `prisma/*.prisma`) or it is an existing file's
+path. `**` and `src/**` still mean source files only. `include` and `.gitignore` still apply, so add
+the file's folder to `include`. These files are plain text: no `jsx-element`, imports or comment
+budgets.
+
+### Config keys — JSON, YAML, TOML values
+
+For `.json`/`.jsonc`/`.yaml`/`.yml`/`.toml` files, check a key instead of a line. `key` is a dotted
+path or a list of them: `*` matches text within a segment (`*Dependencies`), `**` one or more
+segments, and a `!` entry excludes. A literal `pattern` must equal the value; `re:` searches.
+
+```yaml
+arch:
+  forbidden:
+    - {key: "dependencies.*", pattern: "re:^[\\^~]", in: "**/package.json", message: "Pin exact versions"}
+  required:
+    - {key: compilerOptions.strict, pattern: "true", in: tsconfig.json, message: "Keep strict mode on"}
+```
+
+`forbidden` reports matching values (or the key itself without `pattern`). `required` without a
+wildcard reports a missing key on line 1 and a wrong value at its key; with a wildcard it means
+"every match must fit", so `key: ["*Dependencies.*", "overrides.**"]` with an exact-semver regex pins
+every dependency. A file that does not parse is skipped.
+
 ### Comment budget — cap explanatory prose
 
 Two ceilings on how much of a file may be comments. Use them to push intent into names and small

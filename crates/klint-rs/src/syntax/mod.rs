@@ -1,6 +1,7 @@
 mod architecture;
 mod blank_lines;
 mod complexity;
+mod config;
 mod function_length;
 mod naming;
 mod rules;
@@ -12,6 +13,9 @@ pub(crate) use blank_lines::{
 pub(crate) use complexity::{
     FunctionScore, ScoringContext, function_name, function_name_bytes, is_scored_function,
     score_node, sort_by_position,
+};
+pub(crate) use config::{
+    ConfigEntry, config_entries, is_config_path, path_matches, path_starts_with,
 };
 pub(crate) use function_length::{
     FunctionLength, LineTally, LineTotals, is_comment, is_token, measured_body,
