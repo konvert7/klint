@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -179,6 +179,32 @@ describe("semantic-release native npm plugin", () => {
   });
 });
 
+type SpawnResult = { status: number | null; stdout?: string; stderr?: string };
+
+function recordingSpawn(result: SpawnResult) {
+  const calls: unknown[][] = [];
+
+  return {
+    calls,
+    spawnSync(...args: unknown[]) {
+      calls.push(args);
+
+      return result;
+    },
+  };
+}
+
+async function withSkipEnv(run: () => unknown): Promise<void> {
+  const previous = process.env.KLINT_SKIP_MISSING_NATIVE_PUBLISH;
+  process.env.KLINT_SKIP_MISSING_NATIVE_PUBLISH = "1";
+
+  try {
+    await run();
+  } finally {
+    restoreEnv("KLINT_SKIP_MISSING_NATIVE_PUBLISH", previous);
+  }
+}
+
 function fixture(options: { skipBinaryFor?: string; badNameFor?: string } = {}): string {
   const cwd = mkdtempSync(join(tmpdir(), "klint-native-npm-plugin-"));
 
@@ -216,3 +242,110 @@ function restoreEnv(name: string, value: string | undefined): void {
   if (value === undefined) delete process.env[name];
   else process.env[name] = value;
 }
+
+describe("semantic-release native npm plugin, edge cases", () => {
+  const cwds: string[] = [];
+  const newFixture = () => {
+    const cwd = fixture();
+    cwds.push(cwd);
+
+    return cwd;
+  };
+
+  afterEach(() => {
+    for (const cwd of cwds.splice(0)) rmSync(cwd, { recursive: true, force: true });
+  });
+
+  test("verifyConditions accepts the expected package names", async () => {
+    await expect(verifyConditions({}, { cwd: newFixture() })).resolves.toBeUndefined();
+  });
+
+  test("prepare fails without a release version", async () => {
+    await expect(prepare({}, { cwd: newFixture() })).rejects.toThrow(
+      new Error("semantic-release did not provide nextRelease.version")
+    );
+  });
+
+  test("publish runs npm publish --access public in every package folder, in order", async () => {
+    const cwd = newFixture();
+    const npm = recordingSpawn({ status: 0 });
+
+    await publish(npm, { cwd });
+
+    expect(npm.calls).toEqual(
+      PACKAGES.map(([dir]) => [
+        "npm",
+        ["publish", "--access", "public"],
+        {
+          cwd: join(cwd, "npm", "native", dir),
+          encoding: "utf-8",
+          stdio: ["ignore", "pipe", "pipe"],
+        },
+      ])
+    );
+  });
+
+  test("publish forwards npm's output", async () => {
+    const out = spyOn(process.stdout, "write").mockImplementation(() => true);
+    const err = spyOn(process.stderr, "write").mockImplementation(() => true);
+
+    try {
+      await publish(recordingSpawn({ status: 0, stdout: "out", stderr: "err" }), {
+        cwd: newFixture(),
+      });
+      expect(out.mock.calls).toEqual(PACKAGES.map(() => ["out"]));
+      expect(err.mock.calls).toEqual(PACKAGES.map(() => ["err"]));
+    } finally {
+      out.mockRestore();
+      err.mockRestore();
+    }
+  });
+
+  test("publish reports a killed npm as exit code -1", async () => {
+    await expect(
+      publish(recordingSpawn({ status: null }), { cwd: newFixture() })
+    ).rejects.toThrow(
+      new Error("@konvert7/klint-darwin-arm64 npm publish failed with exit code -1")
+    );
+  });
+
+  test("a dry run logs once and never calls npm, and needs no logger", async () => {
+    const logs: string[] = [];
+    const npm = recordingSpawn({ status: 0 });
+
+    await publish(npm, {
+      cwd: newFixture(),
+      options: { dryRun: true },
+      logger: { log: (message: string) => logs.push(message) },
+    });
+    await publish(npm, { cwd: newFixture(), options: { dryRun: true } });
+
+    expect(logs).toEqual(["Dry run: skipping native npm publishes"]);
+    expect(npm.calls).toEqual([]);
+  });
+
+  test.each([
+    { stdout: "npm error code E404" },
+    { stderr: "npm error 404 Not Found - PUT" },
+    { stderr: "package not found" },
+    { stdout: "could not be found or you do not have permission to use it" },
+  ])("with the escape hatch, skips a package npm reports missing: %p", async (output) => {
+    await withSkipEnv(() =>
+      expect(
+        publish(recordingSpawn({ status: 1, ...output }), { cwd: newFixture() })
+      ).resolves.toBeUndefined()
+    );
+  });
+
+  test("with the escape hatch, still fails on other npm errors", async () => {
+    await withSkipEnv(() =>
+      expect(
+        publish(recordingSpawn({ status: 1, stderr: "npm error code E500" }), {
+          cwd: newFixture(),
+        })
+      ).rejects.toThrow(
+        "@konvert7/klint-darwin-arm64 npm publish failed with exit code 1"
+      )
+    );
+  });
+});

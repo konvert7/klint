@@ -101,13 +101,17 @@ function emulatingPackage(
   );
 }
 
-function currentLibc(): NativeLibc | undefined {
-  if (process.platform !== "linux") return undefined;
-  const report = process.report.getReport() as {
-    header?: { glibcVersionRuntime?: string };
-  };
+interface ProcessReport {
+  header?: { glibcVersionRuntime?: string };
+}
 
-  return report.header?.glibcVersionRuntime ? "glibc" : "musl";
+export function currentLibc(
+  platform: string = process.platform,
+  report: () => ProcessReport = () => process.report.getReport() as ProcessReport
+): NativeLibc | undefined {
+  if (platform !== "linux") return undefined;
+
+  return report().header?.glibcVersionRuntime ? "glibc" : "musl";
 }
 
 export function nativePackages(): NativePackage[] {
