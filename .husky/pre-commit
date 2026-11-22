@@ -8,7 +8,6 @@ bun run jscpd
 bun run klint
 bun run madge
 bun run lf
-bun run exact-versions
 bun run secretlint
 cargo fmt --check
 cargo check -p klint-rs

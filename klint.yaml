@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=./klint.schema.json
 
-include: ["**/*.ts", "crates/**/*.rs", "!tests/complexity-sonarjs-corpus.ts", "!tests/function-length-biome-corpus.ts", "!**/node_modules/**", "!target/**"]
+include: ["**/*.ts", "crates/**/*.rs", "**/package.json", "!tests/complexity-sonarjs-corpus.ts", "!tests/function-length-biome-corpus.ts", "!**/node_modules/**", "!target/**"]
 rules:
   recommended: true
   core:
@@ -52,3 +52,9 @@ arch:
     - limit: 2
       in: [engine, engine-tests]
       message: "Comment block too tall — extract a well-named function instead of stacking comment lines."
+
+  required:
+    - key: ["*Dependencies.*", "overrides.**", "!optionalDependencies.@konvert7/klint-*"]
+      pattern: "re:^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$"
+      in: "**/package.json"
+      message: "Pin the exact version bun.lock resolves (bun add --exact <name>@<version>); the native packages are stamped at release."
