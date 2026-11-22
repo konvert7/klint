@@ -5,6 +5,9 @@
 # ArchPlan::needs_tree, needs_comments and scan_file's tree check only decide
 # whether a file is parsed or its comments read; every pass checks its own
 # scope before reporting, so doing the work anyway changes no output.
+# Engine::scan_file's scans_rules guards, covers_with_tree and worker_count
+# decide how much is parsed, indexed and in how many threads; a file no rule
+# covers or without a tree yields no findings either way.
 exclude_re = [
   "replace compiled_version -> ",
   "replace \\+ with \\* in match_component",
@@ -12,4 +15,8 @@ exclude_re = [
   "replace && with \\|\\| in ArchPlan::needs_tree",
   "replace ArchPlan::needs_comments -> bool with true",
   "replace && with \\|\\| in ArchPlan::scan_file",
+  "replace match guard scans_rules with true in Engine<'_>::scan_file",
+  "replace && with \\|\\| in Engine<'_>::scan_file",
+  "replace Engine<'_>::covers_with_tree -> bool with true",
+  "replace worker_count -> usize with 1",
 ]
