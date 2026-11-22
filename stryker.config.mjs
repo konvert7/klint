@@ -63,11 +63,11 @@ export default {
     inspectorTimeout: 60000,
   },
   reporters: ["clear-text", "progress", "html"],
-  // Ratchet, as in PAL. `break` gates the diff run CI makes on each pull request; raise it
-  // once the modules a change touches measure above the new number, lower it only with
-  // the reason written here.
-  //   rung 1 — 2026-11-22: 60.41% ring -> break 55
-  thresholds: { high: 80, low: 60, break: 55 },
+  // Ratchet. CI runs the whole ring on every pull request (under a minute), so `break`
+  // gates the total; raise it as the score rises, lower it only with the reason here.
+  //   rung 1 — 2026-11-22: 60.41% ring -> break 55 (diff runs)
+  //   rung 2 — 2026-11-22: 97.88% ring -> break 95 (whole ring)
+  thresholds: { high: 98, low: 95, break: 95 },
   // Stryker copies the project into a sandbox with fs.copyFile, which throws ENOTSUP on a
   // symlink; target/ is the Rust build output, tens of gigabytes the suite never reads.
   ignorePatterns: [
