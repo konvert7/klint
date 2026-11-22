@@ -1,14 +1,18 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
-function listTrackedFilesWithEol(): string[] {
-  const r = spawnSync("git", ["ls-files", "--eol"], { encoding: "utf8" });
-  if (r.status !== 0) {
-    process.stderr.write(r.stderr || "git ls-files --eol failed\n");
-    process.exit(1);
-  }
+export interface CheckResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}
 
-  return r.stdout.split("\n").filter(Boolean);
+function listTrackedFilesWithEol(root: string): string[] {
+  const r = spawnSync("git", ["ls-files", "--eol"], { cwd: root, encoding: "utf8" });
+  if (r.status !== 0) throw new Error(r.stderr || "git ls-files --eol failed\n");
+
+  return r.stdout.split("\n");
 }
 
 export function hasCarriageReturn(eolLine: string): boolean {
@@ -28,37 +32,56 @@ export function isBinary(contents: Buffer): boolean {
 function convertToLf(path: string): boolean {
   const contents = readFileSync(path);
   if (isBinary(contents)) return false;
-  writeFileSync(path, contents.toString("utf8").replaceAll("\r\n", "\n"), "utf8");
+  writeFileSync(path, contents.toString("utf8").replaceAll("\r\n", "\n"));
 
   return true;
 }
 
-function reportAndExit(offenders: string[]): never {
-  process.stderr.write(
-    `CRLF found in tracked files (LF required):\n${offenders.join("\n")}\n` +
-      `Run 'bun run lf:fix' to convert them.\n`
-  );
-  process.exit(1);
+function report(offenders: string[]): CheckResult {
+  return {
+    exitCode: 1,
+    stdout: "",
+    stderr:
+      `CRLF found in tracked files (LF required):\n${offenders.join("\n")}\n` +
+      `Run 'bun run lf:fix' to convert them.\n`,
+  };
 }
 
-function fixAndExit(offenders: string[]): never {
-  const skipped = offenders.filter((path) => !convertToLf(path));
-  const converted = offenders.length - skipped.length;
-  process.stdout.write(`Converted ${converted} file(s) to LF.\n`);
+function fix(root: string, offenders: string[]): CheckResult {
+  const skipped = offenders.filter((path) => !convertToLf(join(root, path)));
+  const stdout = `Converted ${offenders.length - skipped.length} file(s) to LF.\n`;
 
-  if (skipped.length === 0) process.exit(0);
-  process.stderr.write(`Skipped binary file(s):\n${skipped.join("\n")}\n`);
-  process.exit(1);
+  if (skipped.length === 0) return { exitCode: 0, stdout, stderr: "" };
+
+  return {
+    exitCode: 1,
+    stdout,
+    stderr: `Skipped binary file(s):\n${skipped.join("\n")}\n`,
+  };
+}
+
+export function checkLf(root: string, shouldFix: boolean): CheckResult {
+  const offenders = listTrackedFilesWithEol(root).filter(hasCarriageReturn).map(pathFrom);
+
+  if (offenders.length === 0) {
+    return {
+      exitCode: 0,
+      stdout: "All tracked files use LF line endings.\n",
+      stderr: "",
+    };
+  }
+
+  return shouldFix ? fix(root, offenders) : report(offenders);
 }
 
 if (import.meta.main) {
-  const offenders = listTrackedFilesWithEol().filter(hasCarriageReturn).map(pathFrom);
-
-  if (offenders.length === 0) {
-    process.stdout.write("All tracked files use LF line endings.\n");
-    process.exit(0);
+  try {
+    const result = checkLf(process.cwd(), process.argv.includes("--fix"));
+    process.stdout.write(result.stdout);
+    process.stderr.write(result.stderr);
+    process.exit(result.exitCode);
+  } catch (error) {
+    process.stderr.write(error instanceof Error ? error.message : String(error));
+    process.exit(1);
   }
-
-  if (process.argv.includes("--fix")) fixAndExit(offenders);
-  reportAndExit(offenders);
 }
