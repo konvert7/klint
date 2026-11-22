@@ -43,7 +43,7 @@ function regenerateSchema(cwd, version, spawn) {
     stdio: "inherit",
   });
 
-  if ((result.status ?? -1) !== 0) {
+  if (result.status !== 0) {
     throw new Error(`Schema generation failed with exit code ${result.status ?? -1}`);
   }
 }
@@ -75,7 +75,7 @@ export async function publish(pluginConfig = {}, context) {
     stdio: "inherit",
   });
 
-  if ((result.status ?? -1) !== 0) {
+  if (result.status !== 0) {
     throw new Error(`npm publish failed with exit code ${result.status ?? -1}`);
   }
 }
