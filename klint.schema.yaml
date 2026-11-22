@@ -527,6 +527,9 @@ properties:
                   allowSetup:
                     description: Skip an if, guard or switch statement whose condition uses a name assigned by the statement directly above it. Defaults to true.
                     type: boolean
+                  guards:
+                    description: 'Keep consecutive braceless `if` guards (every branch is return, throw, continue or break) together: a guard directly below another guard needs no blank line. TypeScript/JavaScript and C#. Defaults to false.'
+                    type: boolean
                   include:
                     description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
                     items:
@@ -567,6 +570,10 @@ properties:
                   include: ["src/**", "!src/generated/**"]
                   statements: [if, for, while, switch, try, return, guard, loop, with]
                   allowSetup: true
+              - |-
+                blank-line-before-control-flow:
+                  severity: error
+                  guards: true
             cognitive-complexity:
               anyOf:
               - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
@@ -1307,6 +1314,9 @@ properties:
               allowSetup:
                 description: Skip an if, guard or switch statement whose condition uses a name assigned by the statement directly above it. Defaults to true.
                 type: boolean
+              guards:
+                description: 'Keep consecutive braceless `if` guards (every branch is return, throw, continue or break) together: a guard directly below another guard needs no blank line. TypeScript/JavaScript and C#. Defaults to false.'
+                type: boolean
               include:
                 description: 'Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: ["src/hooks/**", "!src/hooks/scripts/**"]'
                 items:
@@ -1347,6 +1357,10 @@ properties:
               include: ["src/**", "!src/generated/**"]
               statements: [if, for, while, switch, try, return, guard, loop, with]
               allowSetup: true
+          - |-
+            blank-line-before-control-flow:
+              severity: error
+              guards: true
         cognitive-complexity:
           anyOf:
           - description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.

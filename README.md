@@ -819,6 +819,7 @@ rules:
       include: ["src/**", "!src/generated/**"]
       statements: [if, for, while, switch, try, return, guard, loop, with]
       allowSetup: true
+      guards: true
     blank-line-after-block:
       severity: warn
       include: ["src/**"]
@@ -828,7 +829,7 @@ rules:
 
 - `statements` lists the statement kinds a rule targets. The default is every kind the rule supports. `statements: []` turns the rule off. `match` is an alias of `switch`. `return` is valid only for `blank-line-before-control-flow`. An unknown keyword, or `return` on the after rule, produces one `klint/config` warning, and the remaining keywords still apply.
 - `allowSetup` (before rule only, default `true`) turns the setup exception on or off, described below.
-- `guards` (after rule only, default `false`) treats a braceless guard as a block, described below.
+- `guards` (both rules, default `false`) groups braceless guards, described below.
 
 | keyword | TypeScript / JavaScript | Python | Swift | Rust | C# |
 |---|---|---|---|---|---|
@@ -846,7 +847,18 @@ rules:
 
 **Setup exception.** With `allowSetup: true`, the before rule skips an `if`, `guard` or `switch` whose condition uses a name assigned by the statement directly above it. For example, `x = f();` followed by `if (x) …` is not reported. Only the statement directly above counts (comment lines are skipped), only plain names count (`self.x = f()` does not), and only the condition is searched, not the body.
 
-**Guards.** With `guards: true`, the after rule also treats a braceless `if` as a block when every branch of it is a `return`, `throw`, `continue` or `break`, as in `if (!user) return null;`. The statement after the guard then gets a blank line. Consecutive guards stay together, and the line goes after the last one. A braceless `if` whose body does not exit (`if (x) doSomething();`) is left alone. This works on TypeScript/JavaScript and C#. Python and Rust have no braceless `if`, and a Swift `guard` always has braces, so it is already a block. The before rule is separate: unless the setup exception pairs them, it still asks for a blank line between two consecutive guards.
+**Guards.** With `guards: true`, the after rule also treats a braceless `if` as a block when every branch of it is a `return`, `throw`, `continue` or `break`, as in `if (!user) return null;`. The statement after the guard then gets a blank line. Consecutive guards stay together, and the line goes after the last one. A braceless `if` whose body does not exit (`if (x) doSomething();`) is left alone. This works on TypeScript/JavaScript and C#. Python and Rust have no braceless `if`, and a Swift `guard` always has braces, so it is already a block. With `guards: true` on the before rule, a guard directly below another guard needs no blank line either. The first guard still gets one above it, and an `if` with a braced body after a guard is still separated. Set it on both rules to keep a run of guards as one paragraph:
+
+```ts
+const user = load(id);
+
+if (!user) return null;
+if (!user.active) return null;
+
+return user.name;
+```
+
+Without it, the before rule asks for a blank line between the two guards, unless the setup exception pairs them.
 
 **Autofix.** `klint --fix` inserts one empty line with the line ending of the line above it, and changes nothing else. A second run changes nothing.
 

@@ -693,6 +693,10 @@
                           "description": "Skip an if, guard or switch statement whose condition uses a name assigned by the statement directly above it. Defaults to true.",
                           "type": "boolean"
                         },
+                        "guards": {
+                          "description": "Keep consecutive braceless `if` guards (every branch is return, throw, continue or break) together: a guard directly below another guard needs no blank line. TypeScript/JavaScript and C#. Defaults to false.",
+                          "type": "boolean"
+                        },
                         "include": {
                           "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
                           "items": {
@@ -737,7 +741,8 @@
                   "description": "Requires a blank line above a control-flow statement (if, for, while, switch/match, try, return, guard, loop, with) that follows another statement in the same block. Works on TypeScript/JavaScript, Python, Swift, Rust and C#; `klint --fix` inserts the line.",
                   "examples": [
                     "blank-line-before-control-flow: error",
-                    "blank-line-before-control-flow:\n  severity: error\n  include: [\"src/**\", \"!src/generated/**\"]\n  statements: [if, for, while, switch, try, return, guard, loop, with]\n  allowSetup: true"
+                    "blank-line-before-control-flow:\n  severity: error\n  include: [\"src/**\", \"!src/generated/**\"]\n  statements: [if, for, while, switch, try, return, guard, loop, with]\n  allowSetup: true",
+                    "blank-line-before-control-flow:\n  severity: error\n  guards: true"
                   ]
                 },
                 "cognitive-complexity": {
@@ -1805,6 +1810,10 @@
                       "description": "Skip an if, guard or switch statement whose condition uses a name assigned by the statement directly above it. Defaults to true.",
                       "type": "boolean"
                     },
+                    "guards": {
+                      "description": "Keep consecutive braceless `if` guards (every branch is return, throw, continue or break) together: a guard directly below another guard needs no blank line. TypeScript/JavaScript and C#. Defaults to false.",
+                      "type": "boolean"
+                    },
                     "include": {
                       "description": "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]",
                       "items": {
@@ -1849,7 +1858,8 @@
               "description": "Requires a blank line above a control-flow statement (if, for, while, switch/match, try, return, guard, loop, with) that follows another statement in the same block. Works on TypeScript/JavaScript, Python, Swift, Rust and C#; `klint --fix` inserts the line.",
               "examples": [
                 "blank-line-before-control-flow: error",
-                "blank-line-before-control-flow:\n  severity: error\n  include: [\"src/**\", \"!src/generated/**\"]\n  statements: [if, for, while, switch, try, return, guard, loop, with]\n  allowSetup: true"
+                "blank-line-before-control-flow:\n  severity: error\n  include: [\"src/**\", \"!src/generated/**\"]\n  statements: [if, for, while, switch, try, return, guard, loop, with]\n  allowSetup: true",
+                "blank-line-before-control-flow:\n  severity: error\n  guards: true"
               ]
             },
             "cognitive-complexity": {

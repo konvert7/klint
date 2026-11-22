@@ -32,7 +32,7 @@ pub(super) fn after_findings(
         .collect()
 }
 
-fn is_exiting_guard(item: &Item<'_>, grammar: &dyn Grammar) -> bool {
+pub(super) fn is_exiting_guard(item: &Item<'_>, grammar: &dyn Grammar) -> bool {
     matches!(&item.role, ItemRole::Statement(Some(target)) if target.keyword == Keyword::If)
         && grammar.is_exiting_guard(item.node)
 }

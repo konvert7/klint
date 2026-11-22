@@ -27,7 +27,7 @@ pub(in crate::rules) fn blank_line_options(
             .allow_setup()
             .and_then(Value::as_bool)
             .unwrap_or(true);
-    let guards = is_after && config.guards().and_then(Value::as_bool).unwrap_or(false);
+    let guards = config.guards().and_then(Value::as_bool).unwrap_or(false);
     ParsedOptions::single(
         config,
         RuleOptions::BlankLines(BlankLineOptions {

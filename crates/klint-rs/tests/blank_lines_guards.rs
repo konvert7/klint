@@ -107,3 +107,45 @@ fn fix_with_the_after_rule_alone_keeps_consecutive_guards_together() {
 
     fix_twice(&guards_on(), "a.ts", input, expected);
 }
+
+fn before_guards_on() -> String {
+    config_for(&format!("  {BEFORE}:\n    guards: true\n"))
+}
+
+fn before_lines(config: &str, file: &str, source: &str) -> Vec<u64> {
+    let fx = fixture("blank-before-guards", config, &[(file, source)]);
+    lines_of(&lint(&fx), BEFORE, file)
+}
+
+#[test]
+fn the_before_rule_with_guards_keeps_consecutive_guards_together() {
+    let source = "function f(u) {\n  const x = load(u);\n  if (!u) return;\n  if (!u.active) return;\n  run(x);\n}\n";
+
+    assert_eq!(before_lines(&before_guards_on(), "a.ts", source), vec![3]);
+    assert_eq!(before_lines(&simple(BEFORE), "a.ts", source), vec![3, 4]);
+}
+
+#[test]
+fn the_before_rule_still_separates_a_block_if_after_a_guard() {
+    let source = "function f(u) {\n  if (!u) return;\n  if (u.admin) {\n    grant(u);\n  }\n}\n";
+
+    assert_eq!(before_lines(&before_guards_on(), "a.ts", source), vec![3]);
+}
+
+#[test]
+fn the_before_rule_keeps_csharp_guards_together() {
+    let source = "class A {\n  void F(User u) {\n    var x = Load(u);\n    if (u == null) return;\n    if (!u.Active) return;\n    Run(x);\n  }\n}\n";
+
+    assert_eq!(before_lines(&before_guards_on(), "a.cs", source), vec![4]);
+}
+
+#[test]
+fn fix_with_guards_on_both_rules_groups_the_guards_as_one_paragraph() {
+    let config = config_for(&format!(
+        "  {BEFORE}:\n    guards: true\n  {AFTER}:\n    guards: true\n"
+    ));
+    let input = "function f(u) {\n  const x = load(u);\n  if (!u) return;\n  if (!u.active) return;\n  run(x);\n}\n";
+    let expected = "function f(u) {\n  const x = load(u);\n\n  if (!u) return;\n  if (!u.active) return;\n\n  run(x);\n}\n";
+
+    fix_twice(&config, "a.ts", input, expected);
+}

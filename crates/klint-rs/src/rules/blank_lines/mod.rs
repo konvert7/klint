@@ -24,6 +24,7 @@ pub(super) fn run_blank_line_before_control_flow(scan: RuleScan<'_>) -> Vec<Repo
         scan.language,
         options.statements,
         options.allow_setup,
+        options.guards,
     );
     reports(findings, scan.content, before_message)
 }

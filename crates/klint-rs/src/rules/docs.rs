@@ -99,6 +99,7 @@ pub(crate) const RULE_DOCS: &[RuleDoc] = &[
         examples: &[
             "blank-line-before-control-flow: error",
             "blank-line-before-control-flow:\n  severity: error\n  include: [\"src/**\", \"!src/generated/**\"]\n  statements: [if, for, while, switch, try, return, guard, loop, with]\n  allowSetup: true",
+            "blank-line-before-control-flow:\n  severity: error\n  guards: true",
         ],
         options_schema: Some(super::blank_lines::before_schema),
     },

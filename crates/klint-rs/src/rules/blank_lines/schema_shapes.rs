@@ -58,6 +58,10 @@ enum BlankLineBeforeConfig {
             description = "Skip an if, guard or switch statement whose condition uses a name assigned by the statement directly above it. Defaults to true."
         )]
         allow_setup: Option<bool>,
+        #[schemars(
+            description = "Keep consecutive braceless `if` guards (every branch is return, throw, continue or break) together: a guard directly below another guard needs no blank line. TypeScript/JavaScript and C#. Defaults to false."
+        )]
+        guards: Option<bool>,
     },
 }
 

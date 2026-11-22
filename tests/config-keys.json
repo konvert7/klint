@@ -14,6 +14,7 @@
     "rules.core.blank-line-after-block.statements",
     "rules.core.blank-line-before-control-flow",
     "rules.core.blank-line-before-control-flow.allowSetup",
+    "rules.core.blank-line-before-control-flow.guards",
     "rules.core.blank-line-before-control-flow.include",
     "rules.core.blank-line-before-control-flow.severity",
     "rules.core.blank-line-before-control-flow.statements",

@@ -50,6 +50,7 @@ pub(crate) fn missing_blank_before(
     language: SourceLanguage,
     targets: KeywordSet,
     allow_setup: bool,
+    guards: bool,
 ) -> Vec<BlankLineFinding> {
     if targets == KeywordSet::default() {
         return Vec::new();
@@ -68,6 +69,7 @@ pub(crate) fn missing_blank_before(
                 content.as_bytes(),
                 targets,
                 allow_setup,
+                guards,
             )
         })
         .collect();

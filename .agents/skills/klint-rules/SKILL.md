@@ -279,6 +279,7 @@ rules:
       include: ["src/**", "!src/generated/**"]
       statements: [if, for, while, switch, try, return, guard, loop, with]
       allowSetup: true
+      guards: true
     blank-line-after-block:
       severity: warn
       include: ["src/**"]
@@ -292,9 +293,11 @@ rules:
   `klint/config` warning and the other keywords still apply.
 - `allowSetup` (before rule only, default `true`) skips an `if`, `guard` or `switch` whose condition
   uses a plain name assigned by the statement directly above it, such as `x = f();` then `if (x) …`.
-- `guards` (after rule only, default `false`) treats a braceless `if` whose every branch is `return`,
-  `throw`, `continue` or `break` as a block, so the statement after the guard gets a blank line.
-  Consecutive guards stay together; the line goes after the last one. TypeScript/JavaScript and C#.
+- `guards` (default `false`) is about braceless `if`s whose every branch is `return`, `throw`,
+  `continue` or `break`. On the after rule, such a guard counts as a block, so the statement after it
+  gets a blank line; consecutive guards stay together and the line goes after the last one. On the
+  before rule, a guard directly below another guard needs no blank line. Set it on both rules to keep
+  a run of guards as one paragraph. TypeScript/JavaScript and C#.
 
 `klint --fix` inserts the missing blank lines, one per gap, and changes nothing else. Files with a
 syntax error are skipped. Run `klint --fix` again to confirm it reports nothing left to fix.

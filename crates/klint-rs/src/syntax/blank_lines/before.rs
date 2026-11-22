@@ -1,4 +1,5 @@
 use super::BlankLineFinding;
+use super::after::is_exiting_guard;
 use super::grammar::Grammar;
 use super::items::{Item, ItemRole, keyword_bytes};
 use super::keyword::KeywordSet;
@@ -12,7 +13,12 @@ pub(super) fn before_findings(
     source: &[u8],
     targets: KeywordSet,
     allow_setup: bool,
+    guards: bool,
 ) -> Vec<BlankLineFinding> {
+    let continues_guards = |previous: &Item<'_>, item: &Item<'_>| {
+        guards && is_exiting_guard(previous, grammar) && is_exiting_guard(item, grammar)
+    };
+
     items
         .iter()
         .enumerate()
@@ -23,7 +29,8 @@ pub(super) fn before_findings(
             let previous = previous_statement(&items[..index])?;
             (targets.contains(target.keyword)
                 && is_reportable_gap(previous, item, lines, grammar)
-                && !(allow_setup && setup_applies(previous, target, grammar, source)))
+                && !(allow_setup && setup_applies(previous, target, grammar, source))
+                && !continues_guards(previous, item))
             .then(|| finding(item, target.written))
         })
         .collect()
@@ -93,6 +100,7 @@ mod tests {
             source.as_bytes(),
             targets,
             allow_setup,
+            false,
         )
     }
 
