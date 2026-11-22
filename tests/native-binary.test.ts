@@ -1,5 +1,12 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import {
@@ -251,7 +258,7 @@ describe("nativePackageForPlatform, edge cases", () => {
 });
 
 describe("resolveNativePackageBinary, edge cases", () => {
-  const scratch = mkdtempSync(join(tmpdir(), "klint-native-binary-"));
+  const scratch = realpathSync(mkdtempSync(join(tmpdir(), "klint-native-binary-")));
 
   afterAll(() => {
     rmSync(scratch, { recursive: true, force: true });
