@@ -272,7 +272,7 @@ describe("checkLock", () => {
       exitCode: 1,
       stdout: "",
       stderr:
-        "nested/bun.lock is out of date: run `bun install` in nested.\n" +
+        `${join("nested", "bun.lock")} is out of date: run \`bun install\` in nested.\n` +
         "Commit the updated lockfile.\n",
     });
   });
@@ -293,8 +293,8 @@ describe("checkLock", () => {
     expect(cargo).toBe(
       "Cargo.lock does not match Cargo.toml: run `cargo build` to update it."
     );
-    expect(result.stderr).toContain(
-      `${cargoLockError(root)}\nCommit the updated lockfile.\n`
+    expect(result.stderr).toMatch(
+      /\nerror: .*--locked was passed.*\nCommit the updated lockfile\.\n$/s
     );
   });
 
