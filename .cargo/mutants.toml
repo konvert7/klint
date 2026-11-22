@@ -1,3 +1,8 @@
 # KLINT_VERSION is set only for release builds, so no test build can tell
 # compiled_version() from None; version_from() holds the logic and is tested.
-exclude_re = ["replace compiled_version -> "]
+# match_component's star + 1 -> star * 1 revisits the same * and lands in the same
+# state one step later, so no input can tell the two apart.
+exclude_re = [
+  "replace compiled_version -> ",
+  "replace \\+ with \\* in match_component",
+]
