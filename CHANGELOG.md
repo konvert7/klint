@@ -1,3 +1,17 @@
+# [1.13.0](https://github.com/konvert7/klint/compare/v1.12.0...v1.13.0) (2026-11-22)
+
+
+### Bug Fixes
+
+* **arch:** match in: globs as globs, not as path prefixes ([bb84863](https://github.com/konvert7/klint/commit/bb84863e5c92f6d7f80e71ec9c102418fa9976b9))
+
+
+### Features
+
+* **arch:** check keys and values in JSON, YAML and TOML files ([7b8e15d](https://github.com/konvert7/klint/commit/7b8e15dbae76582f8e611e82f25d7f40b372b99b))
+* **arch:** key lists with exclusions, glob segments and every-match required ([ed75b46](https://github.com/konvert7/klint/commit/ed75b4617b5655913400e3c0a489fafe7ea4d5cb))
+* **arch:** run forbidden, singleton and maxLines on config and text files ([2b5ff84](https://github.com/konvert7/klint/commit/2b5ff8434452dcf5a53ba8280b1f2d52a8b17ad4))
+
 # [1.12.0](https://github.com/konvert7/klint/compare/v1.11.0...v1.12.0) (2026-11-22)
 
 
