@@ -2,7 +2,14 @@
 # compiled_version() from None; version_from() holds the logic and is tested.
 # match_component's star + 1 -> star * 1 revisits the same * and lands in the same
 # state one step later, so no input can tell the two apart.
+# ArchPlan::needs_tree, needs_comments and scan_file's tree check only decide
+# whether a file is parsed or its comments read; every pass checks its own
+# scope before reporting, so doing the work anyway changes no output.
 exclude_re = [
   "replace compiled_version -> ",
   "replace \\+ with \\* in match_component",
+  "replace ArchPlan::needs_tree -> bool with true",
+  "replace && with \\|\\| in ArchPlan::needs_tree",
+  "replace ArchPlan::needs_comments -> bool with true",
+  "replace && with \\|\\| in ArchPlan::scan_file",
 ]

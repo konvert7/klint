@@ -163,3 +163,19 @@ fn the_exact_versions_check_is_one_required_entry() {
         ]
     );
 }
+
+#[test]
+fn a_key_pass_checks_only_the_files_its_in_glob_names() {
+    let arch = "  forbidden:\n    - {key: scripts.postinstall, in: \"**/package.json\", message: \"No install scripts\"}\n  required:\n    - {key: compilerOptions.strict, in: tsconfig.json, message: \"Strict\"}\n";
+    let package = "{\n  \"name\": \"app\"\n}\n";
+    let tsconfig = "{\n  \"compilerOptions\": { \"strict\": true }\n}\n";
+
+    assert_eq!(
+        findings(
+            "keys-scoped",
+            arch,
+            &[("package.json", package), ("tsconfig.json", tsconfig)]
+        ),
+        Vec::<Finding>::new()
+    );
+}
