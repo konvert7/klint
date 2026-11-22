@@ -91,7 +91,7 @@ export async function publish(pluginConfig = {}, context) {
     if (result.stdout) process.stdout.write(result.stdout);
     if (result.stderr) process.stderr.write(result.stderr);
 
-    if ((result.status ?? -1) !== 0) {
+    if (result.status !== 0) {
       if (shouldSkipMissingPackagePublish(result)) {
         context.logger?.log(
           `Skipping ${nativePackage.name}: npm package is not available to this trusted publisher yet`
@@ -121,7 +121,7 @@ function writePackageJson(dir, packageJson) {
 function shouldSkipMissingPackagePublish(result) {
   if (process.env.KLINT_SKIP_MISSING_NATIVE_PUBLISH !== "1") return false;
 
-  const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+  const output = `${result.stdout}\n${result.stderr}`;
   return (
     output.includes("npm error code E404") ||
     output.includes("404 Not Found") ||

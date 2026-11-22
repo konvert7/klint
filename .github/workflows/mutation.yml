@@ -34,8 +34,8 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
-      - name: Mutation-test the changed TypeScript lines
-        run: bun run test:mutate:diff "origin/${{ github.event.pull_request.base.ref }}"
+      - name: Mutation-test the TypeScript tools
+        run: bun run test:mutate
 
       - name: Upload mutation report
         if: always()

@@ -14,6 +14,7 @@ serde = { version = "1.0" }
 `;
 
 type Command = { command: string; args: string[] };
+type SpawnResult = { status: number | null; stderr?: string };
 
 const workspaces: string[] = [];
 
@@ -149,5 +150,160 @@ describe("semantic-release crates plugin", () => {
     expect(names.indexOf("./tools/semantic-release-crates.js")).toBeLessThan(
       names.indexOf("@semantic-release/git")
     );
+  });
+});
+
+function fullRecorder(result: SpawnResult = { status: 0 }) {
+  const calls: unknown[][] = [];
+
+  return {
+    calls,
+    spawnSync(...args: unknown[]) {
+      calls.push(args);
+
+      return result;
+    },
+  };
+}
+
+function withToken(run: () => Promise<unknown>): Promise<unknown> {
+  const saved = process.env.CARGO_REGISTRY_TOKEN;
+  process.env.CARGO_REGISTRY_TOKEN = "token";
+
+  return run().finally(() => {
+    if (saved === undefined) delete process.env.CARGO_REGISTRY_TOKEN;
+    else process.env.CARGO_REGISTRY_TOKEN = saved;
+  });
+}
+
+describe("semantic-release crates plugin, edge cases", () => {
+  test("verifyConditions passes with a token and no options", async () => {
+    await withToken(() => verifyConditions({}, { cwd: workspace() }));
+  });
+
+  test("verifyConditions reads the package name, not a commented-out one", async () => {
+    const cwd = workspace(`# was name = "old-klint"\n${MANIFEST}`);
+
+    await verifyConditions({}, { cwd, options: { dryRun: true } });
+  });
+
+  test("verifyConditions names a manifest without a package name", async () => {
+    const cwd = workspace(MANIFEST.replace('name = "klint-rs"\n', ""));
+
+    await expect(
+      verifyConditions({}, { cwd, options: { dryRun: true } })
+    ).rejects.toThrow("crates/klint-rs/Cargo.toml declares undefined, expected klint-rs");
+  });
+
+  test("prepare stamps the package version line, not a key ending in version", async () => {
+    const cwd = workspace(
+      MANIFEST.replace(
+        'version = "0.0.0"',
+        'rust-version = "1.80"\nversion = "0.0.0" # stamped'
+      )
+    );
+
+    await prepare(fullRecorder(), { cwd, nextRelease: { version: "1.2.3" } });
+
+    const manifest = readFileSync(join(cwd, "crates", "klint-rs", "Cargo.toml"), "utf-8");
+    expect(manifest).toContain('rust-version = "1.80"\nversion = "1.2.3" # stamped\n');
+  });
+
+  test("prepare runs cargo update in the workspace and logs the stamp", async () => {
+    const cwd = workspace();
+    const cargo = fullRecorder();
+    const logs: string[] = [];
+
+    await prepare(cargo, {
+      cwd,
+      nextRelease: { version: "1.2.3" },
+      logger: { log: (message: string) => logs.push(message) },
+    });
+
+    expect(cargo.calls).toEqual([
+      [
+        "cargo",
+        ["update", "--workspace"],
+        { cwd, encoding: "utf-8", stdio: ["ignore", "ignore", "pipe"] },
+      ],
+    ]);
+    expect(logs).toEqual(["Stamped klint-rs at 1.2.3 and bundled its skill"]);
+  });
+
+  test("prepare can run again over an already bundled skill", async () => {
+    const cwd = workspace();
+
+    await prepare(fullRecorder(), { cwd, nextRelease: { version: "1.2.3" } });
+    await prepare(fullRecorder(), { cwd, nextRelease: { version: "1.2.4" } });
+
+    expect(
+      readFileSync(join(cwd, "crates", "klint-rs", "Cargo.toml"), "utf-8")
+    ).toContain('version = "1.2.4"');
+  });
+
+  test("prepare fails without a release version", async () => {
+    await expect(prepare(fullRecorder(), { cwd: workspace() })).rejects.toThrow(
+      new Error("semantic-release did not provide nextRelease.version")
+    );
+  });
+
+  test("a failed cargo update carries cargo's stderr, or nothing", async () => {
+    await expect(
+      prepare(fullRecorder({ status: 101, stderr: "boom" }), {
+        cwd: workspace(),
+        nextRelease: { version: "1.2.3" },
+      })
+    ).rejects.toThrow(new Error("cargo update failed with exit code 101\nboom"));
+    await expect(
+      prepare(fullRecorder({ status: 101 }), {
+        cwd: workspace(),
+        nextRelease: { version: "1.2.3" },
+      })
+    ).rejects.toThrow(new Error("cargo update failed with exit code 101\n"));
+  });
+
+  test("publish runs cargo publish in the workspace and logs it, with no options", async () => {
+    const cwd = workspace();
+    const cargo = fullRecorder();
+    const logs: string[] = [];
+
+    await publish(cargo, {
+      cwd,
+      nextRelease: { version: "1.2.3" },
+      logger: { log: (message: string) => logs.push(message) },
+    });
+
+    expect(cargo.calls).toEqual([
+      [
+        "cargo",
+        ["publish", "-p", "klint-rs", "--locked", "--allow-dirty"],
+        { cwd, encoding: "utf-8", stdio: "inherit" },
+      ],
+    ]);
+    expect(logs).toEqual(["Published klint-rs 1.2.3 to crates.io"]);
+  });
+
+  test("publish reports a killed cargo as exit code -1", async () => {
+    await expect(
+      publish(fullRecorder({ status: null }), {
+        cwd: workspace(),
+        nextRelease: { version: "1.2.3" },
+      })
+    ).rejects.toThrow(new Error("cargo publish failed with exit code -1"));
+  });
+
+  test("a dry run logs once, needs no logger and never calls cargo", async () => {
+    const cargo = fullRecorder();
+    const logs: string[] = [];
+
+    await publish(cargo, {
+      cwd: workspace(),
+      options: { dryRun: true },
+      logger: { log: (message: string) => logs.push(message) },
+    });
+    await publish(cargo, { cwd: workspace(), options: { dryRun: true } });
+
+    expect(logs).toEqual(["Dry run: skipping the crates.io publish"]);
+    expect(cargo.calls).toEqual([]);
   });
 });
