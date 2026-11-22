@@ -1,15 +1,16 @@
 mod command;
 mod fix_mode;
 mod github;
+mod install_command;
 mod prompt;
 mod reporter;
 mod text;
 
 use command::{Dispatch, Group, Leaf, OptionSpec, Values, dispatch};
+use install_command::{install_skill_command, install_skill_leaf};
 use klint_rs::{
-    FixScope, InstallRequest, MAX_FIX_PASSES, MigrateOptions, MigrateOutcome, NewlyRunning,
-    RunOptions, RunSource, Violation, fix_within, install_skill, known_agent_names, known_agents,
-    migrate, record_run, run, stats_report,
+    FixScope, MAX_FIX_PASSES, MigrateOptions, MigrateOutcome, NewlyRunning, RunOptions, RunSource,
+    Violation, fix_within, migrate, record_run, run, stats_report,
 };
 use std::io::IsTerminal;
 use std::path::PathBuf;
@@ -92,32 +93,6 @@ fn stats_leaf() -> Leaf {
         )],
         positionals: None,
         details: vec!["Set KLINT_NO_STATS=1 to stop recording.".to_string()],
-    }
-}
-
-fn install_skill_leaf() -> Leaf {
-    Leaf {
-        summary: "Install the embedded klint-rules skill into agent config directories",
-        options: vec![
-            OptionSpec::valued(
-                "agents",
-                "<list>",
-                format!("Comma-separated: {} (default: all)", known_agent_names()),
-            ),
-            OptionSpec::flag(
-                "symlink",
-                "Keep one skill in .agents/skills and symlink the others to it (default)",
-            )
-            .aliases(&["--shared"]),
-            OptionSpec::flag("copy", "Give every agent directory its own copy"),
-            OptionSpec::flag("force", "Replace a skill directory klint did not install"),
-        ],
-        positionals: None,
-        details: vec![
-            "Asks which agents and how to store the skill when run on a terminal without"
-                .to_string(),
-            "--agents, --symlink or --copy.".to_string(),
-        ],
     }
 }
 
@@ -417,74 +392,4 @@ fn stats_command(values: &Values) -> i32 {
             1
         }
     }
-}
-
-fn install_skill_command(values: &Values) -> i32 {
-    let (mut request, decided) = match install_request(values) {
-        Ok(parsed) => parsed,
-        Err(err) => {
-            eprintln!("{err}");
-
-            return 1;
-        }
-    };
-    if !decided && prompt::stdin_is_a_terminal() {
-        match prompt::ask_install_choices(&known_agents()) {
-            Ok(Some(choices)) if choices.agents.is_empty() => {
-                println!("klint: no agents selected — nothing to install");
-
-                return 0;
-            }
-            Ok(Some(choices)) => {
-                request.agents = choices.agents;
-                request.shared = choices.shared;
-            }
-            Ok(None) => {
-                println!("klint: cancelled");
-
-                return 0;
-            }
-            Err(err) => {
-                eprintln!("{err}");
-
-                return 1;
-            }
-        }
-    }
-
-    match install_skill(&request) {
-        Ok(installed) => {
-            for line in installed {
-                println!("klint: {line}");
-            }
-
-            0
-        }
-        Err(err) => {
-            eprintln!("{err}");
-            1
-        }
-    }
-}
-
-fn install_request(values: &Values) -> Result<(InstallRequest, bool), String> {
-    let root =
-        std::env::current_dir().map_err(|err| format!("klint: failed to resolve cwd: {err}"))?;
-    let agents: Vec<String> = values
-        .text("agents")
-        .unwrap_or_default()
-        .split(',')
-        .map(|agent| agent.trim().to_string())
-        .filter(|agent| !agent.is_empty())
-        .collect();
-    let decided = values.text("agents").is_some() || values.flag("symlink") || values.flag("copy");
-    Ok((
-        InstallRequest {
-            root,
-            agents,
-            shared: !values.flag("copy"),
-            force: values.flag("force"),
-        },
-        decided,
-    ))
 }

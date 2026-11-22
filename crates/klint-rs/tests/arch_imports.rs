@@ -56,6 +56,39 @@ arch:
 }
 
 #[test]
+fn imports_rule_checks_only_files_in_its_from_layer() {
+    let root = temp_root("imports-from-scope");
+
+    for dir in ["src/ui", "src/api", "src/db"] {
+        create_dir_all(root.join(dir)).expect("create dir");
+    }
+
+    write(
+        root.join("klint.yaml"),
+        "include: [\".\"]\nrules: {}\narch:\n  layers:\n    ui: [\"src/ui/**\"]\n    api: [\"src/api/**\"]\n    db: [\"src/db/**\"]\n  imports:\n    - {from: ui, deny: db, message: \"UI must not touch the db\"}\n    - {from: api, deny: ui, message: \"API must not touch the UI\"}\n",
+    )
+    .expect("write config");
+    write(root.join("src/db/x.ts"), "export const x = 1;\n").expect("write db");
+
+    for dir in ["ui", "api"] {
+        write(
+            root.join(format!("src/{dir}/a.ts")),
+            "import { x } from \"../db/x\";\nexport const y = x;\n",
+        )
+        .expect("write importer");
+    }
+
+    let output = run(RunOptions {
+        config_dir: root.clone(),
+    })
+    .expect("valid config should run");
+
+    let files: Vec<&str> = output.violations.iter().map(|v| v.file.as_str()).collect();
+    assert_eq!(files, vec!["src/ui/a.ts"]);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn imports_deny_mode_can_allow_type_only_imports() {
     let root = temp_root("imports-type-only-allow");
     create_dir_all(root.join("assets/skills/demo")).expect("create skill dirs");

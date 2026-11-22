@@ -299,4 +299,118 @@ mod tests {
         assert_eq!(applied, 0);
         assert_eq!(result, "a\n");
     }
+
+    fn scratch_dir() -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "klint-rs-fix-unit-{}-{}",
+            std::process::id(),
+            NEXT_DIR.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        ));
+        fs::create_dir_all(&dir).expect("create dir");
+        dir
+    }
+
+    #[test]
+    fn restore_after_puts_every_written_file_back_and_counts_them() {
+        let dir = scratch_dir();
+        let mut originals = Originals::default();
+
+        for name in ["a.ts", "b.ts"] {
+            originals
+                .write(&dir.join(name), "before\n", "after\n")
+                .expect("write");
+        }
+
+        let message = originals.restore_after("klint: boom".to_string());
+
+        assert_eq!(
+            message,
+            "klint: boom\nklint: restored 2 file(s) to their state before --fix"
+        );
+
+        for name in ["a.ts", "b.ts"] {
+            assert_eq!(
+                fs::read_to_string(dir.join(name)).expect("read"),
+                "before\n"
+            );
+        }
+
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn restore_after_with_nothing_written_keeps_the_error_alone() {
+        assert_eq!(
+            Originals::default().restore_after("klint: boom".to_string()),
+            "klint: boom"
+        );
+    }
+
+    #[test]
+    fn restore_after_names_a_file_it_could_not_restore() {
+        let dir = scratch_dir();
+        let path = dir.join("gone").join("a.ts");
+        let mut originals = Originals::default();
+        originals.0.insert(path.clone(), "before\n".to_string());
+
+        let message = originals.restore_after("klint: boom".to_string());
+
+        assert!(
+            message.starts_with(&format!(
+                "klint: boom\nklint: failed to restore {}: ",
+                path.display()
+            )),
+            "{message}"
+        );
+        assert!(!message.contains("restored 1"), "{message}");
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    fn violation(file: &str, fix: Option<serde_json::Value>) -> Violation {
+        Violation {
+            file: file.to_string(),
+            line: 1,
+            rule: "no-string-match".to_string(),
+            message: String::new(),
+            severity: "error".to_string(),
+            fix,
+            span: None,
+        }
+    }
+
+    fn line_fix_json(start_line: u64) -> Option<serde_json::Value> {
+        Some(
+            serde_json::json!({ "startLine": start_line, "endLine": start_line, "replacement": "x" }),
+        )
+    }
+
+    #[test]
+    fn has_fixes_needs_a_selected_violation_with_a_usable_fix() {
+        let dir = scratch_dir();
+        fs::write(dir.join("a.ts"), "a\n").expect("write");
+        let root = dir.as_path();
+        let everywhere = FixScope::default();
+        let elsewhere = FixScope {
+            safe_only: false,
+            paths: Some(vec![dir.join("other")]),
+        };
+
+        assert!(has_fixes(
+            &[violation("a.ts", line_fix_json(1))],
+            root,
+            &everywhere
+        ));
+        assert!(!has_fixes(&[violation("a.ts", None)], root, &everywhere));
+        assert!(!has_fixes(
+            &[violation("a.ts", line_fix_json(0))],
+            root,
+            &everywhere
+        ));
+        assert!(!has_fixes(
+            &[violation("a.ts", line_fix_json(1))],
+            root,
+            &elsewhere
+        ));
+        let _ = fs::remove_dir_all(dir);
+    }
 }

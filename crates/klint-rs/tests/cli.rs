@@ -151,3 +151,36 @@ arch:
     assert!(stderr.is_empty());
     let _ = remove_dir_all(root);
 }
+
+fn version_beside(name: &str, sidecar: &str) -> String {
+    let root = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(name);
+    let _ = remove_dir_all(&root);
+    create_dir_all(&root).expect("create temp dir");
+    let source = PathBuf::from(env!("CARGO_BIN_EXE_klint-rs"));
+    let binary = root.join(source.file_name().expect("binary name"));
+    std::fs::hard_link(&source, &binary).expect("link binary");
+    write(root.join("VERSION"), sidecar).expect("write VERSION");
+
+    let output = Command::new(&binary)
+        .arg("--version")
+        .output()
+        .expect("run klint");
+    let _ = remove_dir_all(&root);
+    String::from_utf8(output.stdout).expect("utf-8 stdout")
+}
+
+#[test]
+fn version_reads_the_version_file_beside_the_binary() {
+    assert_eq!(
+        version_beside("version-sidecar", " 9.9.9\n"),
+        "klint 9.9.9\n"
+    );
+}
+
+#[test]
+fn version_ignores_an_empty_version_file() {
+    assert_eq!(
+        version_beside("version-sidecar-empty", " \n"),
+        format!("klint {}\n", env!("CARGO_PKG_VERSION"))
+    );
+}

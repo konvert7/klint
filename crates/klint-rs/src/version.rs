@@ -7,10 +7,23 @@ const TAG_MARKER: &str = "/refs/tags/v";
 const RULE: &str = "klint/schema-version";
 
 pub fn reported_version() -> String {
-    compiled_version()
+    version_from(
+        compiled_version(),
+        sidecar_version,
+        env!("CARGO_PKG_VERSION"),
+    )
+}
+
+fn version_from(
+    compiled: Option<&str>,
+    sidecar: impl FnOnce() -> Option<String>,
+    fallback: &str,
+) -> String {
+    compiled
+        .filter(|value| !value.is_empty())
         .map(str::to_string)
-        .or_else(sidecar_version)
-        .unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string())
+        .or_else(sidecar)
+        .unwrap_or_else(|| fallback.to_string())
 }
 
 pub(crate) fn released_version() -> Option<String> {
@@ -59,7 +72,7 @@ fn advisory_for(schema: &str, installed: &str, config_path: &Path) -> Option<Vio
 }
 
 fn compiled_version() -> Option<&'static str> {
-    option_env!("KLINT_VERSION").filter(|value| !value.is_empty())
+    option_env!("KLINT_VERSION")
 }
 
 fn sidecar_version() -> Option<String> {
@@ -132,6 +145,26 @@ mod tests {
             ),
             None
         );
+    }
+
+    #[test]
+    fn declared_schema_version_needs_three_numeric_parts() {
+        for version in ["1.2", "1..3", "1.x.3"] {
+            assert_eq!(
+                declared_schema_version(&schema_url_for_version(version)),
+                None,
+                "{version}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_compiled_version_wins_unless_it_is_empty() {
+        let sidecar = || Some("2.0.0".to_string());
+
+        assert_eq!(version_from(Some("1.0.0"), sidecar, "0.0.0"), "1.0.0");
+        assert_eq!(version_from(Some(""), sidecar, "0.0.0"), "2.0.0");
+        assert_eq!(version_from(None, || None, "0.0.0"), "0.0.0");
     }
 
     #[test]

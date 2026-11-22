@@ -124,6 +124,22 @@ fn klint_no_stats_leaves_no_stats_file() {
     let _ = remove_dir_all(root);
 }
 
+#[test]
+fn install_skill_accepts_shared_as_another_name_for_symlink() {
+    let root = temp_root("cli-install-skill-shared");
+    create_dir_all(&root).expect("create project");
+
+    let out = klint(
+        &root,
+        &["install-skill", "--shared", "--agents", "claude"],
+        &[],
+    );
+
+    assert_eq!(out.exit, 0, "{}", out.stderr);
+    assert!(root.join(".claude/skills/klint-rules/SKILL.md").is_file());
+    let _ = remove_dir_all(root);
+}
+
 fn shipped_skill() -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../skill/klint-rules/SKILL.md");
     fs::read_to_string(&path).unwrap_or_else(|err| panic!("read {}: {err}", path.display()))

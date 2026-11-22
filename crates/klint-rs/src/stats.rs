@@ -443,4 +443,42 @@ mod tests {
         assert_eq!(read_stats(&root), KlintStats::empty());
         fs::remove_dir_all(&root).expect("clean up");
     }
+
+    #[test]
+    fn an_error_changed_in_rule_file_or_message_is_a_new_error() {
+        let open = next_stats(
+            &KlintStats::empty(),
+            &[error("r", "a.ts", "m")],
+            RunSource::Hook,
+        );
+        let next = next_stats(
+            &open,
+            &[
+                error("r2", "a.ts", "m"),
+                error("r", "b.ts", "m"),
+                error("r", "a.ts", "m2"),
+            ],
+            RunSource::Direct,
+        );
+
+        assert_eq!(next.prevented.by_rule.get("r"), Some(&1));
+        assert_eq!(next.open.len(), 3);
+    }
+
+    #[test]
+    fn short_rule_names_take_the_heading_width() {
+        let rows = [RuleRow {
+            rule: "a",
+            reported: 1,
+            prevented: 0,
+        }];
+
+        assert_eq!(
+            rule_table(&rows),
+            vec![
+                "  by rule  reported  prevented".to_string(),
+                "    a             1          0".to_string(),
+            ]
+        );
+    }
 }

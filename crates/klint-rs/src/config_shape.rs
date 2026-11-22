@@ -328,13 +328,6 @@ fn to_rule_config(value: &Value, list_allowed: bool) -> Result<RuleConfig, Resol
     Ok(config)
 }
 
-pub(crate) fn check_rule_values(raw: &RawConfig) -> Result<(), String> {
-    match resolve_rules(raw) {
-        Err(ResolveError::InvalidValue) => Err("invalid rule value".to_string()),
-        _ => Ok(()),
-    }
-}
-
 pub(crate) fn shape_advisories(resolved: &ResolvedRules, text: &str, file: &str) -> Vec<Violation> {
     shape_warning(&resolved.shape, text, file)
         .into_iter()

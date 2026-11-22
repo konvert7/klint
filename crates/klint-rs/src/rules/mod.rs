@@ -457,4 +457,20 @@ mod tests {
             1
         );
     }
+
+    #[test]
+    fn a_pass_covers_only_the_files_its_include_matches() {
+        let root = Path::new("/repo");
+        let files = vec![root.join("src/a.ts"), root.join("scripts/b.ts")];
+        let rules = BTreeMap::from([(
+            "no-string-match".to_string(),
+            rule_config("{severity: error, include: [\"src/**\"]}"),
+        )]);
+
+        let passes = plan_rule_passes(&rules, &BTreeMap::new(), &files, root);
+
+        assert_eq!(passes.len(), 1);
+        assert!(passes[0].covers(0));
+        assert!(!passes[0].covers(1));
+    }
 }
