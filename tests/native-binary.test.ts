@@ -1,7 +1,9 @@
-import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { afterAll, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import {
+  currentLibc,
   nativePackageForPlatform,
   nativePackages,
   resolveNativePackageBinary,
@@ -210,5 +212,148 @@ describe("native binary package metadata", () => {
     });
 
     expect(binaryPath).toBeUndefined();
+  });
+});
+
+describe("currentLibc", () => {
+  test("is undefined off Linux and never reads the report there", () => {
+    expect(
+      currentLibc("darwin", () => {
+        throw new Error("read");
+      })
+    ).toBeUndefined();
+  });
+
+  test("tells glibc from musl by the report's glibc runtime", () => {
+    expect(
+      currentLibc("linux", () => ({ header: { glibcVersionRuntime: "2.39" } }))
+    ).toBe("glibc");
+    expect(currentLibc("linux", () => ({ header: {} }))).toBe("musl");
+    expect(currentLibc("linux", () => ({}))).toBe("musl");
+  });
+});
+
+describe("nativePackageForPlatform, edge cases", () => {
+  test("every package's folder names its platform, arch and libc", () => {
+    for (const pkg of nativePackages()) {
+      const musl = pkg.libc === "musl" ? "-musl" : "";
+      expect(pkg.dir).toBe(`${pkg.platform}-${pkg.arch}${musl}`);
+    }
+  });
+
+  test("adds the musl suffix only on Linux", () => {
+    expect(nativePackageForPlatform("darwin", "arm64", "musl")?.dir).toBe("darwin-arm64");
+  });
+
+  test("only a package for the same platform can serve as an emulator", () => {
+    expect(nativePackageForPlatform("freebsd", "arm64", undefined)).toBeUndefined();
+  });
+});
+
+describe("resolveNativePackageBinary, edge cases", () => {
+  const scratch = mkdtempSync(join(tmpdir(), "klint-native-binary-"));
+
+  afterAll(() => {
+    rmSync(scratch, { recursive: true, force: true });
+  });
+
+  function writeJson(path: string, value: unknown): void {
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, typeof value === "string" ? value : JSON.stringify(value));
+  }
+
+  function installed(rootVersion: unknown, nativeJson: unknown): string {
+    const project = mkdtempSync(join(scratch, "project-"));
+    const packageRoot = join(project, "node_modules", "@konvert7", "klint");
+    const nativeRoot = join(project, "node_modules", "@konvert7", "klint-linux-x64");
+    writeJson(join(packageRoot, "package.json"), {
+      name: "@konvert7/klint",
+      ...(rootVersion as object),
+    });
+    writeJson(join(nativeRoot, "package.json"), nativeJson);
+    writeJson(join(nativeRoot, "bin", "klint-rs"), "");
+
+    return packageRoot;
+  }
+
+  const linux = { platform: "linux", arch: "x64", libc: "glibc" };
+  const nativeBinaryOf = (packageRoot: string) =>
+    join(dirname(packageRoot), "klint-linux-x64", "bin", "klint-rs");
+
+  test("finds the installed package through node resolution and reads real package.json files", () => {
+    const packageRoot = installed(
+      { version: "1.2.3" },
+      { name: "@konvert7/klint-linux-x64", version: "1.2.3" }
+    );
+
+    expect(resolveNativePackageBinary({ packageRoot, ...linux })).toBe(
+      nativeBinaryOf(packageRoot)
+    );
+  });
+
+  test("rejects an installed package from another release", () => {
+    const packageRoot = installed(
+      { version: "1.2.3" },
+      { name: "@konvert7/klint-linux-x64", version: "1.2.2" }
+    );
+
+    expect(resolveNativePackageBinary({ packageRoot, ...linux })).toBeUndefined();
+  });
+
+  test("accepts a package whose version cannot be read", () => {
+    const packageRoot = installed({ version: "1.2.3" }, "{ not json");
+
+    expect(resolveNativePackageBinary({ packageRoot, ...linux })).toBe(
+      nativeBinaryOf(packageRoot)
+    );
+  });
+
+  test("accepts versions missing on either side", () => {
+    const packageRoot = installed(
+      {},
+      { name: "@konvert7/klint-linux-x64", version: "1.2.3" }
+    );
+    const options = { packageRoot, ...linux };
+
+    expect(resolveNativePackageBinary(options)).toBe(nativeBinaryOf(packageRoot));
+    expect(
+      resolveNativePackageBinary({
+        ...options,
+        readPackageJson: (path) =>
+          path === join(packageRoot, "package.json") ? { version: "1.2.3" } : {},
+      })
+    ).toBe(nativeBinaryOf(packageRoot));
+  });
+
+  test("accepts the package when reading a version throws", () => {
+    const packageRoot = installed({ version: "1.2.3" }, { version: "1.2.2" });
+
+    expect(
+      resolveNativePackageBinary({
+        packageRoot,
+        ...linux,
+        readPackageJson: () => {
+          throw new Error("unreadable");
+        },
+      })
+    ).toBe(nativeBinaryOf(packageRoot));
+  });
+
+  test("is undefined when the package is not installed or the platform has none", () => {
+    const packageRoot = join(scratch, "empty", "node_modules", "@konvert7", "klint");
+
+    expect(resolveNativePackageBinary({ packageRoot, ...linux })).toBeUndefined();
+    expect(
+      resolveNativePackageBinary({
+        packageRoot,
+        ...linux,
+        resolvePackageJson: () => {
+          throw new Error("not installed");
+        },
+      })
+    ).toBeUndefined();
+    expect(
+      resolveNativePackageBinary({ packageRoot, platform: "aix", arch: "ppc64" })
+    ).toBeUndefined();
   });
 });
