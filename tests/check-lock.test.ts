@@ -10,7 +10,7 @@ import {
   isLockInput,
   lockInputsChanged,
   pathsInPorcelain,
-} from "../tools/check-lock";
+} from "../tools/lib/check-lock";
 
 const repoRoot = join(import.meta.dir, "..");
 const scratch = mkdtempSync(join(tmpdir(), "klint-check-lock-"));

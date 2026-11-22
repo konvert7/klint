@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { checkLf, hasCarriageReturn, isBinary, pathFrom } from "../tools/check-lf";
+import { checkLf, hasCarriageReturn, isBinary, pathFrom } from "../tools/lib/check-lf";
 
 const scratch = mkdtempSync(join(tmpdir(), "klint-check-lf-"));
 

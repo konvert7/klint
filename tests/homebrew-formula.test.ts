@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { homebrewFormula } from "../tools/generate-homebrew-formula";
+import { homebrewFormula } from "../tools/lib/generate-homebrew-formula";
 
 describe("Homebrew formula generation", () => {
   test("renders Darwin and Linux release asset URLs and checksums", () => {
