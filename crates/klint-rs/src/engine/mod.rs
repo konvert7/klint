@@ -1,3 +1,4 @@
+use crate::files::is_supported_source;
 mod walk;
 
 use std::path::{Path, PathBuf};
@@ -144,6 +145,10 @@ impl Engine<'_> {
     }
 
     fn needs_tree(&self, file_index: usize, file: &Path) -> bool {
+        is_supported_source(file) && self.covers_with_tree(file_index, file)
+    }
+
+    fn covers_with_tree(&self, file_index: usize, file: &Path) -> bool {
         self.rule_passes.iter().any(|pass| pass.covers(file_index))
             || self
                 .arch

@@ -7,6 +7,7 @@ pub(crate) fn resolve_files(
     root: &Path,
     include: &[String],
     respect_gitignore: bool,
+    text_globs: &[String],
 ) -> Result<Vec<PathBuf>, String> {
     let mut files = Vec::new();
     let excludes: Vec<&str> = include
@@ -21,6 +22,7 @@ pub(crate) fn resolve_files(
             include_pattern: pattern,
             excludes: &excludes,
             respect_gitignore,
+            text_globs,
         };
         walk.collect_into(&base, &mut files);
     }
@@ -93,6 +95,7 @@ struct Walk<'a> {
     include_pattern: &'a str,
     excludes: &'a [&'a str],
     respect_gitignore: bool,
+    text_globs: &'a [String],
 }
 
 impl Walk<'_> {
@@ -108,7 +111,7 @@ impl Walk<'_> {
             let path = entry.path();
             let is_file = entry.file_type().is_some_and(|kind| !kind.is_dir());
 
-            if is_file && is_supported_source(path) && self.selects(path) {
+            if is_file && self.wants(path) && self.selects(path) {
                 files.push(normalize_path(path));
             }
         }
@@ -137,6 +140,16 @@ impl Walk<'_> {
         builder
     }
 
+    fn wants(&self, path: &Path) -> bool {
+        let rel = || relative_path(&normalize_path(self.root), &normalize_path(path));
+
+        is_supported_source(path)
+            || self
+                .text_globs
+                .iter()
+                .any(|glob| match_pattern(&rel(), glob))
+    }
+
     fn selects(&self, path: &Path) -> bool {
         let rel = relative_path(&normalize_path(self.root), &normalize_path(path));
 
@@ -162,7 +175,7 @@ fn is_excluded(rel: &str, excludes: &[&str]) -> bool {
     excludes.iter().any(|pattern| match_pattern(rel, pattern))
 }
 
-fn is_supported_source(path: &Path) -> bool {
+pub(crate) fn is_supported_source(path: &Path) -> bool {
     supports_import_scan(path)
 }
 
@@ -343,6 +356,7 @@ mod tests {
                 "!**/node_modules/**".to_string(),
             ],
             true,
+            &[],
         )
         .expect("resolve files");
 
@@ -364,7 +378,7 @@ mod tests {
         write(root.join("src/app/main.ts"), "console.log('x');\n").expect("write ts source");
         write(root.join("src/app/readme.md"), "# ignored\n").expect("write markdown");
 
-        let files = resolve_files(&root, &["src".to_string()], true).expect("resolve files");
+        let files = resolve_files(&root, &["src".to_string()], true, &[]).expect("resolve files");
 
         let rel_files = files
             .iter()
@@ -398,6 +412,7 @@ mod tests {
             &root,
             &["./src/**/*.ts".to_string(), "!./src/gen".to_string()],
             true,
+            &[],
         )
         .expect("resolve files");
 
@@ -419,7 +434,8 @@ mod tests {
         write(root.join("cli.ts"), "export const x = 1;\n").expect("write root source");
         write(root.join("src/app.ts"), "export const y = 2;\n").expect("write nested source");
 
-        let files = resolve_files(&root, &["**/*.ts".to_string()], true).expect("resolve files");
+        let files =
+            resolve_files(&root, &["**/*.ts".to_string()], true, &[]).expect("resolve files");
 
         let rel_files = files
             .iter()
@@ -440,7 +456,8 @@ mod tests {
         write(root.join("src/a.js"), "export const y = 2;\n").expect("write js");
         write(root.join("src/a.py"), "y = 2\n").expect("write py");
 
-        let files = resolve_files(&root, &["**/*.ts".to_string()], true).expect("resolve files");
+        let files =
+            resolve_files(&root, &["**/*.ts".to_string()], true, &[]).expect("resolve files");
 
         let rel_files = files
             .iter()
@@ -467,6 +484,7 @@ mod tests {
                 "!src/jobs/worker.py".to_string(),
             ],
             true,
+            &[],
         )
         .expect("resolve files");
 

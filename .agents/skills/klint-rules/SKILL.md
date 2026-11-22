@@ -201,6 +201,14 @@ arch:
 
 Required: `limit` + `in`. The count is **total physical lines** — blanks and comments included, not code lines — and a file over the limit is flagged at line `limit + 1`. Enforced identically in the TS and Rust engines, across every language klint scans.
 
+### Config and text files — package.json, YAML, TOML, Prisma
+
+`forbidden`, `singleton` and `maxLines` also read non-source files when an `in:` glob names them: its
+last part has a literal (`**/package.json`, `*.yaml`, `prisma/*.prisma`) or it is an existing file's
+path. `**` and `src/**` still mean source files only. `include` and `.gitignore` still apply, so add
+the file's folder to `include`. These files are plain text: no `jsx-element`, imports or comment
+budgets.
+
 ### Comment budget — cap explanatory prose
 
 Two ceilings on how much of a file may be comments. Use them to push intent into names and small

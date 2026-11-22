@@ -530,6 +530,27 @@ arch:
 
 `maxLines` applies to every language klint scans, with no formatter dependency.
 
+### Config and Other Text Files
+
+`forbidden`, `singleton` and `maxLines` also check files that are not source code, such as `package.json`, YAML, TOML, `.prisma` schemas, `.env.example` or a `Dockerfile`, when an `in:` glob names them:
+
+```yaml
+include: ["."]
+arch:
+  forbidden:
+    - pattern: "\"^"
+      in: "**/package.json"
+      message: "Pin exact versions"
+  maxLines:
+    - limit: 400
+      in: "prisma/*.prisma"
+```
+
+- A glob names files when its last part has a literal in it (`**/package.json`, `*.yaml`, `prisma/*.prisma`), or when it is the path of an existing file. `**` and `src/**` keep meaning the source files, so an existing rule never starts reading READMEs or lockfiles.
+- `include` and `.gitignore` still apply: with `include: ["src"]`, a `package.json` at the root is not read.
+- These files are read as plain text, line by line. `jsx-element`, `arch.imports`, the comment budgets and the source rules never run on them.
+- A file a glob names must be UTF-8 text; a binary file stops the run with a read error.
+
 ### Comment Budgets
 
 Push intent into names and code rather than prose — and keep token cost down — by capping how much of a file may be comments. Two independent limits, both counting only ordinary `//`, `/* */`, and `#` comments; doc-comments (`/** */` JSDoc and Python docstrings) are exempt by default so documentation stays free.

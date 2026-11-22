@@ -17,7 +17,7 @@ use tree_sitter::Node;
 
 use comments::{CommentLines, CommentPass, plan_block_passes, plan_density_passes};
 use imports::{ImportPass, plan_import_passes};
-use layers::resolve_layer_mask;
+use layers::{file_naming_globs, resolve_text_mask};
 use patterns::{PatternPass, plan_forbidden_passes, plan_singleton_passes};
 use resolve::ResolveContext;
 
@@ -263,6 +263,24 @@ pub(crate) struct ArchPlan {
     resolve: ResolveContext,
 }
 
+impl ArchConfig {
+    pub(crate) fn text_file_globs(&self, root: &Path) -> Vec<String> {
+        let forbidden = self.forbidden.iter().flatten().map(|rule| &rule.in_scope);
+        let singleton = self
+            .singleton
+            .iter()
+            .flatten()
+            .filter_map(|rule| rule.in_scope.as_ref());
+        let max_lines = self.max_lines.iter().flatten().map(|rule| &rule.in_scope);
+
+        forbidden
+            .chain(singleton)
+            .chain(max_lines)
+            .flat_map(|scope| file_naming_globs(scope, self.layers.as_ref(), root))
+            .collect()
+    }
+}
+
 impl ArchPlan {
     pub(crate) fn build(arch: &ArchConfig, files: &[PathBuf], root: &Path) -> Self {
         Self {
@@ -372,7 +390,7 @@ fn plan_max_lines_passes(arch: &ArchConfig, files: &[PathBuf], root: &Path) -> V
         .iter()
         .map(|rule| MaxLinesPass {
             limit: rule.limit,
-            scope: resolve_layer_mask(&rule.in_scope, arch.layers.as_ref(), root, files),
+            scope: resolve_text_mask(&rule.in_scope, arch.layers.as_ref(), root, files),
             message: rule.message.clone(),
             severity: rule.severity.as_deref().unwrap_or("error").to_string(),
         })
