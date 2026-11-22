@@ -153,11 +153,12 @@ arch:
 }
 
 fn version_beside(name: &str, sidecar: &str) -> String {
-    let root = temp_root(name);
+    let root = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(name);
+    let _ = remove_dir_all(&root);
     create_dir_all(&root).expect("create temp dir");
     let source = PathBuf::from(env!("CARGO_BIN_EXE_klint-rs"));
     let binary = root.join(source.file_name().expect("binary name"));
-    std::fs::copy(&source, &binary).expect("copy binary");
+    std::fs::hard_link(&source, &binary).expect("link binary");
     write(root.join("VERSION"), sidecar).expect("write VERSION");
 
     let output = Command::new(&binary)
