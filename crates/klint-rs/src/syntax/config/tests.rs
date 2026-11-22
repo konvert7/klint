@@ -96,3 +96,31 @@ fn star_matches_one_segment_and_parents_are_found_by_prefix() {
     assert!(!path_matches(&pattern, &deeper));
     assert!(path_starts_with(&deeper, &pattern));
 }
+
+fn segments(dotted: &str) -> Vec<String> {
+    dotted.split('.').map(str::to_string).collect()
+}
+
+#[test]
+fn a_star_inside_a_segment_and_a_double_star_match_like_globs() {
+    assert!(path_matches(
+        &segments("*Dependencies.*"),
+        &segments("devDependencies.zod")
+    ));
+    assert!(!path_matches(
+        &segments("*Dependencies.*"),
+        &segments("scripts.build")
+    ));
+    assert!(path_matches(
+        &segments("overrides.**"),
+        &segments("overrides.a.b")
+    ));
+    assert!(path_matches(
+        &segments("overrides.**"),
+        &segments("overrides.a")
+    ));
+    assert!(!path_matches(
+        &segments("overrides.**"),
+        &segments("overrides")
+    ));
+}

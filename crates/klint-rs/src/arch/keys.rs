@@ -11,18 +11,59 @@ enum Check {
     Required,
 }
 
+struct KeySpec {
+    include: Vec<Vec<String>>,
+    exclude: Vec<Vec<String>>,
+}
+
+impl KeySpec {
+    fn parse(items: &StringOrVec) -> Self {
+        let split = |key: &str| key.split('.').map(str::to_string).collect::<Vec<_>>();
+        let items = items.items();
+
+        Self {
+            include: items
+                .iter()
+                .filter(|key| !key.starts_with('!'))
+                .map(|key| split(key))
+                .collect(),
+            exclude: items
+                .iter()
+                .filter_map(|key| key.strip_prefix('!'))
+                .map(split)
+                .collect(),
+        }
+    }
+
+    fn selects(&self, path: &[String]) -> bool {
+        self.include.iter().any(|key| path_matches(key, path))
+            && !self.exclude.iter().any(|key| path_matches(key, path))
+    }
+
+    fn is_parent_of(&self, path: &[String]) -> bool {
+        self.include.iter().any(|key| path_starts_with(path, key))
+    }
+
+    fn has_wildcard(&self) -> bool {
+        self.include
+            .iter()
+            .flatten()
+            .any(|segment| segment.contains('*'))
+    }
+}
+
 pub(super) struct KeyPass {
     rule_name: &'static str,
     check: Check,
     scope: Vec<bool>,
-    key: Vec<String>,
+    key: KeySpec,
     matcher: Option<LineMatcher>,
     message: String,
     severity: String,
 }
 
 struct KeyRule<'r> {
-    key: &'r str,
+    key: &'r StringOrVec,
     pattern: Option<&'r str>,
     in_scope: &'r StringOrVec,
     message: &'r str,
@@ -32,7 +73,7 @@ struct KeyRule<'r> {
 pub(super) fn plan_key_passes(arch: &ArchConfig, files: &[PathBuf], root: &Path) -> Vec<KeyPass> {
     let forbidden = arch.forbidden.iter().flatten().filter_map(|rule| {
         let rule_key = KeyRule {
-            key: rule.key.as_deref()?,
+            key: rule.key.as_ref()?,
             pattern: rule.pattern.as_deref(),
             in_scope: &rule.in_scope,
             message: &rule.message,
@@ -57,7 +98,7 @@ pub(super) fn plan_key_passes(arch: &ArchConfig, files: &[PathBuf], root: &Path)
             rule_name,
             check,
             scope: resolve_text_mask(rule.in_scope, arch.layers.as_ref(), root, files),
-            key: rule.key.split('.').map(str::to_string).collect(),
+            key: KeySpec::parse(rule.key),
             matcher: rule.pattern.map(LineMatcher::build),
             message: rule.message.to_string(),
             severity: rule.severity.unwrap_or("error").to_string(),
@@ -78,18 +119,8 @@ impl KeyPass {
         entries: &[ConfigEntry],
     ) -> Vec<Violation> {
         let found = entries_at(entries, &self.key);
-        let flagged: Vec<&ConfigEntry> = match self.check {
-            Check::Forbidden => found
-                .into_iter()
-                .filter(|entry| self.value_matches(entry))
-                .collect(),
-            Check::Required if found.is_empty() => {
-                return vec![self.violation(file, root, 1, None)];
-            }
-            Check::Required => found
-                .into_iter()
-                .filter(|entry| !self.value_matches(entry))
-                .collect(),
+        let Some(flagged) = self.flagged(found) else {
+            return vec![self.violation(file, root, 1, None)];
         };
 
         flagged
@@ -100,6 +131,27 @@ impl KeyPass {
                 self.violation(file, root, line, span)
             })
             .collect()
+    }
+
+    fn flagged<'e>(&self, found: Vec<&'e ConfigEntry>) -> Option<Vec<&'e ConfigEntry>> {
+        let every_match = self.key.has_wildcard();
+
+        match self.check {
+            Check::Forbidden => Some(
+                found
+                    .into_iter()
+                    .filter(|entry| self.value_matches(entry))
+                    .collect(),
+            ),
+            Check::Required if found.is_empty() && !every_match => None,
+            Check::Required => Some(
+                found
+                    .into_iter()
+                    .filter(|entry| !(every_match && entry.value.is_none()))
+                    .filter(|entry| !self.value_matches(entry))
+                    .collect(),
+            ),
+        }
     }
 
     fn value_matches(&self, entry: &ConfigEntry) -> bool {
@@ -124,19 +176,19 @@ impl KeyPass {
     }
 }
 
-fn entries_at<'e>(entries: &'e [ConfigEntry], key: &[String]) -> Vec<&'e ConfigEntry> {
+fn entries_at<'e>(entries: &'e [ConfigEntry], key: &KeySpec) -> Vec<&'e ConfigEntry> {
     let exact: Vec<&ConfigEntry> = entries
         .iter()
-        .filter(|entry| path_matches(key, &entry.path))
+        .filter(|entry| key.selects(&entry.path))
         .collect();
 
-    if !exact.is_empty() {
+    if !exact.is_empty() || key.has_wildcard() {
         return exact;
     }
 
     entries
         .iter()
-        .find(|entry| path_starts_with(&entry.path, key))
+        .find(|entry| key.is_parent_of(&entry.path))
         .into_iter()
         .collect()
 }

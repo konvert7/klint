@@ -287,7 +287,7 @@ fn match_segments(pattern: &[&str], path: &[&str]) -> bool {
         && match_segments(&pattern[1..], &path[1..])
 }
 
-fn match_component(pattern: &str, text: &str) -> bool {
+pub(crate) fn match_component(pattern: &str, text: &str) -> bool {
     let pattern = pattern.as_bytes();
     let text = text.as_bytes();
     let mut pattern_index = 0;

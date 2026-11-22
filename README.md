@@ -576,10 +576,19 @@ arch:
       message: "Set rust-version"
 ```
 
-- `key` is a dotted path. `*` matches any one key or list index, and list items are numbered from 0 (`jobs.*.steps.0.uses`). TOML tables, dotted keys and `[[array]]` tables give the same paths as the nested form.
+- `key` is a dotted path, or a list of them. Within a segment `*` matches any text (`*Dependencies`), `**` matches one or more segments (`overrides.**`), and list items are numbered from 0 (`jobs.*.steps.0.uses`). In a list, an entry starting with `!` excludes the keys it matches. A key name that itself contains a dot cannot be written. TOML tables, dotted keys and `[[array]]` tables give the same paths as the nested form.
 - `pattern` is the value to match. A literal must equal the value's text exactly (`true`, `2024`); `re:` searches with a regular expression. Quotes around strings are not part of the value.
 - `forbidden` with `key` reports each key whose value matches `pattern`. Without `pattern`, it reports the key itself.
-- `required` reports a missing key on line 1 of the file, and each key whose value does not match `pattern`. A parent counts as present when it has children, so `dependencies` is found through `[dependencies.serde]`.
+- `required` without a wildcard reports a missing key on line 1 of the file, and the key if its value does not match `pattern`. A parent counts as present when it has children, so `dependencies` is found through `[dependencies.serde]`.
+- `required` with a wildcard means "every match": each matching key that has a value must match `pattern`, and a file with no match is fine. This pins every dependency in every `package.json` to an exact version, except packages stamped at release:
+
+  ```yaml
+  required:
+    - key: ["*Dependencies.*", "overrides.**", "!optionalDependencies.@acme/native-*"]
+      pattern: "re:^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$"
+      in: "**/package.json"
+      message: "Pin exact versions"
+  ```
 - The report points at the key's line and column. A file that does not parse is skipped.
 - The file type comes from the extension: `.json`, `.jsonc`, `.yaml`, `.yml`, `.toml`. The `in:` glob must name the files, as for any config file (see above).
 

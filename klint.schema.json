@@ -128,8 +128,18 @@
                     "description": "Layer name(s) or glob(s) naming the JSON, YAML or TOML files to check, e.g. `**/package.json`."
                   },
                   "key": {
-                    "description": "Dotted key path in a JSON, YAML or TOML file, e.g. `compilerOptions.strict` or `dependencies.*`. `*` matches any one key or list index; list items are numbered from 0.",
-                    "type": "string"
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    ],
+                    "description": "Dotted key path(s) in a JSON, YAML or TOML file, e.g. `compilerOptions.strict` or `dependencies.*`. Within a segment `*` matches any text (`*Dependencies`); `**` matches one or more segments; list items are numbered from 0. In a list, an entry starting with `!` excludes the keys it matches."
                   },
                   "message": {
                     "description": "Required error message explaining why the key or value is forbidden.",
@@ -471,7 +481,7 @@
           "description": "Required-key rules for JSON, YAML and TOML files: a key that must exist, optionally with a value pattern.",
           "items": {
             "additionalProperties": false,
-            "description": "A required-key rule. Every JSON, YAML or TOML file in scope must have the key, and with `pattern` its value must match.",
+            "description": "A required-key rule. Without a wildcard, every JSON, YAML or TOML file in scope must have the key, and with `pattern` its value must match. With a wildcard (`dependencies.*`), every matching key that has a value must match `pattern`, and a file with no match is fine.",
             "examples": [
               "arch:\n  required:\n    - key: compilerOptions.strict\n      pattern: \"true\"\n      in: tsconfig.json\n      message: \"Keep strict mode on\""
             ],
@@ -491,8 +501,18 @@
                 "description": "Layer name(s) or glob(s) naming the JSON, YAML or TOML files that must have the key."
               },
               "key": {
-                "description": "Dotted key path in a JSON, YAML or TOML file, e.g. `compilerOptions.strict` or `dependencies.*`. `*` matches any one key or list index; list items are numbered from 0.",
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "Dotted key path(s) in a JSON, YAML or TOML file, e.g. `compilerOptions.strict` or `dependencies.*`. Within a segment `*` matches any text (`*Dependencies`); `**` matches one or more segments; list items are numbered from 0. In a list, an entry starting with `!` excludes the keys it matches."
               },
               "message": {
                 "description": "Error message shown when the key is missing or its value does not match.",

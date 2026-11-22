@@ -142,3 +142,24 @@ fn a_file_that_does_not_parse_is_skipped() {
 
     assert!(findings("keys-broken", arch, &[("tsconfig.json", "{\"a\": }\n")]).is_empty());
 }
+
+const EXACT_VERSIONS: &str = "  required:\n    - key: [\"*Dependencies.*\", \"overrides.**\", \"!optionalDependencies.@konvert7/klint-*\"]\n      pattern: \"re:^\\\\d+\\\\.\\\\d+\\\\.\\\\d+(-[0-9A-Za-z.-]+)?(\\\\+[0-9A-Za-z.-]+)?$\"\n      in: \"**/package.json\"\n      message: \"Pin exact versions\"\n";
+
+#[test]
+fn the_exact_versions_check_is_one_required_entry() {
+    let package = "{\n  \"devDependencies\": {\n    \"zod\": \"^3.0.0\",\n    \"bun\": \"1.3.14\"\n  },\n  \"optionalDependencies\": {\n    \"@konvert7/klint-linux-x64\": \"*\",\n    \"left-pad\": \"*\"\n  },\n  \"overrides\": {\n    \"eslint\": { \"minimatch\": \"~9.0.0\" }\n  }\n}\n";
+    let bare = "{\n  \"name\": \"native\"\n}\n";
+
+    assert_eq!(
+        findings(
+            "keys-exact",
+            EXACT_VERSIONS,
+            &[("package.json", package), ("npm/native/package.json", bare)]
+        ),
+        vec![
+            found("package.json", 3, Some(5), "arch/required"),
+            found("package.json", 8, Some(5), "arch/required"),
+            found("package.json", 11, Some(17), "arch/required"),
+        ]
+    );
+}

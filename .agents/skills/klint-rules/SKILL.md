@@ -212,7 +212,8 @@ budgets.
 ### Config keys — JSON, YAML, TOML values
 
 For `.json`/`.jsonc`/`.yaml`/`.yml`/`.toml` files, check a key instead of a line. `key` is a dotted
-path (`*` = any one key or list index). A literal `pattern` must equal the value; `re:` searches.
+path or a list of them: `*` matches text within a segment (`*Dependencies`), `**` one or more
+segments, and a `!` entry excludes. A literal `pattern` must equal the value; `re:` searches.
 
 ```yaml
 arch:
@@ -222,8 +223,10 @@ arch:
     - {key: compilerOptions.strict, pattern: "true", in: tsconfig.json, message: "Keep strict mode on"}
 ```
 
-`forbidden` reports matching values (or the key itself without `pattern`); `required` reports a
-missing key on line 1 and wrong values at their key. A file that does not parse is skipped.
+`forbidden` reports matching values (or the key itself without `pattern`). `required` without a
+wildcard reports a missing key on line 1 and a wrong value at its key; with a wildcard it means
+"every match must fit", so `key: ["*Dependencies.*", "overrides.**"]` with an exact-semver regex pins
+every dependency. A file that does not parse is skipped.
 
 ### Comment budget — cap explanatory prose
 

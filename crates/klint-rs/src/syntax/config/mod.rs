@@ -2,6 +2,7 @@ mod json;
 mod toml;
 mod yaml;
 
+use crate::files::match_component;
 use std::ops::Range;
 use std::path::Path;
 use tree_sitter::{Language, Node, Parser};
@@ -108,15 +109,19 @@ fn named_children(node: Node<'_>) -> Vec<Node<'_>> {
 }
 
 pub(crate) fn path_matches(pattern: &[String], path: &[String]) -> bool {
-    pattern.len() == path.len()
-        && pattern
-            .iter()
-            .zip(path)
-            .all(|(wanted, segment)| wanted == "*" || wanted == segment)
+    match pattern.split_first() {
+        None => path.is_empty(),
+        Some((first, rest)) if first == "**" => {
+            (1..=path.len()).any(|taken| path_matches(rest, &path[taken..]))
+        }
+        Some((first, rest)) => path.split_first().is_some_and(|(segment, tail)| {
+            match_component(first, segment) && path_matches(rest, tail)
+        }),
+    }
 }
 
 pub(crate) fn path_starts_with(path: &[String], pattern: &[String]) -> bool {
-    path.len() > pattern.len() && path_matches(pattern, &path[..pattern.len()])
+    (1..path.len()).any(|length| path_matches(pattern, &path[..length]))
 }
 
 #[cfg(test)]

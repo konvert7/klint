@@ -117,7 +117,7 @@ struct ArchForbiddenRule {
     pattern: Option<String>,
     #[serde(rename = "jsx-element")]
     jsx_element: Option<StringOrVec>,
-    key: Option<String>,
+    key: Option<StringOrVec>,
     #[serde(rename = "in")]
     in_scope: StringOrVec,
     message: String,
@@ -127,14 +127,14 @@ struct ArchForbiddenRule {
 #[derive(Debug, Deserialize, JsonSchema)]
 #[schemars(
     deny_unknown_fields,
-    description = "A required-key rule. Every JSON, YAML or TOML file in scope must have the key, and with `pattern` its value must match.",
+    description = "A required-key rule. Without a wildcard, every JSON, YAML or TOML file in scope must have the key, and with `pattern` its value must match. With a wildcard (`dependencies.*`), every matching key that has a value must match `pattern`, and a file with no match is fine.",
     extend("examples" = [
         "arch:\n  required:\n    - key: compilerOptions.strict\n      pattern: \"true\"\n      in: tsconfig.json\n      message: \"Keep strict mode on\""
     ])
 )]
 struct ArchRequiredRule {
     #[schemars(description = KEY_PATH)]
-    key: String,
+    key: StringOrVec,
     #[schemars(description = VALUE_PATTERN)]
     pattern: Option<String>,
     #[serde(rename = "in")]
