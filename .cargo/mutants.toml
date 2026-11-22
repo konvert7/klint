@@ -1,5 +1,6 @@
 # KLINT_VERSION is set only for release builds, so no test build can tell
-# compiled_version() from None; version_from() holds the logic and is tested.
+# compiled_version() from None (or from Some(""), which version_from() skips);
+# version_from() holds the logic and is tested.
 # match_component's star + 1 -> star * 1 revisits the same * and lands in the same
 # state one step later, so no input can tell the two apart.
 # ArchPlan::needs_tree, needs_comments and scan_file's tree check only decide
@@ -9,7 +10,7 @@
 # decide how much is parsed, indexed and in how many threads; a file no rule
 # covers or without a tree yields no findings either way.
 exclude_re = [
-  "replace compiled_version -> ",
+  "replace compiled_version -> Option<&'static str> with (None|Some\\(\"\"\\))$",
   "replace \\+ with \\* in match_component",
   "replace ArchPlan::needs_tree -> bool with true",
   "replace && with \\|\\| in ArchPlan::needs_tree",
