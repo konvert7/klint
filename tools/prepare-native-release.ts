@@ -10,8 +10,9 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { fail } from "./exit-with";
+import { valueAfter } from "./lib/release-cli";
 import { nativePackages } from "./native-binary";
-import { fail, valueAfter } from "./release-cli";
 
 interface PackageJson {
   name: string;
