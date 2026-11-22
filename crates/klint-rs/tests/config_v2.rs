@@ -153,6 +153,27 @@ fn mixed_flat_rule_and_v2_group_warns_once_and_v2_wins() {
 }
 
 #[test]
+fn mixed_warning_lists_only_the_v1_rules_and_points_at_the_first() {
+    let config = "include: [\"src\"]\nrules:\n  core:\n    no-string-match: error\n  no-sync-in-async: warn\n  sonar/prefer-at: warn\n  sonar/not-a-rule: warn\n  bogus: 1\n";
+    let json = lint_json(&project_with(config).root);
+    let mixed: Vec<serde_json::Value> = config_warnings(&json)
+        .into_iter()
+        .filter(|warning| {
+            warning["message"]
+                .as_str()
+                .is_some_and(|m| m.starts_with("This config mixes"))
+        })
+        .collect();
+
+    assert_eq!(mixed.len(), 1, "{json}");
+    assert_eq!(mixed[0]["line"], 5, "{json}");
+    assert_eq!(
+        mixed[0]["message"],
+        "This config mixes the v1 and v2 formats (rules.no-sync-in-async, rules.sonar/not-a-rule, rules.sonar/prefer-at) — the v1 entries are ignored; move them into rules.core / rules.sonar or run `klint migrate`."
+    );
+}
+
+#[test]
 fn plugins_next_to_a_v2_key_warns_once_and_plugins_are_ignored() {
     let config =
         "include: [\"src\"]\nplugins: [sonar]\nrules:\n  core:\n    no-string-match: error\n";

@@ -294,7 +294,6 @@ pub(crate) fn parse_config_text(text: &str, format: ConfigFormat) -> Result<RawC
         ConfigFormat::Yaml => serde_yaml::from_str(text).map_err(|err| err.to_string())?,
         ConfigFormat::Json => serde_json::from_str(text).map_err(|err| err.to_string())?,
     };
-    crate::config_shape::check_rule_values(&raw)?;
     Ok(raw)
 }
 
