@@ -32,6 +32,8 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "test": "bun test",
+    "test:mutate": "cargo mutants -p klint-rs",
+    "test:mutate:diff": "sh -c 'git diff \"${1:-origin/main}...HEAD\" > target/mutants.diff && cargo mutants -p klint-rs --in-diff target/mutants.diff' mutate-diff",
     "pack:check": "bun tests/pack-check.ts",
     "native:stage": "bun tests/stage-native-binary.ts",
     "native:smoke": "bun tests/smoke-native-binary.ts",
