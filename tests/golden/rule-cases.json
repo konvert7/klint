@@ -4309,5 +4309,114 @@
         "warnings": 0
       }
     }
+  },
+  {
+    "name": "cognitive-complexity docs: nesting raises the score, a flat function stays under the limit",
+    "docs": true,
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "core": {
+          "cognitive-complexity": {
+            "error": 5
+          }
+        }
+      }
+    },
+    "files": {
+      "src/shipping.ts": "export function shippingCost(order) {\n  let cost = 0;\n  for (const item of order.items) {\n    if (item.fragile) {\n      cost += item.weight > 10 ? 15 : 5;\n    } else if (order.express && item.weight > 0) {\n      cost += 8;\n    }\n  }\n  return cost;\n}\n\nexport function handlingFee(order) {\n  return order.express ? 8 : 5;\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/shipping.ts",
+          "line": 1,
+          "rule": "cognitive-complexity",
+          "message": "Function `shippingCost` has cognitive complexity 8 (max 5) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null,
+          "column": 17,
+          "endColumn": 29
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "function-length docs: a function over the limit is reported, a short one is not",
+    "docs": true,
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "core": {
+          "function-length": {
+            "error": 4
+          }
+        }
+      }
+    },
+    "files": {
+      "src/report.ts": "export function csvReport(rows) {\n  const lines = [\"name,total\"];\n  for (const row of rows) {\n    const total = row.items.reduce((sum, item) => sum + item.price, 0);\n    lines.push(row.name + \",\" + total);\n  }\n  lines.push(\"rows: \" + rows.length);\n  return lines.join(\"\\n\");\n}\n\nexport function csvHeader() {\n  return \"name,total\";\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/report.ts",
+          "line": 1,
+          "rule": "function-length",
+          "message": "Function `csvReport` has 6 lines (max 4) — split it into smaller functions.",
+          "severity": "error",
+          "fix": null,
+          "column": 17,
+          "endColumn": 26
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "no-floating-promise docs: a dropped promise is reported, awaited or handled ones are not",
+    "docs": true,
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {
+        "experimental": {
+          "no-floating-promise": "error"
+        }
+      }
+    },
+    "files": {
+      "src/save.ts": "async function save(doc) {\n  await fetch(\"/api/docs\", { method: \"POST\", body: JSON.stringify(doc) });\n}\n\nexport async function onSubmit(doc) {\n  save(doc);\n  await save(doc);\n  save(doc).catch(console.error);\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/save.ts",
+          "line": 6,
+          "rule": "no-floating-promise",
+          "message": "This promise is neither awaited nor handled — `await` it, return it, or add `.catch()`.",
+          "severity": "error",
+          "fix": null,
+          "column": 3,
+          "endColumn": 13
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
   }
 ]
