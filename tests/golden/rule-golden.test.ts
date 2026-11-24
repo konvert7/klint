@@ -19,6 +19,7 @@ type KlintConfig = Record<string, unknown>;
 
 interface GoldenCase {
   name: string;
+  docs?: boolean;
   config: KlintConfig;
   files: Record<string, string>;
   expected: GoldenEnvelope;

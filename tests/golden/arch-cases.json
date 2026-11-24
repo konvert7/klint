@@ -828,5 +828,92 @@
         "warnings": 0
       }
     }
+  },
+  {
+    "name": "maxCommentDensity docs: a file that is mostly comments is reported",
+    "docs": true,
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {},
+      "arch": {
+        "layers": {
+          "app": [
+            "src/**"
+          ]
+        },
+        "maxCommentDensity": [
+          {
+            "limit": 25,
+            "in": "app",
+            "message": "Encode intent in names, not comments."
+          }
+        ]
+      }
+    },
+    "files": {
+      "src/prose.ts": "// Adds two numbers.\n// Takes a and b.\n// Returns their sum.\nexport function add(a, b) {\n  // add them\n  return a + b;\n}\n",
+      "src/lean.ts": "export function add(a, b) {\n  return a + b;\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/prose.ts",
+          "line": 1,
+          "rule": "arch/max-comment-density",
+          "message": "Encode intent in names, not comments.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
+  },
+  {
+    "name": "maxCommentBlock docs: a comment block taller than the limit is reported",
+    "docs": true,
+    "config": {
+      "include": [
+        "."
+      ],
+      "rules": {},
+      "arch": {
+        "layers": {
+          "app": [
+            "src/**"
+          ]
+        },
+        "maxCommentBlock": [
+          {
+            "limit": 2,
+            "in": "app",
+            "message": "Extract a named function instead of a comment block."
+          }
+        ]
+      }
+    },
+    "files": {
+      "src/retry.ts": "export function retry(task) {\n  // Try three times.\n  // Wait longer after each failure,\n  // because the API rate-limits bursts,\n  // and give up after the last attempt.\n  return task();\n}\n\nexport function once(task) {\n  // Run the task a single time.\n  return task();\n}\n"
+    },
+    "expected": {
+      "violations": [
+        {
+          "file": "src/retry.ts",
+          "line": 4,
+          "rule": "arch/max-comment-block",
+          "message": "Extract a named function instead of a comment block.",
+          "severity": "error",
+          "fix": null
+        }
+      ],
+      "summary": {
+        "errors": 1,
+        "warnings": 0
+      }
+    }
   }
 ]
