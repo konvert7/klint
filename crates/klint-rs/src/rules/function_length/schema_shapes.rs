@@ -11,6 +11,10 @@ enum FunctionLengthV1Config {
         description = "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
     )]
     Options {
+        #[schemars(
+            extend("deprecated" = true),
+            description = "Deprecated (v1): the level is now the key of the limit. `klint migrate` turns `severity: warn` into `warn: 50` (or `warn: <max>`), `severity: error` into `error: 50`, and `severity: off` into `off`."
+        )]
         severity: Option<Severity>,
         #[schemars(
             description = "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]"
@@ -18,8 +22,8 @@ enum FunctionLengthV1Config {
         include: Option<Vec<String>>,
         #[schemars(
             range(min = 1),
-            extend("default" = 50),
-            description = "Highest number of lines a function body may have; a function counting more is reported. An integer of at least 1. Defaults to 50."
+            extend("default" = 50, "deprecated" = true),
+            description = "Deprecated (v1): replaced by a `warn` or `error` limit. `klint migrate` renames `max: N` to `error: N`, or to `warn: N` when `severity: warn`. Highest number of lines a function body may have; a function counting more is reported. An integer of at least 1. Defaults to 50."
         )]
         max: Option<u32>,
         #[serde(rename = "skipBlankLines")]

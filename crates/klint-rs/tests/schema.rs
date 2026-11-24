@@ -129,3 +129,65 @@ fn sonar_prefixed_name_is_listed_under_neither_core_nor_experimental() {
     );
     assert!(v2_group(&schema, "core").get("sonar/prefer-at").is_none());
 }
+
+fn arch_examples(schema: &Value) -> Vec<(String, String)> {
+    let sections = schema["properties"]["arch"]["properties"]
+        .as_object()
+        .expect("arch has properties");
+    sections
+        .iter()
+        .flat_map(|(name, node)| {
+            [&node["examples"], &node["items"]["examples"]]
+                .into_iter()
+                .filter_map(Value::as_array)
+                .flatten()
+                .filter_map(Value::as_str)
+                .map(|example| (name.clone(), example.to_string()))
+                .collect::<Vec<_>>()
+        })
+        .collect()
+}
+
+fn is_glob(scope: &str) -> bool {
+    scope.contains(['/', '*', '.'])
+}
+
+fn scope_names(entry: &serde_yaml::Value) -> Vec<String> {
+    ["in", "from", "deny", "allow"]
+        .iter()
+        .filter_map(|key| entry.get(*key))
+        .flat_map(|value| match value {
+            serde_yaml::Value::Sequence(items) => items.clone(),
+            other => vec![other.clone()],
+        })
+        .filter_map(|value| value.as_str().map(str::to_string))
+        .collect()
+}
+
+#[test]
+fn every_arch_example_defines_the_layers_it_names() {
+    for (section, example) in arch_examples(&generated_schema()) {
+        let doc: serde_yaml::Value = serde_yaml::from_str(&example).expect("example is YAML");
+        let arch = &doc["arch"];
+        let defined: Vec<String> = arch["layers"]
+            .as_mapping()
+            .map(|layers| {
+                layers
+                    .keys()
+                    .filter_map(|k| k.as_str().map(str::to_string))
+                    .collect()
+            })
+            .unwrap_or_default();
+        let entries = arch[section.as_str()]
+            .as_sequence()
+            .cloned()
+            .unwrap_or_default();
+
+        for name in entries.iter().flat_map(scope_names) {
+            assert!(
+                is_glob(&name) || defined.contains(&name),
+                "arch.{section} example names layer `{name}` without defining it in `layers`:\n{example}"
+            );
+        }
+    }
+}

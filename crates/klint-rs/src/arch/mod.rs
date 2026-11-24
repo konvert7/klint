@@ -72,7 +72,7 @@ pub(crate) struct ArchConfig {
     deny_unknown_fields,
     description = "An import-boundary rule. Restricts which layers a source can or cannot import from.",
     extend("examples" = [
-        "arch:\n  imports:\n    - from: skills\n      deny: core\n      message: \"Skills must be self-contained and portable\"\n      severity: warn",
+        "arch:\n  layers:\n    skills: [\"assets/skills/**\"]\n    core: [\"src/lib/**\"]\n  imports:\n    - from: skills\n      deny: core\n      message: \"Skills must be self-contained and portable\"\n      severity: warn",
         "arch:\n  imports:\n    - from: [\"src/dao/**\"]\n      allow: [\"src/dao/**\", \"src/prisma/**\", \"src/types/**\"]"
     ])
 )]

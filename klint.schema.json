@@ -169,8 +169,9 @@
             ],
             "description": "A forbidden-pattern rule. Blocks either a literal substring (`pattern:`) or a JSX element (`jsx-element:`) inside specific layers.",
             "examples": [
-              "arch:\n  forbidden:\n    - pattern: \"debugLog(\"\n      in: core\n      message: \"Leaks into the agent event stream\"",
-              "arch:\n  forbidden:\n    - jsx-element: [\"button\", \"input\", \"label\"]\n      in: [\"src/app/**/*.tsx\", \"src/components/**/*.tsx\", \"!src/components/ui/**\"]\n      message: \"Use the design-system primitives in @/components/ui/* instead of raw HTML elements.\""
+              "arch:\n  forbidden:\n    - pattern: \"console.log(\"\n      in: \"src/lib/**\"\n      message: \"Use the logger, not console.log\"",
+              "arch:\n  forbidden:\n    - jsx-element: [\"button\", \"input\", \"label\"]\n      in: [\"src/app/**/*.tsx\", \"src/components/**/*.tsx\", \"!src/components/ui/**\"]\n      message: \"Use the design-system primitives in @/components/ui/* instead of raw HTML elements.\"",
+              "arch:\n  forbidden:\n    - key: \"dependencies.lodash\"\n      in: \"**/package.json\"\n      message: \"Use native array methods instead of lodash\""
             ]
           },
           "type": "array"
@@ -181,7 +182,7 @@
             "additionalProperties": false,
             "description": "An import-boundary rule. Restricts which layers a source can or cannot import from.",
             "examples": [
-              "arch:\n  imports:\n    - from: skills\n      deny: core\n      message: \"Skills must be self-contained and portable\"\n      severity: warn",
+              "arch:\n  layers:\n    skills: [\"assets/skills/**\"]\n    core: [\"src/lib/**\"]\n  imports:\n    - from: skills\n      deny: core\n      message: \"Skills must be self-contained and portable\"\n      severity: warn",
               "arch:\n  imports:\n    - from: [\"src/dao/**\"]\n      allow: [\"src/dao/**\", \"src/prisma/**\", \"src/types/**\"]"
             ],
             "properties": {
@@ -2006,13 +2007,15 @@
                     },
                     "max": {
                       "default": 15,
-                      "description": "Highest cognitive complexity a function may have; a function scoring above it is reported. An integer of at least 1. Defaults to 15.",
+                      "deprecated": true,
+                      "description": "Deprecated (v1): replaced by a `warn` or `error` limit. `klint migrate` renames `max: N` to `error: N`, or to `warn: N` when `severity: warn`. Highest cognitive complexity a function may have; a function scoring above it is reported. An integer of at least 1. Defaults to 15.",
                       "format": "uint32",
                       "minimum": 1,
                       "type": "integer"
                     },
                     "severity": {
-                      "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                      "deprecated": true,
+                      "description": "Deprecated (v1): the level is now the key of the limit. `klint migrate` turns `severity: warn` into `warn: 15` (or `warn: <max>`), `severity: error` into `error: 15`, and `severity: off` into `off`.",
                       "enum": [
                         "error",
                         "warn",
@@ -2056,13 +2059,15 @@
                     },
                     "max": {
                       "default": 50,
-                      "description": "Highest number of lines a function body may have; a function counting more is reported. An integer of at least 1. Defaults to 50.",
+                      "deprecated": true,
+                      "description": "Deprecated (v1): replaced by a `warn` or `error` limit. `klint migrate` renames `max: N` to `error: N`, or to `warn: N` when `severity: warn`. Highest number of lines a function body may have; a function counting more is reported. An integer of at least 1. Defaults to 50.",
                       "format": "uint32",
                       "minimum": 1,
                       "type": "integer"
                     },
                     "severity": {
-                      "description": "Rule severity. \"error\" exits with code 2; \"warn\" reports but exits 0; \"off\" silences.",
+                      "deprecated": true,
+                      "description": "Deprecated (v1): the level is now the key of the limit. `klint migrate` turns `severity: warn` into `warn: 50` (or `warn: <max>`), `severity: error` into `error: 50`, and `severity: off` into `off`.",
                       "enum": [
                         "error",
                         "warn",

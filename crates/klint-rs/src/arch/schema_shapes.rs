@@ -33,8 +33,9 @@ pub(super) enum TypeOnly {
 #[derive(JsonSchema)]
 #[serde(untagged)]
 #[schemars(extend("examples" = [
-    "arch:\n  forbidden:\n    - pattern: \"debugLog(\"\n      in: core\n      message: \"Leaks into the agent event stream\"",
-    "arch:\n  forbidden:\n    - jsx-element: [\"button\", \"input\", \"label\"]\n      in: [\"src/app/**/*.tsx\", \"src/components/**/*.tsx\", \"!src/components/ui/**\"]\n      message: \"Use the design-system primitives in @/components/ui/* instead of raw HTML elements.\""
+    "arch:\n  forbidden:\n    - pattern: \"console.log(\"\n      in: \"src/lib/**\"\n      message: \"Use the logger, not console.log\"",
+    "arch:\n  forbidden:\n    - jsx-element: [\"button\", \"input\", \"label\"]\n      in: [\"src/app/**/*.tsx\", \"src/components/**/*.tsx\", \"!src/components/ui/**\"]\n      message: \"Use the design-system primitives in @/components/ui/* instead of raw HTML elements.\"",
+    "arch:\n  forbidden:\n    - key: \"dependencies.lodash\"\n      in: \"**/package.json\"\n      message: \"Use native array methods instead of lodash\""
 ]))]
 #[allow(dead_code)]
 pub(super) enum ForbiddenRule {
