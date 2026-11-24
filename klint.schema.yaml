@@ -111,15 +111,21 @@ properties:
           - |-
             arch:
               forbidden:
-                - pattern: "debugLog("
-                  in: core
-                  message: "Leaks into the agent event stream"
+                - pattern: "console.log("
+                  in: "src/lib/**"
+                  message: "Use the logger, not console.log"
           - |-
             arch:
               forbidden:
                 - jsx-element: ["button", "input", "label"]
                   in: ["src/app/**/*.tsx", "src/components/**/*.tsx", "!src/components/ui/**"]
                   message: "Use the design-system primitives in @/components/ui/* instead of raw HTML elements."
+          - |-
+            arch:
+              forbidden:
+                - key: "dependencies.lodash"
+                  in: "**/package.json"
+                  message: "Use native array methods instead of lodash"
         type: array
       imports:
         description: Import-boundary rules. The dependency graph your README claims you have.
@@ -129,6 +135,9 @@ properties:
           examples:
           - |-
             arch:
+              layers:
+                skills: ["assets/skills/**"]
+                core: ["src/lib/**"]
               imports:
                 - from: skills
                   deny: core
@@ -1460,12 +1469,14 @@ properties:
                 type: array
               max:
                 default: 15
-                description: Highest cognitive complexity a function may have; a function scoring above it is reported. An integer of at least 1. Defaults to 15.
+                deprecated: true
+                description: 'Deprecated (v1): replaced by a `warn` or `error` limit. `klint migrate` renames `max: N` to `error: N`, or to `warn: N` when `severity: warn`. Highest cognitive complexity a function may have; a function scoring above it is reported. An integer of at least 1. Defaults to 15.'
                 format: uint32
                 minimum: 1
                 type: integer
               severity:
-                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                deprecated: true
+                description: 'Deprecated (v1): the level is now the key of the limit. `klint migrate` turns `severity: warn` into `warn: 15` (or `warn: <max>`), `severity: error` into `error: 15`, and `severity: off` into `off`.'
                 enum:
                 - error
                 - warn
@@ -1499,12 +1510,14 @@ properties:
                 type: array
               max:
                 default: 50
-                description: Highest number of lines a function body may have; a function counting more is reported. An integer of at least 1. Defaults to 50.
+                deprecated: true
+                description: 'Deprecated (v1): replaced by a `warn` or `error` limit. `klint migrate` renames `max: N` to `error: N`, or to `warn: N` when `severity: warn`. Highest number of lines a function body may have; a function counting more is reported. An integer of at least 1. Defaults to 50.'
                 format: uint32
                 minimum: 1
                 type: integer
               severity:
-                description: Rule severity. "error" exits with code 2; "warn" reports but exits 0; "off" silences.
+                deprecated: true
+                description: 'Deprecated (v1): the level is now the key of the limit. `klint migrate` turns `severity: warn` into `warn: 50` (or `warn: <max>`), `severity: error` into `error: 50`, and `severity: off` into `off`.'
                 enum:
                 - error
                 - warn

@@ -11,6 +11,10 @@ enum CognitiveComplexityV1Config {
         description = "Rule options object. Omit severity to default to \"error\". Add include to scope the rule to specific files."
     )]
     Options {
+        #[schemars(
+            extend("deprecated" = true),
+            description = "Deprecated (v1): the level is now the key of the limit. `klint migrate` turns `severity: warn` into `warn: 15` (or `warn: <max>`), `severity: error` into `error: 15`, and `severity: off` into `off`."
+        )]
         severity: Option<Severity>,
         #[schemars(
             description = "Glob patterns scoping this rule to a subset of files. Prefix with ! to exclude. Example: [\"src/hooks/**\", \"!src/hooks/scripts/**\"]"
@@ -18,8 +22,8 @@ enum CognitiveComplexityV1Config {
         include: Option<Vec<String>>,
         #[schemars(
             range(min = 1),
-            extend("default" = 15),
-            description = "Highest cognitive complexity a function may have; a function scoring above it is reported. An integer of at least 1. Defaults to 15."
+            extend("default" = 15, "deprecated" = true),
+            description = "Deprecated (v1): replaced by a `warn` or `error` limit. `klint migrate` renames `max: N` to `error: N`, or to `warn: N` when `severity: warn`. Highest cognitive complexity a function may have; a function scoring above it is reported. An integer of at least 1. Defaults to 15."
         )]
         max: Option<u32>,
     },
