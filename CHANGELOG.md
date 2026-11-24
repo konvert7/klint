@@ -1,3 +1,10 @@
+## [1.13.2](https://github.com/konvert7/klint/compare/v1.13.1...v1.13.2) (2026-11-24)
+
+
+### Bug Fixes
+
+* **schema:** self-contained arch examples and v1 threshold replacements ([dac7839](https://github.com/konvert7/klint/commit/dac7839d779e9997e7a84a11d3eb70a70296bd58))
+
 ## [1.13.1](https://github.com/konvert7/klint/compare/v1.13.0...v1.13.1) (2026-11-22)
 
 
